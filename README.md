@@ -35,7 +35,7 @@ Create new resource
 ```
 chat_res = ab.resource('Entity', id='chat')
 title_attr = ab.resource('Attribute', id='chat.title', name='title', path=['title'], resource=chat_res, type=ab.resource('Entity', id='string'))
-last_subject = ab.resource('Attribute', id='chat.subject', name='subject', path=['subject'], resource=type=ab.resource('Entity', id='Reference'))
+last_subject = ab.resource('Attribute', id='chat.subject', name='subject', path=['subject'], resource=chat_res, type=ab.resource('Entity', id='Reference'))
 ```
 
 # Example
