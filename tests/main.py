@@ -6,7 +6,9 @@ ab = Aidbox(
     password='patient')
 
 # res = ab.resources('Entity').get('Patient')
-res = ab.resources('Patient').all()
+res = ab.resources('Entity').search(
+    type='resource',
+    module='chat').all()
 
 a = 0
 pass

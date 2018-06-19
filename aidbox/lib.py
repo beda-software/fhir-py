@@ -2,7 +2,7 @@ import json
 import requests
 import inflection
 
-from urllib.parse import parse_qsl
+from urllib.parse import parse_qsl, urlencode
 
 from .utils import convert_to_underscore
 from .exceptions import AidboxResourceFieldDoesNotExist, AidboxResourceNotFound
@@ -53,10 +53,12 @@ class Aidbox:
 class AidboxSearchSet:
     aidbox = None
     resource_type = None
+    params = {}
 
-    def __init__(self, aidbox, resource_type):
+    def __init__(self, aidbox, resource_type, params=None):
         self.aidbox = aidbox
         self.resource_type = resource_type
+        self.params = params if params else {}
 
     def get(self, id):
         res_data = self.aidbox._fetch_resource(
@@ -64,7 +66,8 @@ class AidboxSearchSet:
         return self.aidbox.resource(**res_data)
 
     def all(self):
-        res_data = self.aidbox._fetch_resource(self.resource_type)
+        url = '{0}?{1}'.format(self.resource_type, urlencode(self.params))
+        res_data = self.aidbox._fetch_resource(url)
         resource_data = [res['resource'] for res in res_data['entry']]
         root_attrs = self.aidbox._fetch_root_attrs(self.resource_type)
         return [AidboxResource(
@@ -83,10 +86,8 @@ class AidboxSearchSet:
         pass
 
     def search(self, **kwargs):
-        # TODO: use SearchParameter.name
-        # TODO: fetch_resource params=kwargs
-        # TODO: .filter(name='John') -> ?name=john
-        pass
+        self.params.update(kwargs)
+        return AidboxSearchSet(self.aidbox, self.resource_type, self.params)
 
     def limit(self, limit):
         pass
