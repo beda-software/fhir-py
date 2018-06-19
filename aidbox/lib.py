@@ -32,3 +32,8 @@ class AidboxResource:
 
     def delete(self):
         pass
+
+
+class AidboxReference:
+    def __init__(self, resource_type, id, **kwargs):
+        pass
