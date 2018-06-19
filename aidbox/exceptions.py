@@ -1,4 +1,6 @@
+class AidboxResourceNotFound(Exception):
+    pass
 
 
-# field does not exists
-# server error
+class AidboxResourceFieldDoesNotExist(Exception):
+    pass
