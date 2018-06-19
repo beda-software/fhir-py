@@ -5,7 +5,8 @@ import inflection
 from urllib.parse import parse_qsl, urlencode
 
 from .utils import convert_to_underscore
-from .exceptions import AidboxResourceFieldDoesNotExist, AidboxResourceNotFound
+from .exceptions import AidboxResourceFieldDoesNotExist, \
+    AidboxResourceNotFound, AidboxAuthorizationError
 
 
 class Aidbox:
@@ -20,9 +21,13 @@ class Aidbox:
             data={'email': email, 'password': password},
             allow_redirects=False
         )
+        if 'location' not in r.headers:
+            raise AidboxAuthorizationError()
+
         token_data = dict(parse_qsl(r.headers['location']))
 
         self.host = host
+        self.email = email
         self.token = token_data['id_token']
 
     def resource(self, resource_type, **kwargs):
@@ -31,7 +36,6 @@ class Aidbox:
 
     def resources(self, resource_type):
         return AidboxSearchSet(self, resource_type=resource_type)
-    # TODO: define __str__, __repr__
 
     def _fetch_resource(self, path):
         r = requests.get(
@@ -47,7 +51,11 @@ class Aidbox:
         attrs_data = self._fetch_resource(
             'Attribute?entity={0}'.format(resource_type))
         attrs = [res['resource'] for res in attrs_data['entry']]
-        return {inflection.underscore(attr['path'][0]) for attr in attrs}
+        return {inflection.underscore(attr['path'][0])
+                for attr in attrs} | {'id', 'ref'}  # TODO: discuss default root attrs
+
+    def __str__(self):
+        return '{0}:{1}'.format(self.host, self.email)
 
 
 class AidboxSearchSet:
@@ -114,7 +122,9 @@ class AidboxSearchSet:
         # works as prefetch_related
         pass
 
-    # TODO: define __str__, __repr__
+    def __str__(self):
+        return 'Search {0}?{1}'.format(
+            self.resource_type, urlencode(self.params))
 
 
 class AidboxResource:
@@ -173,7 +183,15 @@ class AidboxResource:
 
     def reference(self):
         return AidboxReference(self.aidbox, self.resource_type, self.id)
-    # TODO: define __str__, __repr__
+
+    def __str__(self):
+        if self.data:
+            if self.id:
+                return '{0}/{1}'.format(self.resource_type, self.id)
+            else:
+                return self.resource_type
+        else:
+            return 'AidboxResourceObject'
 
 
 class AidboxReference:

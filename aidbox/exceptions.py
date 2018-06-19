@@ -4,3 +4,7 @@ class AidboxResourceNotFound(Exception):
 
 class AidboxResourceFieldDoesNotExist(Exception):
     pass
+
+
+class AidboxAuthorizationError(Exception):
+    pass
