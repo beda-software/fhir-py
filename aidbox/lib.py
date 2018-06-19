@@ -1,8 +1,10 @@
-from urllib.parse import parse_qsl
 import json
-
 import requests
+import inflection
 
+from urllib.parse import parse_qsl
+
+from .utils import convert_to_underscore
 from .exceptions import AidboxResourceFieldDoesNotExist, AidboxResourceNotFound
 
 
@@ -23,22 +25,29 @@ class Aidbox:
         self.host = host
         self.token = token_data['id_token']
 
-    def fetch_resource(self, path):
+    def resource(self, resource_type, **kwargs):
+        kwargs['resource_type'] = resource_type
+        return AidboxResource(self, **kwargs)
+
+    def resources(self, resource_type):
+        return AidboxSearchSet(self, resource_type=resource_type)
+    # TODO: define __str__, __repr__
+
+    def _fetch_resource(self, path):
         r = requests.get(
             '{0}/{1}'.format(self.host, path),
             headers={'Authorization': 'Bearer {0}'.format(self.token)})
         if r.status_code == 404:
             raise AidboxResourceNotFound()
 
-        return json.loads(r.text)
+        result = json.loads(r.text)
+        return convert_to_underscore(result)
 
-    def resource(self, resource_type, **kwargs):
-        return AidboxResource(
-            self, resource_type=resource_type, **kwargs)
-
-    def resources(self, resource_type):
-        return AidboxSearchSet(self, resource_type=resource_type)
-    # TODO: define __str__, __repr__
+    def _fetch_root_attrs(self, resource_type):
+        attrs_data = self._fetch_resource(
+            'Attribute?entity={0}'.format(resource_type))
+        attrs = [res['resource'] for res in attrs_data['entry']]
+        return {inflection.underscore(attr['path'][0]) for attr in attrs}
 
 
 class AidboxSearchSet:
@@ -50,14 +59,19 @@ class AidboxSearchSet:
         self.resource_type = resource_type
 
     def get(self, id):
-        res_data = self.aidbox.fetch_resource(
+        res_data = self.aidbox._fetch_resource(
             '{0}/{1}'.format(self.resource_type, id))
-        # TODO: camelCase -> underscore_case
-        return self.aidbox.resource(self.resource_type, **res_data)
+        return self.aidbox.resource(**res_data)
 
     def all(self):
-        # TODO: return all list from one page
-        pass
+        res_data = self.aidbox._fetch_resource(self.resource_type)
+        resource_data = [res['resource'] for res in res_data['entry']]
+        root_attrs = self.aidbox._fetch_root_attrs(self.resource_type)
+        return [AidboxResource(
+            self.aidbox,
+            root_attrs,
+            **data
+        ) for data in resource_data]
 
     def first(self):
         # TODO: return first item from list
@@ -106,15 +120,15 @@ class AidboxResource:
     data = {}
     meta = {}
 
-    def __init__(self, aidbox, resource_type, **kwargs):
+    def __init__(self, aidbox, root_attrs=None, **kwargs):
+        self.data = {}
         self.aidbox = aidbox
-        self.resource_type = resource_type
+        self.resource_type = kwargs.get('resource_type')
 
-        attrs_data = self.aidbox.fetch_resource(
-            'Attribute?entity={0}'.format(resource_type))
-        attrs = [res['resource'] for res in attrs_data['entry']]
-        # TODO: camelCase -> underscore_case
-        self.root_attrs = {attr['path'][0] for attr in attrs} | {'resourceType'}
+        if not root_attrs:
+            self.root_attrs = aidbox._fetch_root_attrs(self.resource_type)
+        else:
+            self.root_attrs = root_attrs
 
         meta = kwargs.pop('meta', {})
         self.meta = meta

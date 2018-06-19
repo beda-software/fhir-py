@@ -5,10 +5,8 @@ ab = Aidbox(
     email='patient@com.com',
     password='patient')
 
-pr_res = ab.resource('Practitioner')
+# res = ab.resources('Entity').get('Patient')
+res = ab.resources('Patient').all()
 
-res = ab.resource('Patient')
-
-res.generalPractitioner = pr_res
-
-print(res.data)
+a = 0
+pass

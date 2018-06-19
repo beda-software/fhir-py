@@ -1,1 +1,2 @@
 requests==2.19.1
+inflection==0.3.1
