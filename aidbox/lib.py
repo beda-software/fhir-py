@@ -77,8 +77,8 @@ class AidboxSearchSet:
         ) for data in resource_data]
 
     def first(self):
-        # TODO: return first item from list
-        pass
+        result = self.limit(1).all()
+        return result[0] if result else None
 
     def last(self):
         # TODO: return last item from list
@@ -90,13 +90,17 @@ class AidboxSearchSet:
         return AidboxSearchSet(self.aidbox, self.resource_type, self.params)
 
     def limit(self, limit):
-        pass
+        self.params['_count'] = limit
+        return AidboxSearchSet(self.aidbox, self.resource_type, self.params)
 
-    def offset(self, offset):
-        pass
+    def page(self, page):
+        self.params['_page'] = page
+        return AidboxSearchSet(self.aidbox, self.resource_type, self.params)
 
     def sort(self, keys):
-        pass
+        sort_keys = ','.join(keys) if isinstance(keys, list) else keys
+        self.params['_sort'] = sort_keys
+        return AidboxSearchSet(self.aidbox, self.resource_type, self.params)
 
     def include(self):
         # https://www.hl7.org/fhir/search.html
