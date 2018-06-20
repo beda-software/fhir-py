@@ -1,10 +1,18 @@
-class AidboxResourceNotFound(Exception):
+class AidboxError(Exception):
     pass
 
 
-class AidboxResourceFieldDoesNotExist(Exception):
+class AidboxResourceNotFound(AidboxError):
     pass
 
 
-class AidboxAuthorizationError(Exception):
+class AidboxResourceFieldDoesNotExist(AidboxError):
+    pass
+
+
+class AidboxAuthorizationError(AidboxError):
+    pass
+
+
+class AidboxOperationOutcome(AidboxError):
     pass

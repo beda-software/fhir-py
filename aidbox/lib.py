@@ -6,9 +6,10 @@ import inflection
 
 from urllib.parse import parse_qsl, urlencode
 
-from .utils import convert_to_underscore
-from .exceptions import AidboxResourceFieldDoesNotExist, \
-    AidboxResourceNotFound, AidboxAuthorizationError
+from .utils import convert_to_underscore, convert_to_camelcase, convert_values
+from .exceptions import (
+    AidboxResourceFieldDoesNotExist, AidboxResourceNotFound,
+    AidboxAuthorizationError, AidboxOperationOutcome)
 
 
 class Aidbox:
@@ -37,6 +38,9 @@ class Aidbox:
             token_data = dict(parse_qsl(r.headers['location']))
             self.token = token_data['id_token']
 
+    def reference(self, resource_type, id, **kwargs):
+        return AidboxReference(self, resource_type, id, **kwargs)
+
     def resource(self, resource_type, **kwargs):
         kwargs['resource_type'] = resource_type
         return AidboxResource(self, **kwargs)
@@ -44,31 +48,39 @@ class Aidbox:
     def resources(self, resource_type):
         return AidboxSearchSet(self, resource_type=resource_type)
 
-    def _fetch_resource(self, path, params=None):
-        r = requests.get(
+    def _do_request(self, method, path, data=None, params=None):
+        r = requests.request(
+            method,
             '{0}/{1}'.format(self.host, path),
             params=params,
+            json=convert_to_camelcase(data),
             headers={'Authorization': 'Bearer {0}'.format(self.token)})
-        if r.status_code == 404:
-            raise AidboxResourceNotFound()
-        if r.status_code == 200:
-            result = json.loads(r.text)
+
+        if 200 <= r.status_code < 300:
+            result = json.loads(r.text) if r.text else None
             return convert_to_underscore(result)
 
-        raise AidboxAuthorizationError()
+        if r.status_code == 404:
+            raise AidboxResourceNotFound()
+
+        if r.status_code == 403:
+            raise AidboxAuthorizationError()
+
+        raise AidboxOperationOutcome(r.text)
+
+    def _fetch_resource(self, path, params=None):
+        return self._do_request('get', path, params=params)
 
     def _fetch_schema(self, resource_type):
         schema = self.schema.get(resource_type, None)
-
         if not schema:
-            attrs_data = self._fetch_resource(
+            bundle = self._fetch_resource(
                 'Attribute',
                 params={'entity': resource_type}
             )
-            attrs = [res['resource'] for res in attrs_data['entry']]
+            attrs = [res['resource'] for res in bundle['entry']]
             schema = {inflection.underscore(attr['path'][0])
                       for attr in attrs} | {'id'}
-
             self.schema[resource_type] = schema
 
         return schema
@@ -171,7 +183,6 @@ class AidboxSearchSet:
 class AidboxResource:
     aidbox = None
     resource_type = None
-
     data = None
     meta = None
 
@@ -199,10 +210,7 @@ class AidboxResource:
         if key in dir(self):
             super(AidboxResource, self).__setattr__(key, value)
         elif key in self.root_attrs:
-            if isinstance(value, AidboxResource):
-                self.data[key] = value.reference()
-            else:
-                self.data[key] = value
+            self.data[key] = value
         else:
             raise AidboxResourceFieldDoesNotExist(
                 'Invalid attribute `{0}` for resource `{1}`'.format(
@@ -216,27 +224,41 @@ class AidboxResource:
                 'Invalid attribute `{0}` for resource `{1}`'.format(
                     key, self.resource_type))
 
+    def get_path(self):
+        if self.id:
+            return '{0}/{1}'.format(self.resource_type, self.id)
+
+        return self.resource_type
+
     def save(self):
-        # pass over data and when we see type(field) == AidboxReference, then
-        # convert to dict with {'resource_type': '', 'id': ''}
-        # then CamelCase it and post JSON to server
-        pass
+        data = self.aidbox._do_request(
+            'put' if self.id else 'post', self.get_path(), data=self.to_dict())
+
+        self.meta = data.get('meta', {})
+        self.id = data.get('id')
 
     def delete(self):
-        pass
+        return self.aidbox._do_request('delete', self.get_path())
 
-    def reference(self):
-        return AidboxReference(self.aidbox, self.resource_type, self.id)
+    def reference(self, **kwargs):
+        return AidboxReference(
+            self.aidbox, self.resource_type, self.id, **kwargs)
+
+    def to_dict(self):
+        def convert_fn(item):
+            if isinstance(item, AidboxResource):
+                return item.reference().to_dict()
+            elif isinstance(item, AidboxReference):
+                return item.to_dict()
+            else:
+                return item
+
+        return convert_values(
+            self.data,
+            convert_fn)
 
     def __str__(self):
-        if self.data:
-            if self.id:
-                return '<AidboxResource {0}/{1}>'.format(
-                    self.resource_type, self.id)
-            else:
-                return '<AidboxResource {0}>'.format(self.resource_type)
-        else:
-            return '<AidboxResource>'
+        return '<AidboxResource {0}>'.format(self.get_path())
 
     def __repr__(self):
         return self.__str__()
@@ -256,13 +278,16 @@ class AidboxReference:
         self.display = kwargs.get('display', None)
         self.resource = kwargs.get('resource', None)
 
-    def to_dict(self):
-        return {attr: getattr(self, attr) for attr in [
-            'id', 'resource_type', 'display', 'resource'
-        ] if getattr(self, attr, None)}
-
     def __str__(self):
         return '<AidboxReference {0}/{1}>'.format(self.resource_type, self.id)
 
     def __repr__(self):
         return self.__str__()
+
+    def to_dict(self):
+        return {attr: getattr(self, attr) for attr in [
+            'id', 'resource_type', 'display', 'resource'
+        ] if getattr(self, attr, None)}
+
+
+# TODO: work with Bundle
