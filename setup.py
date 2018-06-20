@@ -42,6 +42,7 @@ setup(
     author='beda.software',
     author_email='aidbox@beda.software',
     packages=['aidbox'],
+    install_requires=['requests', 'inflection'],
     zip_safe=False,
     classifiers=[
         'Development Status :: 4 - Beta',

@@ -57,33 +57,3 @@ res.save() # creates new resource
 res = ab.resources('Entity').get(id=1)
 res.delete() # deletes resource Entity with id=1
 ```
-
-Create new chat resource
-```python
-chat_res = ab.resource('Entity', id='Chat')
-chat_res.save()
-title_attr = ab.resource(
-    'Attribute',
-    id='chat.title',
-    name='title',
-    path=['title'],
-    resource=chat_res,
-    type=ab.reference('Entity', id='string'))
-title_attr.save()
-subject_attr = ab.resource(
-    'Attribute',
-    id='chat.subject',
-    name='subject',
-    path=['subject'],
-    resource=chat_res,
-    type=ab.reference('Entity', id='Reference'))
-subject_attr.save()
-```
-
-Create instance of Chat
-```python
-chat = ab.resource('Chat')
-chat.title = 'Chat title'
-chat.subject = ab.reference('Patient', id='new-patient')
-chat.save()
-```

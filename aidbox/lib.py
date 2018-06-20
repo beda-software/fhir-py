@@ -61,10 +61,10 @@ class Aidbox:
             return convert_to_underscore(result)
 
         if r.status_code == 404:
-            raise AidboxResourceNotFound()
+            raise AidboxResourceNotFound(r.text)
 
         if r.status_code == 403:
-            raise AidboxAuthorizationError()
+            raise AidboxAuthorizationError(r.text)
 
         raise AidboxOperationOutcome(r.text)
 
@@ -152,7 +152,7 @@ class AidboxSearchSet:
         return self.clone(_page=page)
 
     def sort(self, *keys):
-        sort_keys = ','.join(*keys)
+        sort_keys = ','.join(keys)
         return self.clone(_sort=sort_keys)
 
     def include(self):
@@ -232,7 +232,7 @@ class AidboxResource:
         data = self.aidbox._do_request(
             'put' if self.id else 'post', self.get_path(), data=self.to_dict())
 
-        self.meta = data.get('meta', {})
+        self._meta = data.get('meta', {})
         self.id = data.get('id')
 
     def delete(self):
