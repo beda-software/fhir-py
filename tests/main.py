@@ -23,16 +23,10 @@ practitioner.save()
 
 patient = ab.resource('Patient', id='b38d148a-a474-4ae0-b0f9-5e8454bb7240',
                       general_practitioner=[practitioner],
-                      contact=[{'organization': ab.reference(
-                          resource_type='Organization',
-                          id='tealnet',
-                          display='Tealnet')
-                      }],
                       name=[{'text': 'New Patient'}])
 patient.save()
 patient.delete()
 practitioner.delete()
-print(ab.resources('Patient').search().get(id='b38d148a-a474-4ae0-b0f9-5e8454bb7240').to_dict())
 
 
 

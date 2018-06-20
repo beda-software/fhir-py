@@ -116,36 +116,6 @@ class AidboxSearchSet:
             **data
         ) for data in resource_data]
 
-    def first(self):
-        result = self.limit(1).all()
-        return result[0] if result else None
-
-    def last(self):
-        # TODO: return last item from list
-        # TODO: sort (-) + first
-        pass
-
-    def search(self, **kwargs):
-        new_params = copy.deepcopy(self.params)
-        new_params.update(kwargs)
-        return AidboxSearchSet(self.aidbox, self.resource_type, new_params)
-
-    def limit(self, limit):
-        new_params = copy.deepcopy(self.params)
-        new_params['_count'] = limit
-        return AidboxSearchSet(self.aidbox, self.resource_type, new_params)
-
-    def page(self, page):
-        new_params = copy.deepcopy(self.params)
-        new_params['_page'] = page
-        return AidboxSearchSet(self.aidbox, self.resource_type, new_params)
-
-    def sort(self, keys):
-        new_params = copy.deepcopy(self.params)
-        sort_keys = ','.join(keys) if isinstance(keys, list) else keys
-        new_params['_sort'] = sort_keys
-        return AidboxSearchSet(self.aidbox, self.resource_type, new_params)
-
     def count(self):
         new_params = copy.deepcopy(self.params)
         new_params['_count'] = 1
@@ -156,6 +126,33 @@ class AidboxSearchSet:
             self.resource_type,
             params=new_params
         )['total']
+
+    def first(self):
+        result = self.limit(1).all()
+        return result[0] if result else None
+
+    def last(self):
+        # TODO: return last item from list
+        # TODO: sort (-) + first
+        pass
+
+    def clone(self, **kwargs):
+        new_params = copy.deepcopy(self.params)
+        new_params.update(kwargs)
+        return AidboxSearchSet(self.aidbox, self.resource_type, new_params)
+
+    def search(self, **kwargs):
+        return self.clone(**kwargs)
+
+    def limit(self, limit):
+        return self.clone(_count=limit)
+
+    def page(self, page):
+        return self.clone(_page=page)
+
+    def sort(self, keys):
+        sort_keys = ','.join(keys) if isinstance(keys, list) else keys
+        return self.clone(_sort=sort_keys)
 
     def include(self):
         # https://www.hl7.org/fhir/search.html
