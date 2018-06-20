@@ -15,28 +15,28 @@ from .exceptions import (
 class Aidbox:
     schema = None
 
-    def __init__(self, host, token=None, email=None, password=None):
+    @staticmethod
+    def obtain_token(host, email, password):
+        r = requests.post(
+            '{0}/oauth2/authorize'.format(host),
+            params={
+                'client_id': 'sansara',
+                'scope': 'openid profile email',
+                'response_type': 'id_token',
+            },
+            data={'email': email, 'password': password},
+            allow_redirects=False
+        )
+        if 'location' not in r.headers:
+            raise AidboxAuthorizationError()
+
+        token_data = dict(parse_qsl(r.headers['location']))
+        return token_data['id_token']
+
+    def __init__(self, host, token):
         self.schema = {}
         self.host = host
-
-        if token:
-            self.token = token
-        else:
-            r = requests.post(
-                '{0}/oauth2/authorize'.format(host),
-                params={
-                    'client_id': 'sansara',
-                    'scope': 'openid profile email',
-                    'response_type': 'id_token',
-                },
-                data={'email': email, 'password': password},
-                allow_redirects=False
-            )
-            if 'location' not in r.headers:
-                raise AidboxAuthorizationError()
-
-            token_data = dict(parse_qsl(r.headers['location']))
-            self.token = token_data['id_token']
+        self.token = token
 
     def reference(self, resource_type, id, **kwargs):
         return AidboxReference(self, resource_type, id, **kwargs)

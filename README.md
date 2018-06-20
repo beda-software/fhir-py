@@ -4,7 +4,12 @@ This package provides a low-level API for authorization and CRUD operations over
 
 # API
 
-`Aidbox(host, login, password)`
+To obtain token by email and password use static method:
+`Aidbox.obtain_token(host, email, password)`
+
+Create Aidbox instance:
+
+`Aidbox(host, token)`
 
 Returns an instance of the connection to aidbox server which allows:
 * .reference(resource_type, id, **kwargs) - returns a reference to resource
