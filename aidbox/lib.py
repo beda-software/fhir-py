@@ -103,18 +103,24 @@ class AidboxSearchSet:
         self.params = params if params else {}
 
     def get(self, id):
-        res_data = self.aidbox._fetch_resource(
-            '{0}/{1}'.format(self.resource_type, id))
-        return self.aidbox.resource(skip_validation=True, **res_data)
+        res = self.search(_id=id).first()
+        if res:
+            return res
 
-    def all(self):
+        raise AidboxResourceNotFound()
+
+    def execute(self):
         res_data = self.aidbox._fetch_resource(self.resource_type, self.params)
         resource_data = [res['resource'] for res in res_data['entry']]
-        return [AidboxResource(
-            self.aidbox,
-            skip_validation=True,
-            **data
-        ) for data in resource_data]
+        return [
+            AidboxResource(
+                self.aidbox,
+                skip_validation=True,
+                **data
+            )
+            for data in resource_data
+            if data.get('resource_type') == self.resource_type
+        ]
 
     def count(self):
         new_params = copy.deepcopy(self.params)
@@ -128,7 +134,7 @@ class AidboxSearchSet:
         )['total']
 
     def first(self):
-        result = self.limit(1).all()
+        result = self.limit(1).execute()
         return result[0] if result else None
 
     def last(self):
@@ -174,27 +180,27 @@ class AidboxSearchSet:
         return self.__str__()
 
     def __iter__(self):
-        return iter(self.all())
+        return iter(self.execute())
 
 
 class AidboxResource:
     aidbox = None
     resource_type = None
-    data = None
-    meta = None
+    _data = None
+    _meta = None
 
     @property
     def root_attrs(self):
         return self.aidbox.schema[self.resource_type]
 
     def __init__(self, aidbox, skip_validation=False, **kwargs):
-        self.data = {}
         self.aidbox = aidbox
         self.resource_type = kwargs.get('resource_type')
         self.aidbox._fetch_schema(self.resource_type)
 
         meta = kwargs.pop('meta', {})
-        self.meta = meta
+        self._meta = meta
+        self._data = {}
 
         for key, value in kwargs.items():
             try:
@@ -207,7 +213,7 @@ class AidboxResource:
         if key in dir(self):
             super(AidboxResource, self).__setattr__(key, value)
         elif key in self.root_attrs:
-            self.data[key] = value
+            self._data[key] = value
         else:
             raise AidboxResourceFieldDoesNotExist(
                 'Invalid attribute `{0}` for resource `{1}`'.format(
@@ -215,7 +221,7 @@ class AidboxResource:
 
     def __getattr__(self, key):
         if key in self.root_attrs:
-            return self.data.get(key, None)
+            return self._data.get(key, None)
         else:
             raise AidboxResourceFieldDoesNotExist(
                 'Invalid attribute `{0}` for resource `{1}`'.format(
@@ -251,7 +257,7 @@ class AidboxResource:
                 return item
 
         return convert_values(
-            self.data,
+            self._data,
             convert_fn)
 
     def __str__(self):
@@ -285,6 +291,3 @@ class AidboxReference:
         return {attr: getattr(self, attr) for attr in [
             'id', 'resource_type', 'display', 'resource'
         ] if getattr(self, attr, None)}
-
-
-# TODO: work with Bundle

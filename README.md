@@ -9,15 +9,15 @@ This package provides a low-level API for authorization and CRUD operations over
 Returns an instance of the connection to aidbox server which allows:
 * .reference(resource_type, id, **kwargs) - returns a reference to resource
 * .resource(resource_type, **kwargs) - returns AidboxResource which described below
-* .resources(resource_type) - returns an iterator
+* .resources(resource_type) - returns SearchSet
 
 `AidboxResource(connection, resource_type, **kwargs)`
 
 Returns an instance of an aidbox resource, which allows:
 * .save() - creates or updates resource instance
 * .delete() - deletes resource instance
+* .reference(**kwargs) - returns reference to resource
 * setattr/getattr using dot operator
-
 
 # Usage
 
