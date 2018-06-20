@@ -28,7 +28,7 @@ allows:
 
 Create an instance
 ```python
-ab = Aidbox(host='host', login='login', password='password', token='token')
+ab = Aidbox(host='host', token='token')
 ```
 
 Fetch list of resource instances
