@@ -1,4 +1,5 @@
 import json
+
 import requests
 import inflection
 
@@ -10,25 +11,30 @@ from .exceptions import AidboxResourceFieldDoesNotExist, \
 
 
 class Aidbox:
-    def __init__(self, host, email, password):
-        r = requests.post(
-            '{0}/oauth2/authorize'.format(host),
-            params={
-                'client_id': 'sansara',
-                'scope': 'openid profile email',
-                'response_type': 'id_token',
-            },
-            data={'email': email, 'password': password},
-            allow_redirects=False
-        )
-        if 'location' not in r.headers:
-            raise AidboxAuthorizationError()
+    schema = None
 
-        token_data = dict(parse_qsl(r.headers['location']))
-
+    def __init__(self, host, token=None, email=None, password=None):
+        self.schema = {}
         self.host = host
-        self.email = email
-        self.token = token_data['id_token']
+
+        if token:
+            self.token = token
+        else:
+            r = requests.post(
+                '{0}/oauth2/authorize'.format(host),
+                params={
+                    'client_id': 'sansara',
+                    'scope': 'openid profile email',
+                    'response_type': 'id_token',
+                },
+                data={'email': email, 'password': password},
+                allow_redirects=False
+            )
+            if 'location' not in r.headers:
+                raise AidboxAuthorizationError()
+
+            token_data = dict(parse_qsl(r.headers['location']))
+            self.token = token_data['id_token']
 
     def resource(self, resource_type, **kwargs):
         kwargs['resource_type'] = resource_type
@@ -37,25 +43,40 @@ class Aidbox:
     def resources(self, resource_type):
         return AidboxSearchSet(self, resource_type=resource_type)
 
-    def _fetch_resource(self, path):
+    def _fetch_resource(self, path, params=None):
         r = requests.get(
             '{0}/{1}'.format(self.host, path),
+            params=params,
             headers={'Authorization': 'Bearer {0}'.format(self.token)})
         if r.status_code == 404:
             raise AidboxResourceNotFound()
+        if r.status_code == 200:
+            result = json.loads(r.text)
+            return convert_to_underscore(result)
 
-        result = json.loads(r.text)
-        return convert_to_underscore(result)
+        raise AidboxAuthorizationError()
 
-    def _fetch_root_attrs(self, resource_type):
-        attrs_data = self._fetch_resource(
-            'Attribute?entity={0}'.format(resource_type))
-        attrs = [res['resource'] for res in attrs_data['entry']]
-        return {inflection.underscore(attr['path'][0])
-                for attr in attrs} | {'id', 'ref'}  # TODO: discuss default root attrs
+    def _fetch_schema(self, resource_type):
+        schema = self.schema.get(resource_type, None)
+
+        if not schema:
+            attrs_data = self._fetch_resource(
+                'Attribute',
+                params={'entity': resource_type}
+            )
+            attrs = [res['resource'] for res in attrs_data['entry']]
+            schema = {inflection.underscore(attr['path'][0])
+                      for attr in attrs} | {'id'}
+
+            self.schema[resource_type] = schema
+
+        return schema
 
     def __str__(self):
-        return '{0}:{1}'.format(self.host, self.email)
+        return self.host
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class AidboxSearchSet:
@@ -71,16 +92,14 @@ class AidboxSearchSet:
     def get(self, id):
         res_data = self.aidbox._fetch_resource(
             '{0}/{1}'.format(self.resource_type, id))
-        return self.aidbox.resource(**res_data)
+        return self.aidbox.resource(skip_validation=True, **res_data)
 
     def all(self):
-        url = '{0}?{1}'.format(self.resource_type, urlencode(self.params))
-        res_data = self.aidbox._fetch_resource(url)
+        res_data = self.aidbox._fetch_resource(self.resource_type, self.params)
         resource_data = [res['resource'] for res in res_data['entry']]
-        root_attrs = self.aidbox._fetch_root_attrs(self.resource_type)
         return [AidboxResource(
             self.aidbox,
-            root_attrs,
+            skip_validation=True,
             **data
         ) for data in resource_data]
 
@@ -110,6 +129,13 @@ class AidboxSearchSet:
         self.params['_sort'] = sort_keys
         return AidboxSearchSet(self.aidbox, self.resource_type, self.params)
 
+    def count(self):
+        # TODO: rewrite
+        return self.aidbox._fetch_resource(
+            self.resource_type,
+            params={'_count': 1, '_totalMethod': 'count'}
+        )['total']
+
     def include(self):
         # https://www.hl7.org/fhir/search.html
         # works as select_related
@@ -123,33 +149,42 @@ class AidboxSearchSet:
         pass
 
     def __str__(self):
-        return 'Search {0}?{1}'.format(
+        return '<AidboxSearchSet {0}?{1}>'.format(
             self.resource_type, urlencode(self.params))
+
+    def __repr__(self):
+        return self.__str__()
+
+    def __iter__(self):
+        return iter(self.all())
 
 
 class AidboxResource:
     aidbox = None
     resource_type = None
-    root_attrs = []
 
-    data = {}
-    meta = {}
+    data = None
+    meta = None
 
-    def __init__(self, aidbox, root_attrs=None, **kwargs):
+    @property
+    def root_attrs(self):
+        return self.aidbox.schema[self.resource_type]
+
+    def __init__(self, aidbox, skip_validation=False, **kwargs):
         self.data = {}
         self.aidbox = aidbox
         self.resource_type = kwargs.get('resource_type')
-
-        if not root_attrs:
-            self.root_attrs = aidbox._fetch_root_attrs(self.resource_type)
-        else:
-            self.root_attrs = root_attrs
+        self.aidbox._fetch_schema(self.resource_type)
 
         meta = kwargs.pop('meta', {})
         self.meta = meta
 
         for key, value in kwargs.items():
-            setattr(self, key, value)
+            try:
+                setattr(self, key, value)
+            except AidboxResourceFieldDoesNotExist:
+                if not skip_validation:
+                    raise
 
     def __setattr__(self, key, value):
         if key in dir(self):
@@ -187,11 +222,15 @@ class AidboxResource:
     def __str__(self):
         if self.data:
             if self.id:
-                return '{0}/{1}'.format(self.resource_type, self.id)
+                return '<AidboxResource {0}/{1}>'.format(
+                    self.resource_type, self.id)
             else:
-                return self.resource_type
+                return '<AidboxResource {0}>'.format(self.resource_type)
         else:
-            return 'AidboxResourceObject'
+            return '<AidboxResource>'
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class AidboxReference:
@@ -205,4 +244,8 @@ class AidboxReference:
         self.id = id
         # TODO: parse kwargs (display, resource)
 
-    # TODO: define __str__, __repr__
+    def __str__(self):
+        return '<AidboxReference {0}/{1}>'.format(self.resource_type, self.id)
+
+    def __repr__(self):
+        return self.__str__()
