@@ -137,11 +137,6 @@ class AidboxSearchSet:
         result = self.limit(1).execute()
         return result[0] if result else None
 
-    def last(self):
-        # TODO: return last item from list
-        # TODO: sort (-) + first
-        pass
-
     def clone(self, **kwargs):
         new_params = copy.deepcopy(self.params)
         new_params.update(kwargs)
@@ -156,8 +151,8 @@ class AidboxSearchSet:
     def page(self, page):
         return self.clone(_page=page)
 
-    def sort(self, keys):
-        sort_keys = ','.join(keys) if isinstance(keys, list) else keys
+    def sort(self, *keys):
+        sort_keys = ','.join(*keys)
         return self.clone(_sort=sort_keys)
 
     def include(self):
