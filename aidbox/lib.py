@@ -1,4 +1,5 @@
 import json
+import copy
 
 import requests
 import inflection
@@ -113,27 +114,35 @@ class AidboxSearchSet:
         pass
 
     def search(self, **kwargs):
-        self.params.update(kwargs)
-        return AidboxSearchSet(self.aidbox, self.resource_type, self.params)
+        new_params = copy.deepcopy(self.params)
+        new_params.update(kwargs)
+        return AidboxSearchSet(self.aidbox, self.resource_type, new_params)
 
     def limit(self, limit):
-        self.params['_count'] = limit
-        return AidboxSearchSet(self.aidbox, self.resource_type, self.params)
+        new_params = copy.deepcopy(self.params)
+        new_params['_count'] = limit
+        return AidboxSearchSet(self.aidbox, self.resource_type, new_params)
 
     def page(self, page):
-        self.params['_page'] = page
-        return AidboxSearchSet(self.aidbox, self.resource_type, self.params)
+        new_params = copy.deepcopy(self.params)
+        new_params['_page'] = page
+        return AidboxSearchSet(self.aidbox, self.resource_type, new_params)
 
     def sort(self, keys):
+        new_params = copy.deepcopy(self.params)
         sort_keys = ','.join(keys) if isinstance(keys, list) else keys
-        self.params['_sort'] = sort_keys
-        return AidboxSearchSet(self.aidbox, self.resource_type, self.params)
+        new_params['_sort'] = sort_keys
+        return AidboxSearchSet(self.aidbox, self.resource_type, new_params)
 
     def count(self):
+        new_params = copy.deepcopy(self.params)
+        new_params['_count'] = 1
+        new_params['_totalMethod'] = 'count'
+
         # TODO: rewrite
         return self.aidbox._fetch_resource(
             self.resource_type,
-            params={'_count': 1, '_totalMethod': 'count'}
+            params=new_params
         )['total']
 
     def include(self):
