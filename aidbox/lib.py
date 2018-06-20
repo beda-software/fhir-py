@@ -246,12 +246,20 @@ class AidboxReference:
     aidbox = None
     resource_type = None
     id = None
+    display = None
+    resource = None
 
     def __init__(self, aidbox, resource_type, id, **kwargs):
         self.aidbox = aidbox
         self.resource_type = resource_type
         self.id = id
-        # TODO: parse kwargs (display, resource)
+        self.display = kwargs.get('display', None)
+        self.resource = kwargs.get('resource', None)
+
+    def to_dict(self):
+        return {attr: getattr(self, attr) for attr in [
+            'id', 'resource_type', 'display', 'resource'
+        ] if getattr(self, attr, None)}
 
     def __str__(self):
         return '<AidboxReference {0}/{1}>'.format(self.resource_type, self.id)
