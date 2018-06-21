@@ -1,6 +1,7 @@
 from unittest2 import TestCase
 
 from aidbox import Aidbox
+from aidbox.exceptions import AidboxResourceFieldDoesNotExist
 
 
 class LibTestCase(TestCase):
@@ -98,3 +99,20 @@ class LibTestCase(TestCase):
     #     patient.name = [{'text': 'John Smith'}]
     #     patient.save()
 
+    def test_set_bad_attr(self):
+        with (self.assertRaises(AidboxResourceFieldDoesNotExist)):
+            self.ab.resource('Patient', not_patient_field='field')
+
+        self.ab.resource('Patient',
+                         not_patient_field='field',
+                         skip_validation=True)
+
+    def test_reference(self):
+        reference = self.ab.reference('Patient', 'aidbox_patient_1')
+        self.assertDictEqual(
+            reference.to_dict(),
+            {
+                'id': 'aidbox_patient_1',
+                'resource_type': 'Patient'
+            }
+        )
