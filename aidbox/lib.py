@@ -49,10 +49,11 @@ class Aidbox:
         return AidboxSearchSet(self, resource_type=resource_type)
 
     def _do_request(self, method, path, data=None, params=None):
+        url = '{0}/{1}?{2}'.format(
+            self.host, path, urlencode(params or {}, safe=':'))
         r = requests.request(
             method,
-            '{0}/{1}'.format(self.host, path),
-            params=params,
+            url,
             json=convert_to_camelcase(data),
             headers={'Authorization': 'Bearer {0}'.format(self.token)})
 
