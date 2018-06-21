@@ -1,14 +1,13 @@
 import json
 import copy
-from collections import defaultdict
-
 import requests
 import inflection
 
+from collections import defaultdict
 from urllib.parse import parse_qsl
 
-from .utils import convert_to_underscore, convert_to_camelcase, convert_values, \
-    encode_params
+from .utils import convert_to_underscore, convert_to_camelcase, \
+    convert_values, encode_params
 from .exceptions import (
     AidboxResourceFieldDoesNotExist, AidboxResourceNotFound,
     AidboxAuthorizationError, AidboxOperationOutcome)
