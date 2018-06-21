@@ -27,6 +27,9 @@ class LibTestCase(TestCase):
         cls.ab = Aidbox(cls.HOST, cls.TOKEN)
 
     def test_new_patient_entry(self):
+        self.ab.__str__()
+        self.ab.__repr__()
+
         patient = self.ab.resource('Patient', id='AidboxPy_test_patient')
         patient.name = [{'text': 'My patient'}]
         patient.save()
@@ -40,6 +43,8 @@ class LibTestCase(TestCase):
         search_set = self.ab.resources('Patient').search(**{
             'name:contains': 'AidboxPy'
         })
+        search_set.__str__()
+        search_set.__repr__()
 
         patient = self.ab.resource('Patient', id='AidboxPy_test_patient1')
         patient.name = [{'text': 'John Smith AidboxPy'}]
@@ -84,8 +89,8 @@ class LibTestCase(TestCase):
         # Test count
         self.assertEqual(search_set.count(), 3)
 
-        # Test limit and page
-        patients = search_set.limit(1).page(2).execute()
+        # Test limit and page and iter (by calling list)
+        patients = list(search_set.limit(1).page(2))
         self.assertEqual(len(patients), 1)
         self.assertEqual(patients[0].id, 'AidboxPy_test_patient3')
 
@@ -132,3 +137,7 @@ class LibTestCase(TestCase):
                 'resource_type': 'Patient'
             }
         )
+
+    def test_not_found_error(self):
+        with self.assertRaises(AidboxResourceNotFound):
+            self.ab.resources('AidboxPyNotExistingResource').execute()
