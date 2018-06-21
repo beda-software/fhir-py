@@ -175,17 +175,17 @@ class AidboxSearchSet:
         sort_keys = ','.join(keys)
         return self.clone(_sort=sort_keys)
 
-    def include(self):
+    # def include(self):
         # https://www.hl7.org/fhir/search.html
         # works as select_related
         # result: Bundle [patient1, patientN, clinic1, clinicN]
         # searchset.filter(name='john').get(pk=1)
-        pass
+        # pass
 
-    def revinclude(self):
+    # def revinclude(self):
         # https://www.hl7.org/fhir/search.html
         # works as prefetch_related
-        pass
+        # pass
 
     def __str__(self):
         return '<AidboxSearchSet {0}?{1}>'.format(
