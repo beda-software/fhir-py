@@ -126,6 +126,10 @@ class LibTestCase(TestCase):
             patient = self.ab.resource('Patient')
             patient.not_patient_field = 'field'
 
+        with self.assertRaises(AidboxResourceFieldDoesNotExist):
+            patient = self.ab.resource('Patient')
+            _ = patient.not_patient_field
+
     def test_reference(self):
         reference = self.ab.reference('Patient', 'aidbox_patient_1')
         reference.__repr__()
