@@ -39,8 +39,9 @@ class Aidbox:
         if 'location' not in r.headers:
             raise AidboxAuthorizationError()
 
-        token_data = dict(parse_qsl(r.headers['location']))
-        return token_data['id_token']
+        # We don't fill production database with test tokens
+        token_data = dict(parse_qsl(r.headers['location'])) # pragma: no cover
+        return token_data['id_token'] # pragma: no cover
 
     def __init__(self, host, token):
         self.schema = {}
