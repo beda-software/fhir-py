@@ -94,21 +94,32 @@ class LibTestCase(TestCase):
 
         self.assertEqual(search_set.count(), 0)
 
-    # def test_create_without_id(self):
-    #     patient = self.ab.resource('Patient')
-    #     patient.name = [{'text': 'John Smith'}]
-    #     patient.save()
+    def test_create_without_id(self):
+        patient = self.ab.resource('Patient')
+        patient.name = [{'text': 'John Smith'}]
+        patient.save()
 
-    def test_set_bad_attr(self):
-        with (self.assertRaises(AidboxResourceFieldDoesNotExist)):
+        patient.__repr__()
+        patient.__str__()
+
+        patient.delete()
+
+    def test_get_set_bad_attr(self):
+        with self.assertRaises(AidboxResourceFieldDoesNotExist):
             self.ab.resource('Patient', not_patient_field='field')
 
         self.ab.resource('Patient',
                          not_patient_field='field',
                          skip_validation=True)
 
+        with self.assertRaises(AidboxResourceFieldDoesNotExist):
+            patient = self.ab.resource('Patient')
+            patient.not_patient_field = 'field'
+
     def test_reference(self):
         reference = self.ab.reference('Patient', 'aidbox_patient_1')
+        reference.__repr__()
+        reference.__str__()
         self.assertDictEqual(
             reference.to_dict(),
             {
