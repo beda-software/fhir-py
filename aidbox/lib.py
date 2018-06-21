@@ -1,5 +1,6 @@
 import json
 import copy
+from collections import defaultdict
 
 import requests
 import inflection
@@ -50,7 +51,7 @@ class Aidbox:
 
     def _do_request(self, method, path, data=None, params=None):
         url = '{0}/{1}?{2}'.format(
-            self.host, path, urlencode(params or {}, safe=':'))
+            self.host, path, urlencode(params or {}, doseq=True, safe=':'))
         r = requests.request(
             method,
             url,
@@ -96,12 +97,12 @@ class Aidbox:
 class AidboxSearchSet:
     aidbox = None
     resource_type = None
-    params = {}
+    params = None
 
     def __init__(self, aidbox, resource_type, params=None):
         self.aidbox = aidbox
         self.resource_type = resource_type
-        self.params = params if params else {}
+        self.params = defaultdict(list, params or {})
 
     def get(self, id):
         res = self.search(_id=id).first()
@@ -140,7 +141,12 @@ class AidboxSearchSet:
 
     def clone(self, **kwargs):
         new_params = copy.deepcopy(self.params)
-        new_params.update(kwargs)
+        for key, value in kwargs.items():
+            if isinstance(value, list):
+                for item in value:
+                    new_params[key].append(item)
+            else:
+                new_params[key].append(value)
         return AidboxSearchSet(self.aidbox, self.resource_type, new_params)
 
     def search(self, **kwargs):
@@ -170,7 +176,7 @@ class AidboxSearchSet:
 
     def __str__(self):
         return '<AidboxSearchSet {0}?{1}>'.format(
-            self.resource_type, urlencode(self.params))
+            self.resource_type, urlencode(self.params, doseq=True, safe=':'))
 
     def __repr__(self):
         return self.__str__()
