@@ -1,4 +1,10 @@
+from urllib.parse import urlencode
+
 import inflection
+
+
+def encode_params(params):
+    return urlencode(params or {}, doseq=True, safe=':,')
 
 
 def convert_keys(data, fn):

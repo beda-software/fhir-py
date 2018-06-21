@@ -5,9 +5,10 @@ from collections import defaultdict
 import requests
 import inflection
 
-from urllib.parse import parse_qsl, urlencode
+from urllib.parse import parse_qsl
 
-from .utils import convert_to_underscore, convert_to_camelcase, convert_values
+from .utils import convert_to_underscore, convert_to_camelcase, convert_values, \
+    encode_params
 from .exceptions import (
     AidboxResourceFieldDoesNotExist, AidboxResourceNotFound,
     AidboxAuthorizationError, AidboxOperationOutcome)
@@ -51,7 +52,7 @@ class Aidbox:
 
     def _do_request(self, method, path, data=None, params=None):
         url = '{0}/{1}?{2}'.format(
-            self.host, path, urlencode(params or {}, doseq=True, safe=':'))
+            self.host, path, encode_params(params))
         r = requests.request(
             method,
             url,
@@ -176,7 +177,7 @@ class AidboxSearchSet:
 
     def __str__(self):
         return '<AidboxSearchSet {0}?{1}>'.format(
-            self.resource_type, urlencode(self.params, doseq=True, safe=':'))
+            self.resource_type, encode_params(self.params))
 
     def __repr__(self):
         return self.__str__()
