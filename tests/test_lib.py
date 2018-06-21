@@ -173,3 +173,6 @@ class LibTestCase(TestCase):
         practitioner1.delete()
         practitioner2.delete()
 
+    def test_empty_reference(self):
+        with self.assertRaises(AttributeError):
+            self.ab.reference()
