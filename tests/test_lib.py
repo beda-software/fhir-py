@@ -1,7 +1,8 @@
 from unittest2 import TestCase
 
 from aidbox import Aidbox
-from aidbox.exceptions import AidboxResourceFieldDoesNotExist
+from aidbox.exceptions import AidboxResourceFieldDoesNotExist, \
+    AidboxResourceNotFound
 
 
 class LibTestCase(TestCase):
@@ -61,7 +62,7 @@ class LibTestCase(TestCase):
         )
 
         # Test search with AND composition
-        patients = search_set.search(name='john').search(name='gold').execute()
+        patients = search_set.search(name=['john', 'gold']).execute()
 
         self.assertSetEqual(
             set([p.id for p in patients]),
@@ -103,6 +104,10 @@ class LibTestCase(TestCase):
         patient.__str__()
 
         patient.delete()
+
+    def test_get_nonexistent_id(self):
+        with self.assertRaises(AidboxResourceNotFound):
+            self.ab.resources('Patient').get(id='aidboxpy_not_existent_id')
 
     def test_get_set_bad_attr(self):
         with self.assertRaises(AidboxResourceFieldDoesNotExist):
