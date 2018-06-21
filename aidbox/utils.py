@@ -33,30 +33,12 @@ def convert_keys(data, fn):
 
 
 def convert_values(data, fn):
-    if data is None:
-        return None
-
-    new = {}
-    for key, value in data.items():
-        if isinstance(value, dict):
-            value = convert_values(value, fn)
-
-        if isinstance(value, list):
-            value_list = []
-
-            for item in value:
-                if isinstance(item, dict):
-                    item = convert_values(item, fn)
-                else:
-                    item = fn(item)
-
-                value_list.append(item)
-
-            new[key] = value_list
-        else:
-            new[key] = fn(value)
-
-    return new
+    data = fn(data)
+    if isinstance(data, list):
+        return [convert_values(x, fn) for x in data]
+    if isinstance(data, dict):
+        return {key: convert_values(value, fn) for key, value in data.items()}
+    return data
 
 
 def convert_to_underscore(data):

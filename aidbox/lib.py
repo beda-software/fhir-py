@@ -14,6 +14,13 @@ from .exceptions import (
     AidboxAuthorizationError, AidboxOperationOutcome)
 
 
+class ReferableMixin:
+    def __eq__(self, other):
+        return isinstance(other, (AidboxResource, AidboxReference)) \
+               and self.id == other.id \
+               and self.resource_type == other.resource_type
+
+
 class Aidbox:
     schema = None
 
@@ -40,7 +47,9 @@ class Aidbox:
         self.host = host
         self.token = token
 
-    def reference(self, resource_type, id, **kwargs):
+    def reference(self, resource_type=None, id=None, **kwargs):
+        if resource_type is None or id is None:
+            raise AttributeError('`resource_type` and `id` are required')
         return AidboxReference(self, resource_type, id, **kwargs)
 
     def resource(self, resource_type, **kwargs):
@@ -61,7 +70,10 @@ class Aidbox:
 
         if 200 <= r.status_code < 300:
             result = json.loads(r.text) if r.text else None
-            return convert_to_underscore(result)
+            return convert_values(
+                convert_to_underscore(result),
+                lambda x: self.reference(**x)
+                if AidboxReference.is_reference(x) else x)
 
         if r.status_code == 404:
             raise AidboxResourceNotFound(r.text)
@@ -186,7 +198,7 @@ class AidboxSearchSet:
         return iter(self.execute())
 
 
-class AidboxResource:
+class AidboxResource(ReferableMixin):
     aidbox = None
     resource_type = None
     _data = None
@@ -270,7 +282,7 @@ class AidboxResource:
         return self.__str__()
 
 
-class AidboxReference:
+class AidboxReference(ReferableMixin):
     aidbox = None
     resource_type = None
     id = None
@@ -294,3 +306,11 @@ class AidboxReference:
         return {attr: getattr(self, attr) for attr in [
             'id', 'resource_type', 'display', 'resource'
         ] if getattr(self, attr, None)}
+
+    @staticmethod
+    def is_reference(value):
+        if not isinstance(value, dict):
+            return False
+        return 'id' in value and 'resource_type' in value and \
+               not (set(value.keys()) - {
+                    'id', 'resource_type', 'display', 'resource'})

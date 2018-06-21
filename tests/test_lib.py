@@ -1,8 +1,9 @@
 from unittest2 import TestCase
 
 from aidbox import Aidbox
+
 from aidbox.exceptions import AidboxResourceFieldDoesNotExist, \
-    AidboxResourceNotFound
+    AidboxResourceNotFound, AidboxAuthorizationError
 
 
 class LibTestCase(TestCase):
@@ -145,3 +146,30 @@ class LibTestCase(TestCase):
     def test_not_found_error(self):
         with self.assertRaises(AidboxResourceNotFound):
             self.ab.resources('AidboxPyNotExistingResource').execute()
+
+    def test_invalid_token_access(self):
+        with self.assertRaises(AidboxAuthorizationError):
+            Aidbox.obtain_token(self.HOST, 'fake@fake.com', 'fakepass')
+
+    def test_save_with_reference(self):
+        practitioner1 = self.ab.resource('Practitioner', id='AidboxPy_test_pr1')
+        practitioner1.save()
+        practitioner2 = self.ab.resource('Practitioner', id='AidboxPy_test_pr2')
+        practitioner2.save()
+        patient = self.ab.resource(
+            'Patient',
+            id='AidboxPy_test_patient',
+            general_practitioner=[practitioner1.reference(
+                display='practitioner'), practitioner2])
+        patient.save()
+
+        patient = self.ab.resources('Patient').get(id='AidboxPy_test_patient')
+        self.assertEqual(patient.general_practitioner[0], practitioner1)
+        self.assertEqual(patient.general_practitioner[0].display,
+                         'practitioner')
+        self.assertEqual(patient.general_practitioner[1], practitioner2)
+
+        patient.delete()
+        practitioner1.delete()
+        practitioner2.delete()
+
