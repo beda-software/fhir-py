@@ -24,42 +24,67 @@ class LibTestCase(TestCase):
     ab = None
 
     @classmethod
-    def setUpClass(cls):
-        cls.ab = Aidbox(cls.HOST, cls.TOKEN)
-
-    def test_new_patient_entry(self):
-        patient = self.ab.resource('Patient', id='AidboxPy_test_patient')
-        patient.name = [{'text': 'My patient'}]
-        patient.save()
-
-        patient = self.ab.resources('Patient').get('AidboxPy_test_patient')
-        self.assertEqual(patient.name, [{'text': 'My patient'}])
-
-        patient.delete()
-
-    def test_patients_search(self):
-        search_set = self.ab.resources('Patient').search(**{
-            'name:contains': 'AidboxPy'
+    def get_search_set(cls, resource_type):
+        return cls.ab.resources(resource_type).search(**{
+            'identifier': 'aidboxpy'
         })
 
-        patient = self.ab.resource('Patient', id='AidboxPy_test_patient1')
-        patient.name = [{'text': 'John Smith AidboxPy'}]
-        patient.save()
+    @classmethod
+    def clearDb(cls):
+        for resource_type in ['Patient', 'Practitioner']:
+            search_set = cls.get_search_set(resource_type)
+            for item in search_set:
+                item.delete()
 
-        patient2 = self.ab.resource('Patient', id='AidboxPy_test_patient2')
-        patient2.name = [{'text': 'John Gold AidboxPy'}]
-        patient2.save()
+    @classmethod
+    def setUpClass(cls):
+        cls.ab = Aidbox(cls.HOST, cls.TOKEN)
+        cls.clearDb()
 
-        patient3 = self.ab.resource('Patient', id='AidboxPy_test_patient3')
-        patient3.name = [{'text': 'Polumna Gold AidboxPy'}]
-        patient3.save()
+    def tearDown(self):
+        self.clearDb()
+
+    def create_resource(self, resource_type, **kwargs):
+        p = self.ab.resource(
+            resource_type,
+            identifier=[{'system': 'http://example.com/env',
+                         'value': 'aidboxpy'}],
+            **kwargs)
+        p.save()
+
+        return p
+
+    def test_new_patient_entry(self):
+        self.create_resource(
+            'Patient',
+            id='AidboxPy_patient',
+            name=[{'text': 'My patient'}])
+
+        patient = self.ab.resources('Patient').get('AidboxPy_patient')
+        self.assertEqual(patient.name, [{'text': 'My patient'}])
+
+    def test_patients_search(self):
+        search_set = self.get_search_set('Patient')
+
+        self.create_resource(
+            'Patient',
+            id='AidboxPy_patient1',
+            name=[{'text': 'John Smith AidboxPy'}])
+        self.create_resource(
+            'Patient',
+            id='AidboxPy_patient2',
+            name=[{'text': 'John Gold AidboxPy'}])
+        self.create_resource(
+            'Patient',
+            id='AidboxPy_patient3',
+            name=[{'text': 'Polumna Gold AidboxPy'}])
 
         # Test search
         patients = search_set.search(name='john').execute()
 
         self.assertSetEqual(
             set([p.id for p in patients]),
-            {'AidboxPy_test_patient1', 'AidboxPy_test_patient2'}
+            {'AidboxPy_patient1', 'AidboxPy_patient2'}
         )
 
         # Test search with AND composition
@@ -67,13 +92,13 @@ class LibTestCase(TestCase):
 
         self.assertSetEqual(
             set([p.id for p in patients]),
-            {'AidboxPy_test_patient2'}
+            {'AidboxPy_patient2'}
         )
 
         patients = search_set.search(name=['john', 'gold']).execute()
         self.assertSetEqual(
             set([p.id for p in patients]),
-            {'AidboxPy_test_patient2'}
+            {'AidboxPy_patient2'}
         )
 
         # Test search with OR composition
@@ -81,12 +106,12 @@ class LibTestCase(TestCase):
 
         self.assertSetEqual(
             set([p.id for p in patients]),
-            {'AidboxPy_test_patient1', 'AidboxPy_test_patient3'}
+            {'AidboxPy_patient1', 'AidboxPy_patient3'}
         )
 
         # Test sort
         patient = search_set.sort('-name').first()
-        self.assertEqual(patient.id, 'AidboxPy_test_patient3')
+        self.assertEqual(patient.id, 'AidboxPy_patient3')
 
         # Test count
         self.assertEqual(search_set.count(), 3)
@@ -94,24 +119,23 @@ class LibTestCase(TestCase):
         # Test limit and page and iter (by calling list)
         patients = list(search_set.limit(1).page(2))
         self.assertEqual(len(patients), 1)
-        self.assertEqual(patients[0].id, 'AidboxPy_test_patient3')
-
-        search_set.get('AidboxPy_test_patient1').delete()
-        search_set.get('AidboxPy_test_patient2').delete()
-        search_set.get('AidboxPy_test_patient3').delete()
-
-        self.assertEqual(search_set.count(), 0)
+        self.assertEqual(patients[0].id, 'AidboxPy_patient3')
 
     def test_create_without_id(self):
-        patient = self.ab.resource('Patient')
-        patient.name = [{'text': 'John Smith'}]
-        patient.save()
+        patient = self.create_resource('Patient')
 
+        self.assertIsNotNone(patient.id)
+
+    def test_delete(self):
+        patient = self.create_resource('Patient', id='AidboxPy_patient')
         patient.delete()
 
-    def test_get_nonexistent_id(self):
         with self.assertRaises(AidboxResourceNotFound):
-            self.ab.resources('Patient').get(id='aidboxpy_not_existent_id')
+            self.get_search_set('Patient').get(id='AidboxPy_patient')
+
+    def test_get_not_existing_id(self):
+        with self.assertRaises(AidboxResourceNotFound):
+            self.ab.resources('Patient').get(id='aidboxpy_not_existing_id')
 
     def test_get_set_bad_attr(self):
         with self.assertRaises(AidboxResourceFieldDoesNotExist):
@@ -140,71 +164,55 @@ class LibTestCase(TestCase):
             self.ab.resources('AidboxPyNotExistingResource').execute()
 
     def test_operation_outcome_error(self):
-        patient = self.ab.resource('Patient', id='aidbox_patient_1')
         with self.assertRaises(AidboxOperationOutcome):
-            patient.name = 'invalid value'
-            patient.save()
-
-        patient.delete()
+            self.create_resource('Patient', name='invalid')
 
     def test_invalid_token_access(self):
         with self.assertRaises(AidboxAuthorizationError):
             Aidbox.obtain_token(self.HOST, 'fake@fake.com', 'fakepass')
 
     def test_save_with_reference(self):
-        practitioner1 = self.ab.resource('Practitioner', id='AidboxPy_test_pr1')
-        practitioner1.save()
-        practitioner2 = self.ab.resource('Practitioner', id='AidboxPy_test_pr2')
-        practitioner2.save()
-        patient = self.ab.resource(
+        practitioner1 = self.create_resource('Practitioner', id='AidboxPy_pr1')
+        practitioner2 = self.create_resource('Practitioner', id='AidboxPy_pr2')
+        self.create_resource(
             'Patient',
-            id='AidboxPy_test_patient',
+            id='AidboxPy_patient',
             general_practitioner=[practitioner1.to_reference(
                 display='practitioner'), practitioner2])
-        patient.save()
 
-        patient = self.ab.resources('Patient').get(id='AidboxPy_test_patient')
+        patient = self.ab.resources('Patient').get(id='AidboxPy_patient')
         self.assertEqual(patient.general_practitioner[0], practitioner1)
         self.assertEqual(patient.general_practitioner[0].display,
                          'practitioner')
         self.assertEqual(patient.general_practitioner[1], practitioner2)
 
-        patient.delete()
-        practitioner1.delete()
-        practitioner2.delete()
-
     def test_to_reference(self):
-        patient = self.ab.resource('Patient', id='AidboxPy_test_patient')
-        patient.save()
+        patient = self.create_resource('Patient', id='AidboxPy_patient')
 
         self.assertEqual(
             patient.to_reference().to_dict(),
             {'resource_type': 'Patient',
-             'id': 'AidboxPy_test_patient'})
-
+             'id': 'AidboxPy_patient'})
 
         self.assertEqual(
             patient.to_reference(display='Patient').to_dict(),
             {'resource_type': 'Patient',
              'display': 'Patient',
-             'id': 'AidboxPy_test_patient'})
-
-        patient.delete()
+             'id': 'AidboxPy_patient'})
 
     def test_to_resource(self):
-        patient = self.ab.resource(
-            'Patient', id='AidboxPy_test_patient', name=[{'text': 'Name'}])
-        patient.save()
+        self.create_resource(
+            'Patient', id='AidboxPy_patient', name=[{'text': 'Name'}])
 
-        patient_ref = self.ab.reference('Patient', 'AidboxPy_test_patient')
+        patient_ref = self.ab.reference('Patient', 'AidboxPy_patient')
 
         self.assertEqual(
             patient_ref.to_resource().to_dict(),
             {'resource_type': 'Patient',
-             'id': 'AidboxPy_test_patient',
+             'id': 'AidboxPy_patient',
+             'identifier': [{'system': 'http://example.com/env',
+                             'value': 'aidboxpy'}],
              'name': [{'text': 'Name'}]})
-
-        patient.delete()
 
     def test_empty_reference(self):
         with self.assertRaises(AttributeError):
