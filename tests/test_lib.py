@@ -93,7 +93,6 @@ class LibTestCase(TestCase):
 
         # Test limit and page and iter (by calling list)
         patients = list(search_set.limit(1).page(2))
-        print(search_set.limit(1).page(2))
         self.assertEqual(len(patients), 1)
         self.assertEqual(patients[0].id, 'AidboxPy_test_patient3')
 
@@ -160,7 +159,7 @@ class LibTestCase(TestCase):
         patient = self.ab.resource(
             'Patient',
             id='AidboxPy_test_patient',
-            general_practitioner=[practitioner1.reference(
+            general_practitioner=[practitioner1.to_reference(
                 display='practitioner'), practitioner2])
         patient.save()
 
@@ -173,6 +172,39 @@ class LibTestCase(TestCase):
         patient.delete()
         practitioner1.delete()
         practitioner2.delete()
+
+    def test_to_reference(self):
+        patient = self.ab.resource('Patient', id='AidboxPy_test_patient')
+        patient.save()
+
+        self.assertEqual(
+            patient.to_reference().to_dict(),
+            {'resource_type': 'Patient',
+             'id': 'AidboxPy_test_patient'})
+
+
+        self.assertEqual(
+            patient.to_reference(display='Patient').to_dict(),
+            {'resource_type': 'Patient',
+             'display': 'Patient',
+             'id': 'AidboxPy_test_patient'})
+
+        patient.delete()
+
+    def test_to_resource(self):
+        patient = self.ab.resource(
+            'Patient', id='AidboxPy_test_patient', name=[{'text': 'Name'}])
+        patient.save()
+
+        patient_ref = self.ab.reference('Patient', 'AidboxPy_test_patient')
+
+        self.assertEqual(
+            patient_ref.to_resource().to_dict(),
+            {'resource_type': 'Patient',
+             'id': 'AidboxPy_test_patient',
+             'name': [{'text': 'Name'}]})
+
+        patient.delete()
 
     def test_empty_reference(self):
         with self.assertRaises(AttributeError):

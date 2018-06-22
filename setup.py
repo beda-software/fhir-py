@@ -42,18 +42,19 @@ setup(
     author='beda.software',
     author_email='aidbox@beda.software',
     packages=['aidbox'],
-    install_requires=['requests', 'inflection'],
+    install_requires=['requests'],
     zip_safe=False,
     classifiers=[
         'Development Status :: 4 - Beta',
-        'Environment :: Web Environment',  # TODO: change
+        'Environment :: Web Environment',
         'Intended Audience :: Developers',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
-        'Topic :: Internet :: WWW/HTTP',  # TODO: change
+        'Programming Language :: Python :: 3.6',
+        'Topic :: Internet :: WWW/HTTP',
+        'Topic :: Software Development :: Libraries :: Python Modules',
     ]
 )

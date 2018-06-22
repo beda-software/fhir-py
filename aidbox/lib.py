@@ -1,13 +1,12 @@
 import json
 import copy
 import requests
-import inflection
 
 from collections import defaultdict
 from urllib.parse import parse_qsl
 
 from .utils import (
-    convert_keys_to_underscore, convert_keys_to_camelcase,
+    underscore, convert_keys_to_underscore, convert_keys_to_camelcase,
     convert_values, encode_params, select_keys)
 from .exceptions import (
     AidboxResourceFieldDoesNotExist, AidboxResourceNotFound,
@@ -92,7 +91,7 @@ class Aidbox:
                 params={'entity': resource_type}
             )
             attrs = [res['resource'] for res in bundle['entry']]
-            schema = {inflection.underscore(attr['path'][0])
+            schema = {underscore(attr['path'][0])
                       for attr in attrs} | {'id', 'resource_type'}
             self.schema[resource_type] = schema
 
@@ -196,7 +195,7 @@ class AidboxResource(ReferableMixin):
 
     def __init__(self, aidbox, **kwargs):
         self.aidbox = aidbox
-        self.resource_type = kwargs.pop('resource_type')
+        self.resource_type = kwargs.get('resource_type')
         self.aidbox._fetch_schema(self.resource_type)
 
         meta = kwargs.pop('meta', {})
@@ -240,22 +239,23 @@ class AidboxResource(ReferableMixin):
     def delete(self):
         return self.aidbox._do_request('delete', self.get_path())
 
-    def reference(self, **kwargs):
+    def to_reference(self, **kwargs):
         return AidboxReference(
             self.aidbox, self.resource_type, self.id, **kwargs)
 
     def to_dict(self):
         def convert_fn(item):
             if isinstance(item, AidboxResource):
-                return item.reference().to_dict()
+                return item.to_reference().to_dict()
             elif isinstance(item, AidboxReference):
                 return item.to_dict()
             else:
                 return item
 
-        return convert_values(
-            self._data,
-            convert_fn)
+        data = {'resource_type': self.resource_type}
+        data.update(self._data)
+
+        return convert_values(data, convert_fn)
 
     def __str__(self):  # pragma: no cover
         return '<AidboxResource {0}>'.format(self.get_path())
@@ -269,14 +269,12 @@ class AidboxReference(ReferableMixin):
     resource_type = None
     id = None
     display = None
-    resource = None
 
     def __init__(self, aidbox, resource_type, id, **kwargs):
         self.aidbox = aidbox
         self.resource_type = resource_type
         self.id = id
         self.display = kwargs.get('display', None)
-        self.resource = kwargs.get('resource', None)
 
     def __str__(self):  # pragma: no cover
         return '<AidboxReference {0}/{1}>'.format(self.resource_type, self.id)
@@ -284,9 +282,12 @@ class AidboxReference(ReferableMixin):
     def __repr__(self):  # pragma: no cover
         return self.__str__()
 
+    def to_resource(self):
+        return self.aidbox.resources(self.resource_type).get(self.id)
+
     def to_dict(self):
         return {attr: getattr(self, attr) for attr in [
-            'id', 'resource_type', 'display', 'resource'
+            'id', 'resource_type', 'display'
         ] if getattr(self, attr, None)}
 
     @staticmethod
@@ -294,5 +295,4 @@ class AidboxReference(ReferableMixin):
         if not isinstance(value, dict):
             return False
         return 'id' in value and 'resource_type' in value and \
-               not (set(value.keys()) - {
-                    'id', 'resource_type', 'display', 'resource'})
+               not (set(value.keys()) - {'id', 'resource_type', 'display'})
