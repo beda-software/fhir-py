@@ -7,19 +7,6 @@ from io import open
 from setuptools import setup
 
 
-try:
-    from pypandoc import convert
-
-    def read_md(f):
-        return convert(f, 'rst')
-except ImportError:
-    print("warning: pypandoc module not found,"
-          " could not convert Markdown to RST")
-
-    def read_md(f):
-        return open(f, 'r', encoding='utf-8').read()
-
-
 def get_version(package):
     """
     Return package version as listed in `__version__` in `init.py`.
@@ -31,13 +18,18 @@ def get_version(package):
 version = get_version('aidbox')
 
 
+with open('README.md') as f:
+    long_description = f.read()
+
+
 setup(
     name='aidbox',
     version=version,
     url='http://github.com/beda-software/aidbox-py',
     license='',
     description='Aidbox client for python',
-    long_description=read_md('README.md'),
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     keywords='aidbox',
     author='beda.software',
     author_email='aidbox@beda.software',
