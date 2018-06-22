@@ -33,6 +33,27 @@ def convert_keys(data, fn):
 
 
 def convert_values(data, fn):
+    """
+    >>> convert_values({}, lambda x: x)
+    {}
+
+    >>> convert_values([], lambda x: x)
+    []
+
+    >>> convert_values('str', lambda x: x)
+    'str'
+
+    >>> convert_values(
+    ... [{'key1': [1, 2]}, {'key2': [3, 4]}],
+    ... lambda x: x + 1 if isinstance(x, int) else x)
+    [{'key1': [2, 3]}, {'key2': [4, 5]}]
+
+    >>> convert_values(
+    ... [{'replaceable': True}, {'replaceable': False}],
+    ... lambda x: 'replaced'
+    ...     if isinstance(x, dict) and x.get('replaceable', False) else x)
+    ['replaced', {'replaceable': False}]
+    """
     data = fn(data)
     if isinstance(data, list):
         return [convert_values(x, fn) for x in data]
@@ -41,9 +62,23 @@ def convert_values(data, fn):
     return data
 
 
-def convert_to_underscore(data):
+def convert_keys_to_underscore(data):
+    """
+    >>> convert_keys_to_underscore(
+    ... {'resourceType': 'Patient',
+    ...  'genPr': [{'resourceType': 'Practitioner'}]})
+    {'resource_type': 'Patient', 'gen_pr': [{'resource_type': 'Practitioner'}]}
+    """
     return convert_keys(data, inflection.underscore)
 
 
-def convert_to_camelcase(data):
+def convert_keys_to_camelcase(data):
     return convert_keys(data, lambda key: inflection.camelize(key, False))
+
+
+def select_keys(data, keys):
+    """
+    >>> select_keys({'key1': 'value1', 'key2': 'value2'}, ['key2'])
+    {'key2': 'value2'}
+    """
+    return {key: value for key, value in data.items() if key in keys}

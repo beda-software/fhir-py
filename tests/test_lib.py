@@ -3,7 +3,7 @@ from unittest2 import TestCase
 from aidbox import Aidbox
 
 from aidbox.exceptions import AidboxResourceFieldDoesNotExist, \
-    AidboxResourceNotFound, AidboxAuthorizationError
+    AidboxResourceNotFound, AidboxAuthorizationError, AidboxOperationOutcome
 
 
 class LibTestCase(TestCase):
@@ -28,9 +28,6 @@ class LibTestCase(TestCase):
         cls.ab = Aidbox(cls.HOST, cls.TOKEN)
 
     def test_new_patient_entry(self):
-        self.ab.__str__()
-        self.ab.__repr__()
-
         patient = self.ab.resource('Patient', id='AidboxPy_test_patient')
         patient.name = [{'text': 'My patient'}]
         patient.save()
@@ -44,8 +41,6 @@ class LibTestCase(TestCase):
         search_set = self.ab.resources('Patient').search(**{
             'name:contains': 'AidboxPy'
         })
-        search_set.__str__()
-        search_set.__repr__()
 
         patient = self.ab.resource('Patient', id='AidboxPy_test_patient1')
         patient.name = [{'text': 'John Smith AidboxPy'}]
@@ -68,8 +63,14 @@ class LibTestCase(TestCase):
         )
 
         # Test search with AND composition
-        patients = search_set.search(name=['john', 'gold']).execute()
+        patients = search_set.search(name='john').search(name='gold').execute()
 
+        self.assertSetEqual(
+            set([p.id for p in patients]),
+            {'AidboxPy_test_patient2'}
+        )
+
+        patients = search_set.search(name=['john', 'gold']).execute()
         self.assertSetEqual(
             set([p.id for p in patients]),
             {'AidboxPy_test_patient2'}
@@ -92,6 +93,7 @@ class LibTestCase(TestCase):
 
         # Test limit and page and iter (by calling list)
         patients = list(search_set.limit(1).page(2))
+        print(search_set.limit(1).page(2))
         self.assertEqual(len(patients), 1)
         self.assertEqual(patients[0].id, 'AidboxPy_test_patient3')
 
@@ -106,9 +108,6 @@ class LibTestCase(TestCase):
         patient.name = [{'text': 'John Smith'}]
         patient.save()
 
-        patient.__repr__()
-        patient.__str__()
-
         patient.delete()
 
     def test_get_nonexistent_id(self):
@@ -118,10 +117,6 @@ class LibTestCase(TestCase):
     def test_get_set_bad_attr(self):
         with self.assertRaises(AidboxResourceFieldDoesNotExist):
             self.ab.resource('Patient', not_patient_field='field')
-
-        self.ab.resource('Patient',
-                         not_patient_field='field',
-                         skip_validation=True)
 
         with self.assertRaises(AidboxResourceFieldDoesNotExist):
             patient = self.ab.resource('Patient')
@@ -133,8 +128,6 @@ class LibTestCase(TestCase):
 
     def test_reference(self):
         reference = self.ab.reference('Patient', 'aidbox_patient_1')
-        reference.__repr__()
-        reference.__str__()
         self.assertDictEqual(
             reference.to_dict(),
             {
@@ -146,6 +139,14 @@ class LibTestCase(TestCase):
     def test_not_found_error(self):
         with self.assertRaises(AidboxResourceNotFound):
             self.ab.resources('AidboxPyNotExistingResource').execute()
+
+    def test_operation_outcome_error(self):
+        patient = self.ab.resource('Patient', id='aidbox_patient_1')
+        with self.assertRaises(AidboxOperationOutcome):
+            patient.name = 'invalid value'
+            patient.save()
+
+        patient.delete()
 
     def test_invalid_token_access(self):
         with self.assertRaises(AidboxAuthorizationError):

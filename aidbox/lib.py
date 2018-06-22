@@ -6,8 +6,9 @@ import inflection
 from collections import defaultdict
 from urllib.parse import parse_qsl
 
-from .utils import convert_to_underscore, convert_to_camelcase, \
-    convert_values, encode_params
+from .utils import (
+    convert_keys_to_underscore, convert_keys_to_camelcase,
+    convert_values, encode_params, select_keys)
 from .exceptions import (
     AidboxResourceFieldDoesNotExist, AidboxResourceNotFound,
     AidboxAuthorizationError, AidboxOperationOutcome)
@@ -65,21 +66,18 @@ class Aidbox:
         r = requests.request(
             method,
             url,
-            json=convert_to_camelcase(data),
+            json=convert_keys_to_camelcase(data),
             headers={'Authorization': 'Bearer {0}'.format(self.token)})
 
         if 200 <= r.status_code < 300:
             result = json.loads(r.text) if r.text else None
             return convert_values(
-                convert_to_underscore(result),
+                convert_keys_to_underscore(result),
                 lambda x: self.reference(**x)
                 if AidboxReference.is_reference(x) else x)
 
         if r.status_code == 404:
             raise AidboxResourceNotFound(r.text)
-
-        if r.status_code == 403:
-            raise AidboxAuthorizationError(r.text)
 
         raise AidboxOperationOutcome(r.text)
 
@@ -95,15 +93,15 @@ class Aidbox:
             )
             attrs = [res['resource'] for res in bundle['entry']]
             schema = {inflection.underscore(attr['path'][0])
-                      for attr in attrs} | {'id'}
+                      for attr in attrs} | {'id', 'resource_type'}
             self.schema[resource_type] = schema
 
         return schema
 
-    def __str__(self):
+    def __str__(self):  # pragma: no cover
         return self.host
 
-    def __repr__(self):
+    def __repr__(self):  # pragma: no cover
         return self.__str__()
 
 
@@ -125,13 +123,14 @@ class AidboxSearchSet:
         raise AidboxResourceNotFound()
 
     def execute(self):
+        attrs = self.aidbox._fetch_schema(self.resource_type)
+
         res_data = self.aidbox._fetch_resource(self.resource_type, self.params)
         resource_data = [res['resource'] for res in res_data['entry']]
         return [
             AidboxResource(
                 self.aidbox,
-                skip_validation=True,
-                **data
+                **select_keys(data, attrs)
             )
             for data in resource_data
             if data.get('resource_type') == self.resource_type
@@ -142,7 +141,6 @@ class AidboxSearchSet:
         new_params['_count'] = 1
         new_params['_totalMethod'] = 'count'
 
-        # TODO: rewrite
         return self.aidbox._fetch_resource(
             self.resource_type,
             params=new_params
@@ -175,23 +173,11 @@ class AidboxSearchSet:
         sort_keys = ','.join(keys)
         return self.clone(_sort=sort_keys)
 
-    # def include(self):
-        # https://www.hl7.org/fhir/search.html
-        # works as select_related
-        # result: Bundle [patient1, patientN, clinic1, clinicN]
-        # searchset.filter(name='john').get(pk=1)
-        # pass
-
-    # def revinclude(self):
-        # https://www.hl7.org/fhir/search.html
-        # works as prefetch_related
-        # pass
-
-    def __str__(self):
+    def __str__(self):  # pragma: no cover
         return '<AidboxSearchSet {0}?{1}>'.format(
             self.resource_type, encode_params(self.params))
 
-    def __repr__(self):
+    def __repr__(self):  # pragma: no cover
         return self.__str__()
 
     def __iter__(self):
@@ -208,9 +194,9 @@ class AidboxResource(ReferableMixin):
     def root_attrs(self):
         return self.aidbox.schema[self.resource_type]
 
-    def __init__(self, aidbox, skip_validation=False, **kwargs):
+    def __init__(self, aidbox, **kwargs):
         self.aidbox = aidbox
-        self.resource_type = kwargs.get('resource_type')
+        self.resource_type = kwargs.pop('resource_type')
         self.aidbox._fetch_schema(self.resource_type)
 
         meta = kwargs.pop('meta', {})
@@ -218,11 +204,7 @@ class AidboxResource(ReferableMixin):
         self._data = {}
 
         for key, value in kwargs.items():
-            try:
-                setattr(self, key, value)
-            except AidboxResourceFieldDoesNotExist:
-                if not skip_validation:
-                    raise
+            setattr(self, key, value)
 
     def __setattr__(self, key, value):
         if key in dir(self):
@@ -275,10 +257,10 @@ class AidboxResource(ReferableMixin):
             self._data,
             convert_fn)
 
-    def __str__(self):
+    def __str__(self):  # pragma: no cover
         return '<AidboxResource {0}>'.format(self.get_path())
 
-    def __repr__(self):
+    def __repr__(self):  # pragma: no cover
         return self.__str__()
 
 
@@ -296,10 +278,10 @@ class AidboxReference(ReferableMixin):
         self.display = kwargs.get('display', None)
         self.resource = kwargs.get('resource', None)
 
-    def __str__(self):
+    def __str__(self):  # pragma: no cover
         return '<AidboxReference {0}/{1}>'.format(self.resource_type, self.id)
 
-    def __repr__(self):
+    def __repr__(self):  # pragma: no cover
         return self.__str__()
 
     def to_dict(self):
