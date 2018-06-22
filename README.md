@@ -54,14 +54,14 @@ ab = Aidbox(host='host', token='token')
 Fetch list of resource's instances
 ```python
 resources = ab.resources('Patient')  # Return lazy search set
-resources = resources.search(name='John').limit(10).page(2).sort('-id', 'name')
+resources = resources.search(name='John').limit(10).page(2).sort('name')
 
 resources.execute()  # Returns list of AidboxResource
 ```
 
 Get the particular instance of resource
 ```python
-res = ab.resources('Entity').get(id=1)
+res = ab.resources('Entity').get(id='ID')
 ```
 
 Create new resource's instance
