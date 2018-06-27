@@ -205,13 +205,14 @@ class LibTestCase(TestCase):
             'Patient', id='AidboxPy_patient', name=[{'text': 'Name'}])
 
         patient_ref = self.ab.reference('Patient', 'AidboxPy_patient')
+        result = patient_ref.to_resource().to_dict()
+        result.pop('meta')
+        result.pop('identifier')
 
         self.assertEqual(
-            patient_ref.to_resource().to_dict(),
+            result,
             {'resource_type': 'Patient',
              'id': 'AidboxPy_patient',
-             'identifier': [{'system': 'http://example.com/env',
-                             'value': 'aidboxpy'}],
              'name': [{'text': 'Name'}]})
 
     def test_empty_reference(self):

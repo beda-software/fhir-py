@@ -92,7 +92,7 @@ class Aidbox:
             )
             attrs = [res['resource'] for res in bundle['entry']]
             schema = {underscore(attr['path'][0])
-                      for attr in attrs} | {'id', 'resource_type'}
+                      for attr in attrs} | {'id', 'resource_type', 'meta'}
             self.schema[resource_type] = schema
 
         return schema
@@ -110,7 +110,7 @@ class AidboxSearchSet:
     params = None
 
     def __init__(self, aidbox, resource_type, params=None):
-        self.aidbox = aidbox
+        self._aidbox = aidbox
         self.resource_type = resource_type
         self.params = defaultdict(list, params or {})
 
@@ -122,13 +122,13 @@ class AidboxSearchSet:
         raise AidboxResourceNotFound()
 
     def execute(self):
-        attrs = self.aidbox._fetch_schema(self.resource_type)
+        attrs = self._aidbox._fetch_schema(self.resource_type)
 
-        res_data = self.aidbox._fetch_resource(self.resource_type, self.params)
+        res_data = self._aidbox._fetch_resource(self.resource_type, self.params)
         resource_data = [res['resource'] for res in res_data['entry']]
         return [
             AidboxResource(
-                self.aidbox,
+                self._aidbox,
                 **select_keys(data, attrs)
             )
             for data in resource_data
@@ -140,7 +140,7 @@ class AidboxSearchSet:
         new_params['_count'] = 1
         new_params['_totalMethod'] = 'count'
 
-        return self.aidbox._fetch_resource(
+        return self._aidbox._fetch_resource(
             self.resource_type,
             params=new_params
         )['total']
@@ -157,7 +157,7 @@ class AidboxSearchSet:
                     new_params[key].append(item)
             else:
                 new_params[key].append(value)
-        return AidboxSearchSet(self.aidbox, self.resource_type, new_params)
+        return AidboxSearchSet(self._aidbox, self.resource_type, new_params)
 
     def search(self, **kwargs):
         return self.clone(**kwargs)
@@ -184,31 +184,33 @@ class AidboxSearchSet:
 
 
 class AidboxResource(ReferableMixin):
-    aidbox = None
-    resource_type = None
+    _aidbox = None
     _data = None
-    _meta = None
 
-    @property
-    def root_attrs(self):
-        return self.aidbox.schema[self.resource_type]
+    resource_type = None
+
+    def get_root_attrs(self):
+        return self._aidbox.schema[self.resource_type]
 
     def __init__(self, aidbox, **kwargs):
-        self.aidbox = aidbox
-        self.resource_type = kwargs.get('resource_type')
-        self.aidbox._fetch_schema(self.resource_type)
+        resource_type = kwargs.get('resource_type')
+        aidbox._fetch_schema(resource_type)
 
-        meta = kwargs.pop('meta', {})
-        self._meta = meta
+        self.resource_type = resource_type
+        self._aidbox = aidbox
         self._data = {}
 
         for key, value in kwargs.items():
             setattr(self, key, value)
 
+    def __dir__(self):
+        return list(self.get_root_attrs()) + \
+               super(AidboxResource, self).__dir__()
+
     def __setattr__(self, key, value):
-        if key in dir(self):
+        if key in ['_aidbox', '_data', 'resource_type']:
             super(AidboxResource, self).__setattr__(key, value)
-        elif key in self.root_attrs:
+        elif key in self.get_root_attrs():
             self._data[key] = value
         else:
             raise AidboxResourceFieldDoesNotExist(
@@ -216,7 +218,7 @@ class AidboxResource(ReferableMixin):
                     key, self.resource_type))
 
     def __getattr__(self, key):
-        if key in self.root_attrs:
+        if key in self.get_root_attrs():
             return self._data.get(key, None)
         else:
             raise AidboxResourceFieldDoesNotExist(
@@ -230,18 +232,18 @@ class AidboxResource(ReferableMixin):
         return self.resource_type
 
     def save(self):
-        data = self.aidbox._do_request(
+        data = self._aidbox._do_request(
             'put' if self.id else 'post', self.get_path(), data=self.to_dict())
 
-        self._meta = data.get('meta', {})
+        self.meta = data.get('meta', {})
         self.id = data.get('id')
 
     def delete(self):
-        return self.aidbox._do_request('delete', self.get_path())
+        return self._aidbox._do_request('delete', self.get_path())
 
     def to_reference(self, **kwargs):
         return AidboxReference(
-            self.aidbox, self.resource_type, self.id, **kwargs)
+            self._aidbox, self.resource_type, self.id, **kwargs)
 
     def to_dict(self):
         def convert_fn(item):
@@ -271,7 +273,7 @@ class AidboxReference(ReferableMixin):
     display = None
 
     def __init__(self, aidbox, resource_type, id, **kwargs):
-        self.aidbox = aidbox
+        self._aidbox = aidbox
         self.resource_type = resource_type
         self.id = id
         self.display = kwargs.get('display', None)
@@ -283,7 +285,7 @@ class AidboxReference(ReferableMixin):
         return self.__str__()
 
     def to_resource(self):
-        return self.aidbox.resources(self.resource_type).get(self.id)
+        return self._aidbox.resources(self.resource_type).get(self.id)
 
     def to_dict(self):
         return {attr: getattr(self, attr) for attr in [
