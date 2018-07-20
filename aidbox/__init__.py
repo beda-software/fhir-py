@@ -1,7 +1,7 @@
 from .lib import Aidbox
 
 __title__ = 'aidbox-py'
-__version__ = '0.1.2'
+__version__ = '0.2.0'
 __author__ = 'beda.software'
 __license__ = 'None'
 __copyright__ = 'Copyright 2018 beda.software'

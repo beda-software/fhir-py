@@ -24,9 +24,9 @@ class Aidbox:
     schema = None
 
     @staticmethod
-    def obtain_token(host, email, password):
+    def obtain_token(url, email, password):
         r = requests.post(
-            '{0}/oauth2/authorize'.format(host),
+            '{0}/oauth2/authorize'.format(url),
             params={
                 'client_id': 'sansara',
                 'scope': 'openid profile email',
@@ -39,13 +39,13 @@ class Aidbox:
             raise AidboxAuthorizationError()
 
         # We don't fill production database with test tokens
-        token_data = dict(parse_qsl(r.headers['location'])) # pragma: no cover
-        return token_data['id_token'] # pragma: no cover
+        token_data = dict(parse_qsl(r.headers['location']))  # pragma: no cover
+        return token_data['id_token']  # pragma: no cover
 
-    def __init__(self, host, token):
+    def __init__(self, url, authorization):
         self.schema = {}
-        self.host = host
-        self.token = token
+        self.url = url
+        self.authorization = authorization
 
     def reference(self, resource_type=None, id=None, **kwargs):
         if resource_type is None or id is None:
@@ -61,12 +61,12 @@ class Aidbox:
 
     def _do_request(self, method, path, data=None, params=None):
         url = '{0}/{1}?{2}'.format(
-            self.host, path, encode_params(params))
+            self.url, path, encode_params(params))
         r = requests.request(
             method,
             url,
             json=convert_keys_to_camelcase(data),
-            headers={'Authorization': 'Bearer {0}'.format(self.token)})
+            headers={'Authorization': self.authorization})
 
         if 200 <= r.status_code < 300:
             result = json.loads(r.text) if r.text else None
@@ -98,7 +98,7 @@ class Aidbox:
         return schema
 
     def __str__(self):  # pragma: no cover
-        return self.host
+        return self.url
 
     def __repr__(self):  # pragma: no cover
         return self.__str__()

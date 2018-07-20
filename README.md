@@ -9,11 +9,11 @@ This package provides an API for CRUD operations over aidbox resources
 # API
 
 To obtain token by email and password use static method:
-`Aidbox.obtain_token(host, email, password)`
+`Aidbox.obtain_token(url, email, password)`
 
 To create Aidbox instance use:
 
-`Aidbox(host, token)`
+`Aidbox(url, authorization)`
 
 Returns an instance of the connection to the aidbox server which provides:
 * .reference(resource_type, id, **kwargs) - returns `AidboxReference` to the resource
@@ -48,7 +48,7 @@ provides:
 
 Create an instance
 ```python
-ab = Aidbox(host='host', token='token')
+ab = Aidbox(url='http://path-to-fhir-server', authorization='Bearer TOKEN')
 ```
 
 Fetch list of resource's instances
