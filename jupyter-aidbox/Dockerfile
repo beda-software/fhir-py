@@ -1,8 +1,4 @@
-FROM jupyter/base-notebook:latest
-
-USER root
-RUN apt-get update && apt-get install -y git 
-USER jovyan
+FROM jupyter/datascience-notebook:latest
 
 RUN pip install aidbox
 ADD examples.ipynb /home/jovyan/work
