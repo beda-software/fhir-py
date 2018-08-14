@@ -219,10 +219,10 @@ class AidboxSearchSet:
             **{key: '{0}:{1}'.format(resource_type, camelize(attr, False))})
 
     def revinclude(self, resource_type, attr, recursive=False):
-        key = '_revinclude{0}'.format(':recursive' if recursive else '')
+        # TODO: For the moment, this method can have useless behaviour
+        # TODO: Think about architecture
 
-        return self.clone(
-            **{key: '{0}:{1}'.format(resource_type, camelize(attr, False))})
+        raise NotImplementedError()
 
     def search(self, **kwargs):
         return self.clone(**convert_keys_to_camelcase(kwargs))
