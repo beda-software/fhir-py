@@ -22,6 +22,9 @@ class ReferableMixin:
 
 class Aidbox:
     schema = None
+    resources_cache = None
+    url = None
+    authorization = None
 
     @staticmethod
     def obtain_token(url, email, password):
@@ -46,6 +49,22 @@ class Aidbox:
         self.schema = {}
         self.url = url
         self.authorization = authorization
+        self.resources_cache = defaultdict(dict)
+
+    def add_resource_to_cache(self, resource):
+        self.resources_cache[resource.resource_type][resource.id] = resource
+
+    def remove_resource_from_cache(self, resource):
+        del self.resources_cache[resource.resource_type][resource.id]
+
+    def get_resource_from_cache(self, resource_type, id):
+        return self.resources_cache[resource_type][id]
+
+    def clear_resources_cache(self, resource_type=None):
+        if resource_type:
+            self.resources_cache[resource_type] = {}
+        else:
+            self.resources_cache = defaultdict(dict)
 
     def reference(self, resource_type=None, id=None, **kwargs):
         if resource_type is None or id is None:
@@ -91,8 +110,8 @@ class Aidbox:
                 params={'entity': resource_type}
             )
             attrs = [res['resource'] for res in bundle['entry']]
-            schema = {underscore(attr['path'][0])
-                      for attr in attrs} | {'id', 'resource_type', 'meta'}
+            schema = {underscore(attr['path'][0]) for attr in attrs} | \
+                     {'id', 'resource_type', 'meta', 'extension'}
             self.schema[resource_type] = schema
 
         return schema
@@ -105,7 +124,7 @@ class Aidbox:
 
 
 class AidboxSearchSet:
-    aidbox = None
+    _aidbox = None
     resource_type = None
     params = None
 
@@ -126,14 +145,18 @@ class AidboxSearchSet:
 
         res_data = self._aidbox._fetch_resource(self.resource_type, self.params)
         resource_data = [res['resource'] for res in res_data['entry']]
-        return [
+        resources = [
             AidboxResource(
                 self._aidbox,
                 **select_keys(data, attrs)
             )
             for data in resource_data
-            if data.get('resource_type') == self.resource_type
         ]
+        for resource in resources:
+            self._aidbox.add_resource_to_cache(resource)
+
+        return [resource for resource in resources
+                if resource.resource_type == self.resource_type]
 
     def count(self):
         new_params = copy.deepcopy(self.params)
@@ -158,6 +181,22 @@ class AidboxSearchSet:
             else:
                 new_params[key].append(value)
         return AidboxSearchSet(self._aidbox, self.resource_type, new_params)
+
+    def include(self, resource_type, attr, recursive=False):
+        if recursive:
+            key = '_include:recursive'
+        else:
+            key = '_include'
+
+        return self.clone(**{key: '{0}:{1}'.format(resource_type, attr)})
+
+    def revinclude(self, resource_type, attr, recursive=False):
+        if recursive:
+            key = '_revinclude:recursive'
+        else:
+            key = '_revinclude'
+
+        return self.clone(**{key: '{0}:{1}'.format(resource_type, attr)})
 
     def search(self, **kwargs):
         return self.clone(**kwargs)
@@ -238,7 +277,11 @@ class AidboxResource(ReferableMixin):
         self.meta = data.get('meta', {})
         self.id = data.get('id')
 
+        self._aidbox.add_resource_to_cache(self)
+
     def delete(self):
+        self._aidbox.remove_resource_from_cache(self)
+
         return self._aidbox._do_request('delete', self.get_path())
 
     def to_reference(self, **kwargs):
@@ -267,7 +310,7 @@ class AidboxResource(ReferableMixin):
 
 
 class AidboxReference(ReferableMixin):
-    aidbox = None
+    _aidbox = None
     resource_type = None
     id = None
     display = None
@@ -284,7 +327,13 @@ class AidboxReference(ReferableMixin):
     def __repr__(self):  # pragma: no cover
         return self.__str__()
 
-    def to_resource(self):
+    def to_resource(self, nocache=False):
+        cached_resource = self._aidbox.get_resource_from_cache(
+            self.resource_type, self.id)
+
+        if cached_resource and not nocache:
+            return cached_resource
+
         return self._aidbox.resources(self.resource_type).get(self.id)
 
     def to_dict(self):
