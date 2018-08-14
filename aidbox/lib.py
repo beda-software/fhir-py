@@ -6,7 +6,7 @@ from collections import defaultdict
 from urllib.parse import parse_qsl
 
 from .utils import (
-    underscore, convert_keys_to_underscore, convert_keys_to_camelcase,
+    underscore, camelize, convert_keys_to_underscore, convert_keys_to_camelcase,
     convert_values, encode_params, select_keys)
 from .exceptions import (
     AidboxResourceFieldDoesNotExist, AidboxResourceNotFound,
@@ -25,6 +25,7 @@ class Aidbox:
     resources_cache = None
     url = None
     authorization = None
+    without_cache = False
 
     @staticmethod
     def obtain_token(url, email, password):
@@ -45,22 +46,35 @@ class Aidbox:
         token_data = dict(parse_qsl(r.headers['location']))  # pragma: no cover
         return token_data['id_token']  # pragma: no cover
 
-    def __init__(self, url, authorization):
+    def __init__(self, url, authorization, without_cache=False):
         self.schema = {}
         self.url = url
         self.authorization = authorization
         self.resources_cache = defaultdict(dict)
+        self.without_cache = without_cache
 
     def add_resource_to_cache(self, resource):
+        if self.without_cache:
+            return
+
         self.resources_cache[resource.resource_type][resource.id] = resource
 
     def remove_resource_from_cache(self, resource):
+        if self.without_cache:
+            return
+
         del self.resources_cache[resource.resource_type][resource.id]
 
     def get_resource_from_cache(self, resource_type, id):
-        return self.resources_cache[resource_type][id]
+        if self.without_cache:
+            return None
+
+        return self.resources_cache[resource_type].get(id, None)
 
     def clear_resources_cache(self, resource_type=None):
+        if self.without_cache:
+            return
+
         if resource_type:
             self.resources_cache[resource_type] = {}
         else:
@@ -172,43 +186,55 @@ class AidboxSearchSet:
         result = self.limit(1).execute()
         return result[0] if result else None
 
-    def clone(self, **kwargs):
+    def clone(self, override=False, **kwargs):
         new_params = copy.deepcopy(self.params)
         for key, value in kwargs.items():
-            if isinstance(value, list):
-                for item in value:
-                    new_params[key].append(item)
+            if override:
+                if isinstance(value, list):
+                    new_params[key] = value
+                else:
+                    new_params[key] = [value]
             else:
-                new_params[key].append(value)
+                if isinstance(value, list):
+                    for item in value:
+                        new_params[key].append(item)
+                else:
+                    new_params[key].append(value)
         return AidboxSearchSet(self._aidbox, self.resource_type, new_params)
 
-    def include(self, resource_type, attr, recursive=False):
-        if recursive:
-            key = '_include:recursive'
-        else:
-            key = '_include'
+    def elements(self, *attrs, exclude=False):
+        attrs = set(attrs)
+        if not exclude:
+            attrs |= {'id', 'resource_type'}
+        attrs = [camelize(attr, False) for attr in attrs]
 
-        return self.clone(**{key: '{0}:{1}'.format(resource_type, attr)})
+        return self.clone(
+            _elements='{0}{1}'.format('-' if exclude else '',
+                                      ','.join(attrs)))
+
+    def include(self, resource_type, attr, recursive=False):
+        key = '_include{0}'.format(':recursive' if recursive else '')
+
+        return self.clone(
+            **{key: '{0}:{1}'.format(resource_type, camelize(attr, False))})
 
     def revinclude(self, resource_type, attr, recursive=False):
-        if recursive:
-            key = '_revinclude:recursive'
-        else:
-            key = '_revinclude'
+        key = '_revinclude{0}'.format(':recursive' if recursive else '')
 
-        return self.clone(**{key: '{0}:{1}'.format(resource_type, attr)})
+        return self.clone(
+            **{key: '{0}:{1}'.format(resource_type, camelize(attr, False))})
 
     def search(self, **kwargs):
-        return self.clone(**kwargs)
+        return self.clone(**convert_keys_to_camelcase(kwargs))
 
     def limit(self, limit):
-        return self.clone(_count=limit)
+        return self.clone(_count=limit, override=True)
 
     def page(self, page):
-        return self.clone(_page=page)
+        return self.clone(_page=page, override=True)
 
     def sort(self, *keys):
-        sort_keys = ','.join(keys)
+        sort_keys = ','.join([camelize(key, False) for key in keys])
         return self.clone(_sort=sort_keys)
 
     def __str__(self):  # pragma: no cover
