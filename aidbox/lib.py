@@ -102,16 +102,16 @@ class Aidbox:
             headers={'Authorization': self.authorization})
 
         if 200 <= r.status_code < 300:
-            result = json.loads(r.text) if r.text else None
+            result = json.loads(r.content) if r.content else None
             return convert_values(
                 convert_keys_to_underscore(result),
                 lambda x: self.reference(**x)
                 if AidboxReference.is_reference(x) else x)
 
         if r.status_code == 404:
-            raise AidboxResourceNotFound(r.text)
+            raise AidboxResourceNotFound(r.content)
 
-        raise AidboxOperationOutcome(r.text)
+        raise AidboxOperationOutcome(r.content)
 
     def _fetch_resource(self, path, params=None):
         return self._do_request('get', path, params=params)
