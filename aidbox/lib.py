@@ -241,7 +241,7 @@ class AidboxBaseResource:
             self[key] = value
 
     def __contains__(self, item):
-        return item in self.get_root_attrs()
+        return item in self._data
 
     def __setitem__(self, key, value):
         if key in self.get_root_attrs():
