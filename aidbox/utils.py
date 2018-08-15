@@ -58,11 +58,3 @@ def convert_values(data, fn):
     if isinstance(data, dict):
         return {key: convert_values(value, fn) for key, value in data.items()}
     return data
-
-
-def select_keys(data, keys):
-    """
-    >>> select_keys({'key1': 'value1', 'key2': 'value2'}, ['key2'])
-    {'key2': 'value2'}
-    """
-    return {key: value for key, value in data.items() if key in keys}

@@ -26,15 +26,15 @@ class LibTestCase(TestCase):
     ab = None
 
     @classmethod
-    def get_search_set(cls, resourceType):
-        return cls.ab.resources(resourceType).search(**{
+    def get_search_set(cls, resource_type):
+        return cls.ab.resources(resource_type).search(**{
             'identifier': 'aidboxpy'
         })
 
     @classmethod
     def clearDb(cls):
-        for resourceType in ['Patient', 'Practitioner']:
-            search_set = cls.get_search_set(resourceType)
+        for resource_type in ['Patient', 'Practitioner']:
+            search_set = cls.get_search_set(resource_type)
             for item in search_set:
                 item.delete()
 
@@ -46,9 +46,9 @@ class LibTestCase(TestCase):
     def tearDown(self):
         self.clearDb()
 
-    def create_resource(self, resourceType, **kwargs):
+    def create_resource(self, resource_type, **kwargs):
         p = self.ab.resource(
-            resourceType,
+            resource_type,
             identifier=[{'system': 'http://example.com/env',
                          'value': 'aidboxpy'}],
             **kwargs)
@@ -63,7 +63,7 @@ class LibTestCase(TestCase):
             name=[{'text': 'My patient'}])
 
         patient = self.ab.resources('Patient').get('AidboxPy_patient')
-        self.assertEqual(patient.name, [{'text': 'My patient'}])
+        self.assertEqual(patient['name'], [{'text': 'My patient'}])
 
     def test_patients_search(self):
         search_set = self.get_search_set('Patient')
@@ -145,11 +145,11 @@ class LibTestCase(TestCase):
 
         with self.assertRaises(AidboxResourceFieldDoesNotExist):
             patient = self.ab.resource('Patient')
-            patient.not_patient_field = 'field'
+            patient['notPatientField'] = 'field'
 
         with self.assertRaises(AidboxResourceFieldDoesNotExist):
             patient = self.ab.resource('Patient')
-            _ = patient.not_patient_field
+            _ = patient['notPatientField']
 
     def test_reference(self):
         reference = self.ab.reference('Patient', 'aidbox_patient_1')
@@ -169,10 +169,6 @@ class LibTestCase(TestCase):
         with self.assertRaises(AidboxOperationOutcome):
             self.create_resource('Patient', name='invalid')
 
-    def test_invalid_token_access(self):
-        with self.assertRaises(AidboxAuthorizationError):
-            Aidbox.obtain_token(self.URL, 'fake@fake.com', 'fakepass')
-
     def test_save_with_reference(self):
         practitioner1 = self.create_resource('Practitioner', id='AidboxPy_pr1')
         practitioner2 = self.create_resource('Practitioner', id='AidboxPy_pr2')
@@ -183,10 +179,10 @@ class LibTestCase(TestCase):
                 display='practitioner'), practitioner2])
 
         patient = self.ab.resources('Patient').get(id='AidboxPy_patient')
-        self.assertEqual(patient.generalPractitioner[0], practitioner1)
-        self.assertEqual(patient.generalPractitioner[0].display,
+        self.assertEqual(patient['generalPractitioner'][0], practitioner1)
+        self.assertEqual(patient['generalPractitioner'][0]['display'],
                          'practitioner')
-        self.assertEqual(patient.generalPractitioner[1], practitioner2)
+        self.assertEqual(patient['generalPractitioner'][1], practitioner2)
 
     def test_to_reference(self):
         patient = self.create_resource('Patient', id='AidboxPy_patient')
@@ -217,6 +213,3 @@ class LibTestCase(TestCase):
              'id': 'AidboxPy_patient',
              'name': [{'text': 'Name'}]})
 
-    def test_empty_reference(self):
-        with self.assertRaises(AttributeError):
-            self.ab.reference()

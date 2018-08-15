@@ -8,17 +8,14 @@ This package provides an API for CRUD operations over aidbox resources
 
 # API
 
-To obtain token by email and password use static method:
-`Aidbox.obtain_token(url, email, password)`
-
 To create Aidbox instance use:
 
 `Aidbox(url, authorization)`
 
 Returns an instance of the connection to the aidbox server which provides:
-* .reference(resource_type, id, **kwargs) - returns `AidboxReference` to the resource
-* .resource(resource_type, **kwargs) - returns `AidboxResource` which described below
-* .resources(resource_type) - returns `AidboxSearchSet`
+* .reference(resourceType, id, **kwargs) - returns `AidboxReference` to the resource
+* .resource(resourceType, **kwargs) - returns `AidboxResource` which described below
+* .resources(resourceType) - returns `AidboxSearchSet`
 
 `AidboxResource`
 
@@ -40,6 +37,8 @@ provides:
 * .limit(count)
 * .page(page)
 * .sort(*args)
+* .elements(*args, exclude=False)
+* .include(resourceType, attr)
 * .execute() - makes query to the server and returns a list of `AidboxResource`
 * .first() - returns `AidboxResource` or None
 * .get(id=id) - returns `AidboxResource` or raises `AidboxResourceNotFound`
