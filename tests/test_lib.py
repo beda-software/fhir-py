@@ -2,28 +2,13 @@ from unittest2 import TestCase
 
 from fhirpy import FHIRClient
 
-from fhirpy.exceptions import (
-    FHIRResourceFieldDoesNotExist, FHIRResourceNotFound, FHIROperationOutcome)
+from fhirpy.exceptions import (FHIRResourceNotFound, FHIROperationOutcome)
 
 
 class LibTestCase(TestCase):
-    URL = 'https://sansara.health-samurai.io'
-    AUTHORIZATION = \
-        'Bearer ' \
-        'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJnaXZlbl9uYW1lIjpudWx' \
-        'sLCJiaXJ0aGRhdGUiOm51bGwsImVtYWlsIjoicGF0aWVudEBjb20uY29tIiwi' \
-        'em9uZWluZm8iOm51bGwsImxvY2FsZSI6bnVsbCwic3ViIjoicGF0aWVudCIsI' \
-        'nBob25lIjpudWxsLCJuYW1lIjpudWxsLCJuaWNrbmFtZSI6bnVsbCwidXNlci' \
-        '1pZCI6InBhdGllbnQiLCJtaWRkbGVfbmFtZSI6bnVsbCwiZmFtaWx5X25hbWU' \
-        'iOm51bGwsInVwZGF0ZWRfYXQiOm51bGwsInBpY3R1cmUiOm51bGwsIndlYnNp' \
-        'dGUiOm51bGwsImdlbmRlciI6bnVsbCwicHJlZmVycmVkX3VzZXJuYW1lIjpud' \
-        'WxsLCJwcm9maWxlIjpudWxsfQ.ThigRLqfAc-xY9RHy75cI-Wh9s0y6dcRT_m' \
-        'SPRon4aOAsFL2BMkhGiLRjkDDRQa-e_BRDzSLgi84aB3q8atwTMSs9fYL79Az' \
-        'rNU3dgv9nyyjNy7BzRY_OYeTR3TBdEUklTnNABXiis0pS4JOw1JcDT0xpxtB2' \
-        'qBPpT7odPyVlHbjKWRINIqE2iAkTFOY_8UYCA-WU3qGEHDUdWFnav42aiDfcZ' \
-        'Na2yBpytv7n8qqj70nCfXu49ShcT86eQ4vQsafNgfttRE1CbzqGVHS3Lv-nX2' \
-        '5GSh_DJ_qITDC4Uk_KoMtGLzjW1LqvgRLWydEVbluj4SKlx1oYD07Yu6nCJcw2A'
-    ab = None
+    URL = 'https://jupyterdemo.aidbox.app/fhir'
+    AUTHORIZATION = ''
+    client = None
 
     @classmethod
     def get_search_set(cls, resource_type):
@@ -40,7 +25,7 @@ class LibTestCase(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.client = FHIRClient(cls.URL, cls.AUTHORIZATION)
+        cls.client = FHIRClient(cls.URL, cls.AUTHORIZATION, without_cache=True)
         cls.clearDb()
 
     def tearDown(self):
@@ -50,10 +35,9 @@ class LibTestCase(TestCase):
         p = self.client.resource(
             resource_type,
             identifier=[{'system': 'http://example.com/env',
-                         'value': 'FHIRPypy'}],
+                         'value': 'fhirpy'}],
             **kwargs)
         p.save()
-
         return p
 
     def test_new_patient_entry(self):
@@ -83,7 +67,6 @@ class LibTestCase(TestCase):
 
         # Test search
         patients = search_set.search(name='john').execute()
-
         self.assertSetEqual(
             set([p.id for p in patients]),
             {'FHIRPy_patient1', 'FHIRPy_patient2'}
@@ -140,14 +123,14 @@ class LibTestCase(TestCase):
             self.client.resources('Patient').get(id='FHIRPypy_not_existing_id')
 
     def test_get_set_bad_attr(self):
-        with self.assertRaises(FHIRResourceFieldDoesNotExist):
+        with self.assertRaises(KeyError):
             self.client.resource('Patient', notPatientField='field')
 
-        with self.assertRaises(FHIRResourceFieldDoesNotExist):
+        with self.assertRaises(KeyError):
             patient = self.client.resource('Patient')
             patient['notPatientField'] = 'field'
 
-        with self.assertRaises(FHIRResourceFieldDoesNotExist):
+        with self.assertRaises(KeyError):
             patient = self.client.resource('Patient')
             _ = patient['notPatientField']
 
@@ -156,8 +139,7 @@ class LibTestCase(TestCase):
         self.assertDictEqual(
             reference.to_dict(),
             {
-                'id': 'FHIRPy_patient_1',
-                'resourceType': 'Patient'
+                'reference': 'Patient/FHIRPy_patient_1'
             }
         )
 
@@ -189,14 +171,14 @@ class LibTestCase(TestCase):
 
         self.assertEqual(
             patient.to_reference().to_dict(),
-            {'resourceType': 'Patient',
-             'id': 'FHIRPy_patient'})
+            {'reference': 'Patient/FHIRPy_patient'})
 
         self.assertEqual(
             patient.to_reference(display='Patient').to_dict(),
-            {'resourceType': 'Patient',
-             'display': 'Patient',
-             'id': 'FHIRPy_patient'})
+            {
+                'reference': 'Patient/FHIRPy_patient',
+                'display': 'Patient',
+            })
 
     def test_to_resource(self):
         self.create_resource(
