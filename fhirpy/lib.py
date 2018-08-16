@@ -96,6 +96,8 @@ class FHIRClient:
         return FHIRSearchSet(self, resource_type=resource_type)
 
     def _do_request(self, method, path, data=None, params=None):
+        params = params or {}
+        params.update({'_format': 'json'})
         url = '{0}/{1}?{2}'.format(
             self.url, path, encode_params(params))
         r = requests.request(
