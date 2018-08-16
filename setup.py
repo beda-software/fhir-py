@@ -34,6 +34,7 @@ setup(
     author='beda.software',
     author_email='fhirpy@beda.software',
     packages=['fhirpy'],
+    include_package_data=True,
     install_requires=['requests'],
     zip_safe=False,
     classifiers=[
