@@ -147,16 +147,32 @@ class FHIRSearchSet:
 
         resources = []
         for data in resources_data:
-            resource_type = data.get('resourceType', None)
-            resource = self._client.resource(resource_type, **data)
-
-            if not skip_cache:
-                self._client._add_resource_to_cache(resource)
-
+            resource = self.perform_resource(data, skip_cache)
             if resource.resource_type == self.resource_type:
                 resources.append(resource)
 
         return resources
+
+    def get(self, id, skip_cache=False):
+        res_data = self._client._fetch_resource(
+            '{0}/{1}'.format(self.resource_type, id))
+
+        if res_data['resourceType'] != self.resource_type:
+            raise FHIRInvalidResponse(
+                'Expected to receive {0} '
+                'but {1} received'.format(self.resource_type,
+                                          res_data['resourceType']))
+
+        return self.perform_resource(res_data, skip_cache)
+
+    def perform_resource(self, data, skip_cache):
+        resource_type = data.get('resourceType', None)
+        resource = self._client.resource(resource_type, **data)
+
+        if not skip_cache:
+            self._client._add_resource_to_cache(resource)
+
+        return resource
 
     def count(self):
         new_params = copy.deepcopy(self.params)
@@ -171,13 +187,6 @@ class FHIRSearchSet:
     def first(self):
         result = self.limit(1).execute()
         return result[0] if result else None
-
-    def get(self, id):
-        res = self.search(_id=id).first()
-        if res:
-            return res
-
-        raise FHIRResourceNotFound()
 
     def clone(self, override=False, **kwargs):
         new_params = copy.deepcopy(self.params)
