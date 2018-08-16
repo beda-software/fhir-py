@@ -1,5 +1,6 @@
 include README.md
 include LICENSE.md
 recursive-include fhirpy *
+recursive-include schemas *.pkl
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
