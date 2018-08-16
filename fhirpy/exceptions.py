@@ -6,6 +6,10 @@ class FHIRResourceNotFound(FHIRError):
     pass
 
 
+class FHIRInvalidResponse(FHIRError):
+    pass
+
+
 class FHIRAuthorizationError(FHIRError):
     pass
 

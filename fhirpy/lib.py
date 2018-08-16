@@ -8,7 +8,8 @@ import requests
 
 from .utils import encode_params, convert_values
 from .exceptions import (
-    FHIRResourceNotFound, FHIROperationOutcome, FHIRNotSupportedVersionError)
+    FHIRResourceNotFound, FHIROperationOutcome, FHIRNotSupportedVersionError,
+    FHIRInvalidResponse)
 
 
 def load_schema(version):
@@ -132,8 +133,17 @@ class FHIRSearchSet:
         self.params = defaultdict(list, params or {})
 
     def execute(self, skip_cache=False):
-        res_data = self._client._fetch_resource(self.resource_type, self.params)
-        resources_data = [res['resource'] for res in res_data['entry']]
+        bundle_data = self._client._fetch_resource(
+            self.resource_type, self.params)
+        bundle_resource_type = bundle_data.get('resourceType', None)
+
+        if bundle_resource_type != 'Bundle':
+            raise FHIRInvalidResponse(
+                'Expected to receive Bundle '
+                'but {0} received'.format(bundle_resource_type))
+
+        resources_data = [
+            res['resource'] for res in bundle_data.get('entry', [])]
 
         resources = []
         for data in resources_data:
