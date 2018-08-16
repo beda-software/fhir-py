@@ -1,6 +1,7 @@
 import json
 import copy
 import pickle
+from os.path import dirname
 from collections import defaultdict
 
 import requests
@@ -13,8 +14,10 @@ from .exceptions import (
 
 
 def load_schema(version):
+    filename = '{0}/schemas/fhir-{1}.pkl'.format(dirname(__file__), version)
+
     try:
-        with open('schemas/fhir-{0}.pkl'.format(version), 'rb') as f:
+        with open(filename, 'rb') as f:
             return pickle.load(f)
     except FileNotFoundError:
         raise FHIRNotSupportedVersionError()
