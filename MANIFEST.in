@@ -1,5 +1,5 @@
 include README.md
 include LICENSE.md
-recursive-include aidbox *
+recursive-include fhirpy *
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]

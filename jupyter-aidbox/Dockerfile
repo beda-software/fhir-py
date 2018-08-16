@@ -1,4 +1,4 @@
 FROM jupyter/datascience-notebook:latest
 
-RUN pip install aidbox
+RUN pip install fhirpy
 ADD examples /examples/

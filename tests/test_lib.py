@@ -1,9 +1,9 @@
 from unittest2 import TestCase
 
-from aidbox import Aidbox
+from fhirpy import FHIRClient
 
-from aidbox.exceptions import AidboxResourceFieldDoesNotExist, \
-    AidboxResourceNotFound, AidboxAuthorizationError, AidboxOperationOutcome
+from fhirpy.exceptions import (
+    FHIRResourceFieldDoesNotExist, FHIRResourceNotFound, FHIROperationOutcome)
 
 
 class LibTestCase(TestCase):
@@ -27,8 +27,8 @@ class LibTestCase(TestCase):
 
     @classmethod
     def get_search_set(cls, resource_type):
-        return cls.ab.resources(resource_type).search(**{
-            'identifier': 'aidboxpy'
+        return cls.client.resources(resource_type).search(**{
+            'identifier': 'fhirpy'
         })
 
     @classmethod
@@ -40,17 +40,17 @@ class LibTestCase(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.ab = Aidbox(cls.URL, cls.AUTHORIZATION)
+        cls.client = FHIRClient(cls.URL, cls.AUTHORIZATION)
         cls.clearDb()
 
     def tearDown(self):
         self.clearDb()
 
     def create_resource(self, resource_type, **kwargs):
-        p = self.ab.resource(
+        p = self.client.resource(
             resource_type,
             identifier=[{'system': 'http://example.com/env',
-                         'value': 'aidboxpy'}],
+                         'value': 'FHIRPypy'}],
             **kwargs)
         p.save()
 
@@ -59,10 +59,10 @@ class LibTestCase(TestCase):
     def test_new_patient_entry(self):
         self.create_resource(
             'Patient',
-            id='AidboxPy_patient',
+            id='FHIRPy_patient',
             name=[{'text': 'My patient'}])
 
-        patient = self.ab.resources('Patient').get('AidboxPy_patient')
+        patient = self.client.resources('Patient').get('FHIRPy_patient')
         self.assertEqual(patient['name'], [{'text': 'My patient'}])
 
     def test_patients_search(self):
@@ -70,23 +70,23 @@ class LibTestCase(TestCase):
 
         self.create_resource(
             'Patient',
-            id='AidboxPy_patient1',
-            name=[{'text': 'John Smith AidboxPy'}])
+            id='FHIRPy_patient1',
+            name=[{'text': 'John Smith FHIRPy'}])
         self.create_resource(
             'Patient',
-            id='AidboxPy_patient2',
-            name=[{'text': 'John Gold AidboxPy'}])
+            id='FHIRPy_patient2',
+            name=[{'text': 'John Gold FHIRPy'}])
         self.create_resource(
             'Patient',
-            id='AidboxPy_patient3',
-            name=[{'text': 'Polumna Gold AidboxPy'}])
+            id='FHIRPy_patient3',
+            name=[{'text': 'Polumna Gold FHIRPy'}])
 
         # Test search
         patients = search_set.search(name='john').execute()
 
         self.assertSetEqual(
             set([p.id for p in patients]),
-            {'AidboxPy_patient1', 'AidboxPy_patient2'}
+            {'FHIRPy_patient1', 'FHIRPy_patient2'}
         )
 
         # Test search with AND composition
@@ -94,13 +94,13 @@ class LibTestCase(TestCase):
 
         self.assertSetEqual(
             set([p.id for p in patients]),
-            {'AidboxPy_patient2'}
+            {'FHIRPy_patient2'}
         )
 
         patients = search_set.search(name=['john', 'gold']).execute()
         self.assertSetEqual(
             set([p.id for p in patients]),
-            {'AidboxPy_patient2'}
+            {'FHIRPy_patient2'}
         )
 
         # Test search with OR composition
@@ -108,12 +108,12 @@ class LibTestCase(TestCase):
 
         self.assertSetEqual(
             set([p.id for p in patients]),
-            {'AidboxPy_patient1', 'AidboxPy_patient3'}
+            {'FHIRPy_patient1', 'FHIRPy_patient3'}
         )
 
         # Test sort
         patient = search_set.sort('-name').first()
-        self.assertEqual(patient.id, 'AidboxPy_patient3')
+        self.assertEqual(patient.id, 'FHIRPy_patient3')
 
         # Test count
         self.assertEqual(search_set.count(), 3)
@@ -121,7 +121,7 @@ class LibTestCase(TestCase):
         # Test limit and page and iter (by calling list)
         patients = list(search_set.limit(1).page(2))
         self.assertEqual(len(patients), 1)
-        self.assertEqual(patients[0].id, 'AidboxPy_patient3')
+        self.assertEqual(patients[0].id, 'FHIRPy_patient3')
 
     def test_create_without_id(self):
         patient = self.create_resource('Patient')
@@ -129,80 +129,80 @@ class LibTestCase(TestCase):
         self.assertIsNotNone(patient.id)
 
     def test_delete(self):
-        patient = self.create_resource('Patient', id='AidboxPy_patient')
+        patient = self.create_resource('Patient', id='FHIRPy_patient')
         patient.delete()
 
-        with self.assertRaises(AidboxResourceNotFound):
-            self.get_search_set('Patient').get(id='AidboxPy_patient')
+        with self.assertRaises(FHIRResourceNotFound):
+            self.get_search_set('Patient').get(id='FHIRPy_patient')
 
     def test_get_not_existing_id(self):
-        with self.assertRaises(AidboxResourceNotFound):
-            self.ab.resources('Patient').get(id='aidboxpy_not_existing_id')
+        with self.assertRaises(FHIRResourceNotFound):
+            self.client.resources('Patient').get(id='FHIRPypy_not_existing_id')
 
     def test_get_set_bad_attr(self):
-        with self.assertRaises(AidboxResourceFieldDoesNotExist):
-            self.ab.resource('Patient', notPatientField='field')
+        with self.assertRaises(FHIRResourceFieldDoesNotExist):
+            self.client.resource('Patient', notPatientField='field')
 
-        with self.assertRaises(AidboxResourceFieldDoesNotExist):
-            patient = self.ab.resource('Patient')
+        with self.assertRaises(FHIRResourceFieldDoesNotExist):
+            patient = self.client.resource('Patient')
             patient['notPatientField'] = 'field'
 
-        with self.assertRaises(AidboxResourceFieldDoesNotExist):
-            patient = self.ab.resource('Patient')
+        with self.assertRaises(FHIRResourceFieldDoesNotExist):
+            patient = self.client.resource('Patient')
             _ = patient['notPatientField']
 
     def test_reference(self):
-        reference = self.ab.reference('Patient', 'aidbox_patient_1')
+        reference = self.client.reference('Patient', 'FHIRPy_patient_1')
         self.assertDictEqual(
             reference.to_dict(),
             {
-                'id': 'aidbox_patient_1',
+                'id': 'FHIRPy_patient_1',
                 'resourceType': 'Patient'
             }
         )
 
     def test_not_found_error(self):
-        with self.assertRaises(AidboxResourceNotFound):
-            self.ab.resources('AidboxPyNotExistingResource').execute()
+        with self.assertRaises(FHIRResourceNotFound):
+            self.client.resources('FHIRPyNotExistingResource').execute()
 
     def test_operation_outcome_error(self):
-        with self.assertRaises(AidboxOperationOutcome):
+        with self.assertRaises(FHIROperationOutcome):
             self.create_resource('Patient', name='invalid')
 
     def test_save_with_reference(self):
-        practitioner1 = self.create_resource('Practitioner', id='AidboxPy_pr1')
-        practitioner2 = self.create_resource('Practitioner', id='AidboxPy_pr2')
+        practitioner1 = self.create_resource('Practitioner', id='FHIRPy_pr1')
+        practitioner2 = self.create_resource('Practitioner', id='FHIRPy_pr2')
         self.create_resource(
             'Patient',
-            id='AidboxPy_patient',
+            id='FHIRPy_patient',
             generalPractitioner=[practitioner1.to_reference(
                 display='practitioner'), practitioner2])
 
-        patient = self.ab.resources('Patient').get(id='AidboxPy_patient')
+        patient = self.client.resources('Patient').get(id='FHIRPy_patient')
         self.assertEqual(patient['generalPractitioner'][0], practitioner1)
         self.assertEqual(patient['generalPractitioner'][0]['display'],
                          'practitioner')
         self.assertEqual(patient['generalPractitioner'][1], practitioner2)
 
     def test_to_reference(self):
-        patient = self.create_resource('Patient', id='AidboxPy_patient')
+        patient = self.create_resource('Patient', id='FHIRPy_patient')
 
         self.assertEqual(
             patient.to_reference().to_dict(),
             {'resourceType': 'Patient',
-             'id': 'AidboxPy_patient'})
+             'id': 'FHIRPy_patient'})
 
         self.assertEqual(
             patient.to_reference(display='Patient').to_dict(),
             {'resourceType': 'Patient',
              'display': 'Patient',
-             'id': 'AidboxPy_patient'})
+             'id': 'FHIRPy_patient'})
 
     def test_to_resource(self):
         self.create_resource(
-            'Patient', id='AidboxPy_patient', name=[{'text': 'Name'}])
+            'Patient', id='FHIRPy_patient', name=[{'text': 'Name'}])
 
-        patient_ref = self.ab.reference('Patient', 'AidboxPy_patient')
+        patient_ref = self.client.reference('Patient', 'FHIRPy_patient')
         result = patient_ref.to_resource().to_dict()
         result.pop('meta')
         result.pop('identifier')
@@ -210,6 +210,5 @@ class LibTestCase(TestCase):
         self.assertEqual(
             result,
             {'resourceType': 'Patient',
-             'id': 'AidboxPy_patient',
+             'id': 'FHIRPy_patient',
              'name': [{'text': 'Name'}]})
-

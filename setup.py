@@ -15,7 +15,7 @@ def get_version(package):
     return re.search("__version__ = ['\"]([^'\"]+)['\"]", init_py).group(1)
 
 
-version = get_version('aidbox')
+version = get_version('fhirpy')
 
 
 with open('README.md') as f:
@@ -23,17 +23,17 @@ with open('README.md') as f:
 
 
 setup(
-    name='aidbox',
+    name='fhirpy',
     version=version,
-    url='http://github.com/beda-software/aidbox-py',
+    url='http://github.com/beda-software/fhir-py',
     license='',
-    description='Aidbox client for python',
+    description='FHIR client for python',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    keywords='aidbox',
+    keywords='fhir',
     author='beda.software',
-    author_email='aidbox@beda.software',
-    packages=['aidbox'],
+    author_email='fhirpy@beda.software',
+    packages=['fhirpy'],
     install_requires=['requests'],
     zip_safe=False,
     classifiers=[
