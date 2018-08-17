@@ -26,7 +26,6 @@ provides:
 * .save() - creates or updates resource instance
 * .delete() - deletes resource instance
 * .to_reference(**kwargs) - returns  `FHIRReference` for this resource
-* setattr/getattr using dot operator
 
 `FHIRReference`
 
@@ -50,12 +49,12 @@ provides:
 
 Create an instance
 ```python
-ab = FHIRClient(url='http://path-to-fhir-server', authorization='Bearer TOKEN')
+client = FHIRClient(url='http://path-to-fhir-server', authorization='Bearer TOKEN')
 ```
 
 Fetch list of resource's instances
 ```python
-resources = ab.resources('Patient')  # Return lazy search set
+resources = client.resources('Patient')  # Return lazy search set
 resources = resources.search(name='John').limit(10).page(2).sort('name')
 
 resources.execute()  # Returns list of FHIRResource
@@ -63,17 +62,5 @@ resources.execute()  # Returns list of FHIRResource
 
 Get the particular instance of resource
 ```python
-res = ab.resources('Entity').get(id='ID')
-```
-
-Create new resource's instance
-```python
-res = ab.resource('Entity')
-res.name = 'Chat'
-res.save()  # Creates new instance
-
-res.name = 'Chat2'
-res.save()  # Updates the instance
-
-res.delete()  # Deletes the instance
+res = client.resources('Patient').get(id='ID')
 ```

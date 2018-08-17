@@ -38,6 +38,7 @@ class LibTestCase(TestCase):
                          'value': 'fhirpy'}],
             **kwargs)
         p.save()
+
         return p
 
     def test_new_patient_entry(self):
@@ -115,7 +116,7 @@ class LibTestCase(TestCase):
         patient = self.create_resource('Patient', id='FHIRPy_patient')
         patient.delete()
 
-        with self.assertRaises(FHIRResourceNotFound):
+        with self.assertRaises(FHIROperationOutcome):
             self.get_search_set('Patient').get(id='FHIRPy_patient')
 
     def test_get_not_existing_id(self):
@@ -137,7 +138,7 @@ class LibTestCase(TestCase):
     def test_reference(self):
         reference = self.client.reference('Patient', 'FHIRPy_patient_1')
         self.assertDictEqual(
-            reference.to_dict(),
+            reference.serialize(),
             {
                 'reference': 'Patient/FHIRPy_patient_1'
             }
@@ -157,8 +158,9 @@ class LibTestCase(TestCase):
         self.create_resource(
             'Patient',
             id='FHIRPy_patient',
-            generalPractitioner=[practitioner1.to_reference(
-                display='practitioner'), practitioner2])
+            generalPractitioner=[
+                practitioner1.to_reference(display='practitioner'),
+                practitioner2])
 
         patient = self.client.resources('Patient').get(id='FHIRPy_patient')
         self.assertEqual(patient['generalPractitioner'][0], practitioner1)
@@ -170,11 +172,11 @@ class LibTestCase(TestCase):
         patient = self.create_resource('Patient', id='FHIRPy_patient')
 
         self.assertEqual(
-            patient.to_reference().to_dict(),
+            patient.to_reference().serialize(),
             {'reference': 'Patient/FHIRPy_patient'})
 
         self.assertEqual(
-            patient.to_reference(display='Patient').to_dict(),
+            patient.to_reference(display='Patient').serialize(),
             {
                 'reference': 'Patient/FHIRPy_patient',
                 'display': 'Patient',
@@ -185,7 +187,7 @@ class LibTestCase(TestCase):
             'Patient', id='FHIRPy_patient', name=[{'text': 'Name'}])
 
         patient_ref = self.client.reference('Patient', 'FHIRPy_patient')
-        result = patient_ref.to_resource().to_dict()
+        result = patient_ref.to_resource().serialize()
         result.pop('meta')
         result.pop('identifier')
 
