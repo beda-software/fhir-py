@@ -7,7 +7,7 @@ from collections import defaultdict
 import requests
 
 
-from .utils import encode_params, convert_values
+from .utils import encode_params, convert_values, get_by_path, parse_path
 from .exceptions import (
     FHIRResourceNotFound, FHIROperationOutcome, FHIRNotSupportedVersionError,
     FHIRInvalidResponse)
@@ -190,17 +190,13 @@ class FHIRSearchSet:
     def clone(self, override=False, **kwargs):
         new_params = copy.deepcopy(self.params)
         for key, value in kwargs.items():
+            if not isinstance(value, list):
+                value = [value]
+
             if override:
-                if isinstance(value, list):
-                    new_params[key] = value
-                else:
-                    new_params[key] = [value]
+                new_params[key] = value
             else:
-                if isinstance(value, list):
-                    for item in value:
-                        new_params[key].append(item)
-                else:
-                    new_params[key].append(value)
+                new_params[key].extend(value)
         return FHIRSearchSet(self.client, self.resource_type, new_params)
 
     def elements(self, *attrs, exclude=False):
@@ -211,13 +207,23 @@ class FHIRSearchSet:
 
         return self.clone(
             _elements='{0}{1}'.format('-' if exclude else '',
-                                      ','.join(attrs)))
+                                      ','.join(attrs)),
+            override=True
+        )
 
-    def include(self, resource_type, attr, recursive=False):
-        key = '_include{0}'.format(':recursive' if recursive else '')
+    def include(self, resource_type, attr, target_resource_type=None,
+                *, recursive=False):
+        key_params = ['_include']
+        if recursive:
+            key_params.append('recursive')
+        key = ':'.join(key_params)
 
-        return self.clone(
-            **{key: '{0}:{1}'.format(resource_type, attr)})
+        value_params = [resource_type, attr]
+        if target_resource_type:
+            value_params.append(target_resource_type)
+        value = ':'.join(value_params)
+
+        return self.clone(**{key: value})
 
     def revinclude(self, resource_type, attr, recursive=False):
         # For the moment, this method might only have useless behaviour
@@ -273,23 +279,11 @@ class FHIRBaseResource(dict):
         return super(FHIRBaseResource, self).__getitem__(key)
 
     def get_by_path(self, path, default=None):
-        keys = path.split('.')
+        keys = parse_path(path)
 
         self._raise_error_if_invalid_key(keys[0])
 
-        rv = self
-        try:
-            for key in keys:
-                if isinstance(rv, list) and key.isdigit():
-                    rv = rv[int(key)]
-                else:
-                    rv = rv[key]
-
-                if rv is None:
-                    break
-            return rv
-        except (IndexError, KeyError):
-            return default
+        return get_by_path(self, keys, default)
 
     def get(self, key, default=None):
         self._raise_error_if_invalid_key(key)

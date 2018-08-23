@@ -1,3 +1,4 @@
+import reprlib
 from urllib.parse import urlencode
 
 
@@ -44,3 +45,64 @@ def convert_values(data, fn):
         return {key: convert_values(value, fn)
                 for key, value in data.items()}
     return data
+
+
+def parse_path(path):
+    """
+    >>> parse_path(['path', 'to', 0, 'element'])
+    ['path', 'to', 0, 'element']
+
+    >>> parse_path('path.to.0.element')
+    ['path', 'to', 0, 'element']
+    """
+    if isinstance(path, str):
+        return [int(key) if key.isdigit() else key for key in path.split('.')]
+    elif isinstance(path, list):
+        return path
+    else:
+        raise TypeError('Path must be or a dotted string or a list')
+
+
+def get_by_path(data, path, default=None):
+    """
+    >>> get_by_path({'key': 'value'}, ['key'])
+    'value'
+
+    >>> get_by_path({'key': [{'nkey': 'nvalue'}]}, ['key', 0, 'nkey'])
+    'nvalue'
+
+    >>> get_by_path({
+    ...     'key': [
+    ...         {'test': 'test0', 'nkey': 'zero'},
+    ...         {'test': 'test1', 'nkey': 'one'}
+    ...     ]
+    ... }, ['key', {'test': 'test1'}, 'nkey'])
+    'one'
+    """
+    assert isinstance(path, list), 'Path must be a list'
+
+    rv = data
+    try:
+        for key in path:
+            if isinstance(rv, list):
+                if isinstance(key, int):
+                    rv = rv[key]
+                elif isinstance(key, dict):
+                    for index, item in enumerate(rv):
+                        if all([item.get(k, None) == v for k, v in
+                                key.items()]):
+                            rv = rv[index]
+                            break
+                else:
+                    raise TypeError(
+                        'Can not lookup by {0} in list.'
+                        'Possible lookups are by int or by dict.'.format(
+                            reprlib.repr(key)))
+            else:
+                rv = rv[key]
+
+            if rv is None:
+                break
+        return rv
+    except (IndexError, KeyError):
+        return default
