@@ -40,8 +40,9 @@ provides:
 * .page(page)
 * .sort(*args)
 * .elements(*args, exclude=False)
-* .include(resourceType, attr)
-* .execute() - makes query to the server and returns a list of `FHIRResource`
+* .include(resource_type, attr)
+* .fetch() - makes query to the server and returns a list of `FHIRResource`
+* .fetch_all() - makes query to the server and returns a full list of `FHIRResource`
 * .first() - returns `FHIRResource` or None
 * .get(id=id) - returns `FHIRResource` or raises `FHIRResourceNotFound`
 
@@ -57,7 +58,7 @@ Fetch list of resource's instances
 resources = client.resources('Patient')  # Return lazy search set
 resources = resources.search(name='John').limit(10).page(2).sort('name')
 
-resources.execute()  # Returns list of FHIRResource
+resources.fetch()  # Returns list of FHIRResource
 ```
 
 Get the particular instance of resource
