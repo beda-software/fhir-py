@@ -23,7 +23,7 @@ def convert_values(data, fn):
 
     >>> convert_values(
     ... [{'key1': [1, 2]}, {'key2': [3, 4]}],
-    ... lambda x: (x + 1, False) if isinstance(x, int), False else (x, False))
+    ... lambda x: (x + 1, False) if isinstance(x, int) else (x, False))
     [{'key1': [2, 3]}, {'key2': [4, 5]}]
 
     >>> convert_values(
@@ -59,7 +59,7 @@ def parse_path(path):
         return [int(key) if key.isdigit() else key for key in path.split('.')]
     elif isinstance(path, list):
         return path
-    else:
+    else:  # pragma: no cover
         raise TypeError('Path must be or a dotted string or a list')
 
 
@@ -78,6 +78,9 @@ def get_by_path(data, path, default=None):
     ...     ]
     ... }, ['key', {'test': 'test1'}, 'nkey'])
     'one'
+
+    >>> get_by_path({'a': 1}, ['b'], 0)
+    0
     """
     assert isinstance(path, list), 'Path must be a list'
 
@@ -93,7 +96,7 @@ def get_by_path(data, path, default=None):
                                 key.items()]):
                             rv = rv[index]
                             break
-                else:
+                else:  # pragma: no cover
                     raise TypeError(
                         'Can not lookup by {0} in list.'
                         'Possible lookups are by int or by dict.'.format(
