@@ -7,7 +7,6 @@ from fhirpy.exceptions import (FHIRResourceNotFound, FHIROperationOutcome)
 
 class LibTestCase(TestCase):
     URL = 'https://jupyterdemo.aidbox.app/fhir'
-    AUTHORIZATION = ''
     client = None
 
     @classmethod
@@ -25,10 +24,11 @@ class LibTestCase(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.client = FHIRClient(cls.URL, cls.AUTHORIZATION, without_cache=True)
+        cls.client = FHIRClient(cls.URL)
         cls.clearDb()
 
     def tearDown(self):
+        self.client.clear_resources_cache()
         self.clearDb()
 
     def create_resource(self, resource_type, **kwargs):
@@ -41,71 +41,26 @@ class LibTestCase(TestCase):
 
         return p
 
-    def test_new_patient_entry(self):
+    def test_create_patient(self):
         self.create_resource(
             'Patient',
-            id='FHIRPy_patient',
+            id='patient',
             name=[{'text': 'My patient'}])
 
-        patient = self.client.resources('Patient').get('FHIRPy_patient')
+        patient = self.client.resources('Patient').get('patient')
         self.assertEqual(patient['name'], [{'text': 'My patient'}])
 
-    def test_patients_search(self):
+    def test_count(self):
         search_set = self.get_search_set('Patient')
 
+        self.assertEqual(search_set.count(), 0)
+
         self.create_resource(
             'Patient',
-            id='FHIRPy_patient1',
+            id='patient1',
             name=[{'text': 'John Smith FHIRPy'}])
-        self.create_resource(
-            'Patient',
-            id='FHIRPy_patient2',
-            name=[{'text': 'John Gold FHIRPy'}])
-        self.create_resource(
-            'Patient',
-            id='FHIRPy_patient3',
-            name=[{'text': 'Polumna Gold FHIRPy'}])
 
-        # Test search
-        patients = search_set.search(name='john').execute()
-        self.assertSetEqual(
-            set([p.id for p in patients]),
-            {'FHIRPy_patient1', 'FHIRPy_patient2'}
-        )
-
-        # Test search with AND composition
-        patients = search_set.search(name='john').search(name='gold').execute()
-
-        self.assertSetEqual(
-            set([p.id for p in patients]),
-            {'FHIRPy_patient2'}
-        )
-
-        patients = search_set.search(name=['john', 'gold']).execute()
-        self.assertSetEqual(
-            set([p.id for p in patients]),
-            {'FHIRPy_patient2'}
-        )
-
-        # Test search with OR composition
-        patients = search_set.search(name='smith,polumna').execute()
-
-        self.assertSetEqual(
-            set([p.id for p in patients]),
-            {'FHIRPy_patient1', 'FHIRPy_patient3'}
-        )
-
-        # Test sort
-        patient = search_set.sort('-name').first()
-        self.assertEqual(patient.id, 'FHIRPy_patient3')
-
-        # Test count
-        self.assertEqual(search_set.count(), 3)
-
-        # Test limit and page and iter (by calling list)
-        patients = list(search_set.limit(1).page(2))
-        self.assertEqual(len(patients), 1)
-        self.assertEqual(patients[0].id, 'FHIRPy_patient3')
+        self.assertEqual(search_set.count(), 1)
 
     def test_create_without_id(self):
         patient = self.create_resource('Patient')
@@ -113,11 +68,11 @@ class LibTestCase(TestCase):
         self.assertIsNotNone(patient.id)
 
     def test_delete(self):
-        patient = self.create_resource('Patient', id='FHIRPy_patient')
+        patient = self.create_resource('Patient', id='patient')
         patient.delete()
 
         with self.assertRaises(FHIROperationOutcome):
-            self.get_search_set('Patient').get(id='FHIRPy_patient')
+            self.get_search_set('Patient').get(id='patient')
 
     def test_get_not_existing_id(self):
         with self.assertRaises(FHIRResourceNotFound):
@@ -136,57 +91,27 @@ class LibTestCase(TestCase):
             _ = patient['notPatientField']
 
     def test_reference(self):
-        reference = self.client.reference('Patient', 'FHIRPy_patient_1')
+        reference = self.client.reference('Patient', 'patient_1')
         self.assertDictEqual(
             reference.serialize(),
             {
-                'reference': 'Patient/FHIRPy_patient_1'
+                'reference': 'Patient/patient_1'
             }
         )
 
     def test_not_found_error(self):
         with self.assertRaises(FHIRResourceNotFound):
-            self.client.resources('FHIRPyNotExistingResource').execute()
+            self.client.resources('FHIRPyNotExistingResource').fetch()
 
     def test_operation_outcome_error(self):
         with self.assertRaises(FHIROperationOutcome):
             self.create_resource('Patient', name='invalid')
 
-    def test_save_with_reference(self):
-        practitioner1 = self.create_resource('Practitioner', id='FHIRPy_pr1')
-        practitioner2 = self.create_resource('Practitioner', id='FHIRPy_pr2')
-        self.create_resource(
-            'Patient',
-            id='FHIRPy_patient',
-            generalPractitioner=[
-                practitioner1.to_reference(display='practitioner'),
-                practitioner2])
-
-        patient = self.client.resources('Patient').get(id='FHIRPy_patient')
-        self.assertEqual(patient['generalPractitioner'][0], practitioner1)
-        self.assertEqual(patient['generalPractitioner'][0]['display'],
-                         'practitioner')
-        self.assertEqual(patient['generalPractitioner'][1], practitioner2)
-
-    def test_to_reference(self):
-        patient = self.create_resource('Patient', id='FHIRPy_patient')
-
-        self.assertEqual(
-            patient.to_reference().serialize(),
-            {'reference': 'Patient/FHIRPy_patient'})
-
-        self.assertEqual(
-            patient.to_reference(display='Patient').serialize(),
-            {
-                'reference': 'Patient/FHIRPy_patient',
-                'display': 'Patient',
-            })
-
     def test_to_resource(self):
         self.create_resource(
-            'Patient', id='FHIRPy_patient', name=[{'text': 'Name'}])
+            'Patient', id='patient', name=[{'text': 'Name'}])
 
-        patient_ref = self.client.reference('Patient', 'FHIRPy_patient')
+        patient_ref = self.client.reference('Patient', 'patient')
         result = patient_ref.to_resource().serialize()
         result.pop('meta')
         result.pop('identifier')
@@ -194,5 +119,139 @@ class LibTestCase(TestCase):
         self.assertEqual(
             result,
             {'resourceType': 'Patient',
-             'id': 'FHIRPy_patient',
+             'id': 'patient',
              'name': [{'text': 'Name'}]})
+
+    def test_to_reference(self):
+        patient = self.create_resource('Patient', id='patient')
+
+        self.assertEqual(
+            patient.to_reference().serialize(),
+            {'reference': 'Patient/patient'})
+
+        self.assertEqual(
+            patient.to_reference(display='Patient').serialize(),
+            {
+                'reference': 'Patient/patient',
+                'display': 'Patient',
+            })
+
+    def test_serializer(self):
+        practitioner1 = self.client.resource('Practitioner', id='pr1')
+        practitioner2 = self.client.resource('Practitioner', id='pr2')
+        patient = self.client.resource(
+            'Patient',
+            id='patient',
+            generalPractitioner=[
+                practitioner1.to_reference(display='practitioner'),
+                practitioner2])
+
+        self.assertEqual(
+            patient.serialize(),
+            {
+                'resourceType': 'Patient',
+                'id': 'patient',
+                'generalPractitioner': [
+                    {
+                        'reference': 'Practitioner/pr1',
+                        'display': 'practitioner',
+                    },
+                    {
+                        'reference': 'Practitioner/pr2',
+                    },
+                ],
+            })
+
+
+class SearchSetTestCase(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.client = FHIRClient('mock')
+
+    def test_search(self):
+        search_set = self.client.resources('Patient') \
+            .search(name='John,Ivan') \
+            .search(name='Smith') \
+            .search(birth_date='2010-01-01')
+        self.assertEqual(
+            search_set.params,
+            {'name': ['John,Ivan', 'Smith'],
+             'birth_date': ['2010-01-01']}
+        )
+
+    def test_sort(self):
+        search_set = self.client.resources('Patient') \
+            .sort('id').sort('deceased')
+        self.assertEqual(
+            search_set.params,
+            {'_sort': ['deceased']}
+        )
+
+    def test_page(self):
+        search_set = self.client.resources('Patient') \
+            .page(1).page(2)
+        self.assertEqual(
+            search_set.params,
+            {'_page': [2]}
+        )
+
+    def test_limit(self):
+        search_set = self.client.resources('Patient') \
+            .limit(1).limit(2)
+        self.assertEqual(
+            search_set.params,
+            {'_count': [2]}
+        )
+
+    def test_elements(self):
+        search_set = self.client.resources('Patient') \
+            .elements('deceased').elements('gender')
+
+        self.assertEqual(set(search_set.params.keys()), {'_elements'})
+        self.assertEqual(len(search_set.params['_elements']), 1)
+        self.assertSetEqual(
+            set(search_set.params['_elements'][0].split(',')),
+            {'id', 'resourceType', 'gender'})
+
+    def test_elements_exclude(self):
+        search_set = self.client.resources('Patient') \
+            .elements('name', exclude=True)
+        self.assertEqual(
+            search_set.params,
+            {'_elements': ['-name']}
+        )
+
+    def test_include(self):
+        search_set = self.client.resources('Patient') \
+            .include('Patient', 'general-practitioner')
+        self.assertEqual(
+            search_set.params,
+            {'_include': ['Patient:general-practitioner']}
+        )
+
+    def test_include_multiple(self):
+        search_set = self.client.resources('Orginaztion') \
+            .include('Patient', 'general-practitioner') \
+            .include('Patient', 'organization')
+
+        self.assertEqual(
+            search_set.params,
+            {'_include': ['Patient:general-practitioner',
+                          'Patient:organization']}
+        )
+
+    def test_include_with_target(self):
+        search_set = self.client.resources('Patient') \
+            .include('Patient', 'general-practitioner', 'Organization')
+        self.assertEqual(
+            search_set.params,
+            {'_include': ['Patient:general-practitioner:Organization']}
+        )
+
+    def test_include_recursive(self):
+        search_set = self.client.resources('Patient') \
+            .include('Organization', 'partof', recursive=True)
+        self.assertEqual(
+            search_set.params,
+            {'_include:recursive': ['Organization:partof']}
+        )

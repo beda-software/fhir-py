@@ -199,6 +199,7 @@ class FHIRSearchSet:
 
     def first(self):
         result = self.limit(1).fetch()
+
         return result[0] if result else None
 
     def clone(self, override=False, **kwargs):
@@ -211,6 +212,7 @@ class FHIRSearchSet:
                 new_params[key] = value
             else:
                 new_params[key].extend(value)
+
         return FHIRSearchSet(self.client, self.resource_type, new_params)
 
     def elements(self, *attrs, exclude=False):
@@ -256,7 +258,7 @@ class FHIRSearchSet:
 
     def sort(self, *keys):
         sort_keys = ','.join(keys)
-        return self.clone(_sort=sort_keys)
+        return self.clone(_sort=sort_keys, override=True)
 
     def __str__(self):  # pragma: no cover
         return '<FHIRSearchSet {0}?{1}>'.format(
