@@ -140,11 +140,6 @@ class FHIRSearchSet:
 
         return resource
 
-    def execute(self, *, skip_caching=False):
-        # TODO: This method will be deprecated soon
-
-        return self.fetch(skip_caching=skip_caching)
-
     def fetch(self, *, skip_caching=False):
         bundle_data = self.client._fetch_resource(
             self.resource_type, self.params)
