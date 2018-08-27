@@ -198,7 +198,7 @@ class FHIRSearchSet:
         )['total']
 
     def first(self):
-        result = self.limit(1).execute()
+        result = self.limit(1).fetch()
         return result[0] if result else None
 
     def clone(self, override=False, **kwargs):
@@ -266,7 +266,7 @@ class FHIRSearchSet:
         return self.__str__()
 
     def __iter__(self):
-        return iter(self.execute())
+        return iter(self.fetch())
 
 
 class FHIRBaseResource(dict):
