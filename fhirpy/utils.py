@@ -81,12 +81,21 @@ def get_by_path(data, path, default=None):
 
     >>> get_by_path({'a': 1}, ['b'], 0)
     0
+
+    >>> get_by_path({'a': {'b': None}}, ['a', 'b'], 0) is None
+    True
+
+    >>> get_by_path({'a': {'b': None}}, ['a', 'b', 'c'], 0)
+    0
     """
     assert isinstance(path, list), 'Path must be a list'
 
     rv = data
     try:
         for key in path:
+            if rv is None:
+                return default
+
             if isinstance(rv, list):
                 if isinstance(key, int):
                     rv = rv[key]
@@ -98,14 +107,12 @@ def get_by_path(data, path, default=None):
                             break
                 else:  # pragma: no cover
                     raise TypeError(
-                        'Can not lookup by {0} in list.'
+                        'Can not lookup by {0} in list. '
                         'Possible lookups are by int or by dict.'.format(
                             reprlib.repr(key)))
             else:
                 rv = rv[key]
 
-            if rv is None:
-                break
         return rv
     except (IndexError, KeyError):
         return default
