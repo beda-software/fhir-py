@@ -1,7 +1,7 @@
 from unittest2 import TestCase
 
 from fhirpy import FHIRClient
-from fhirpy.lib import load_schema
+from fhirpy.lib import load_schema, FHIRReference, FHIRResource
 
 from fhirpy.exceptions import (FHIRResourceNotFound, FHIROperationOutcome,
                                FHIRNotSupportedVersionError)
@@ -145,6 +145,22 @@ class LibTestCase(TestCase):
             }
         )
 
+    def test_reference_from_external_reference_2(self):
+        reference = self.client.reference(
+            reference='notfhirresource/n1')
+        self.assertFalse(reference.is_local)
+        self.assertIsNone(reference.resource_type)
+        self.assertIsNone(reference.id)
+        self.assertEqual(reference.reference, 'notfhirresource/n1')
+        self.assertEqual(
+            reference['reference'], 'notfhirresource/n1')
+        self.assertDictEqual(
+            reference.serialize(),
+            {
+                'reference': 'notfhirresource/n1'
+            }
+        )
+
     def test_reference_from_resource_type_and_id(self):
         reference = self.client.reference('Patient', 'p1')
         self.assertEqual(reference.resource_type, 'Patient')
@@ -166,11 +182,11 @@ class LibTestCase(TestCase):
         with self.assertRaises(FHIROperationOutcome):
             self.create_resource('Patient', name='invalid')
 
-    def test_to_resource(self):
+    def test_to_resource_for_local_reference(self):
         self.create_resource(
-            'Patient', id='patient', name=[{'text': 'Name'}])
+            'Patient', id='p1', name=[{'text': 'Name'}])
 
-        patient_ref = self.client.reference('Patient', 'patient')
+        patient_ref = self.client.reference('Patient', 'p1')
         result = patient_ref.to_resource().serialize()
         result.pop('meta')
         result.pop('identifier')
@@ -178,24 +194,58 @@ class LibTestCase(TestCase):
         self.assertEqual(
             result,
             {'resourceType': 'Patient',
-             'id': 'patient',
+             'id': 'p1',
              'name': [{'text': 'Name'}]})
 
-    def test_to_reference(self):
-        patient = self.create_resource('Patient', id='patient')
+    def test_to_resource_for_external_reference(self):
+        reference = self.client.reference(
+            reference='http://external.com/Patient/p1')
+
+        with self.assertRaises(FHIRResourceNotFound):
+            reference.to_resource()
+
+    def test_to_resource_for_resource(self):
+        resource = self.client.resource(
+            'Patient', id='p1', name=[{'text': 'Name'}])
+        resource_copy = resource.to_resource()
+        self.assertTrue(isinstance(resource_copy, FHIRResource))
+        self.assertEqual(
+            resource_copy.serialize(),
+            {'resourceType': 'Patient',
+             'id': 'p1',
+             'name': [{'text': 'Name'}]})
+
+    def test_to_reference_for_resource_without_id(self):
+        resource = self.client.resource('Patient')
+        with self.assertRaises(FHIRResourceNotFound):
+            resource.to_reference()
+
+    def test_to_reference_for_resource(self):
+        patient = self.create_resource('Patient', id='p1')
 
         self.assertEqual(
             patient.to_reference().serialize(),
-            {'reference': 'Patient/patient'})
+            {'reference': 'Patient/p1'})
 
         self.assertEqual(
-            patient.to_reference(display='Patient').serialize(),
+            patient.to_reference(display='patient').serialize(),
             {
-                'reference': 'Patient/patient',
-                'display': 'Patient',
+                'reference': 'Patient/p1',
+                'display': 'patient',
             })
 
-    def test_serializer(self):
+    def test_to_reference_for_reference(self):
+        reference = self.client.reference('Patient', 'p1')
+        reference_copy = reference.to_reference(display='patient')
+        self.assertTrue(isinstance(reference_copy, FHIRReference))
+        self.assertEqual(
+            reference_copy.serialize(),
+            {
+                'reference': 'Patient/p1',
+                'display': 'patient',
+            })
+
+    def test_serialize(self):
         practitioner1 = self.client.resource('Practitioner', id='pr1')
         practitioner2 = self.client.resource('Practitioner', id='pr2')
         patient = self.client.resource(
@@ -220,6 +270,11 @@ class LibTestCase(TestCase):
                     },
                 ],
             })
+
+    def test_equality(self):
+        resource = self.client.resource('Patient', id='p1')
+        reference = self.client.reference('Patient', 'p1')
+        self.assertEqual(resource, reference)
 
 
 class SearchSetTestCase(TestCase):

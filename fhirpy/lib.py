@@ -323,19 +323,19 @@ class FHIRBaseResource(dict):
         return convert_values(
             {key: value for key, value in self.items()}, convert_fn)
 
-    def get_root_keys(self):
+    def get_root_keys(self):  # pragma: no cover
         raise NotImplementedError
 
     @property
-    def id(self):
+    def id(self):  # pragma: no cover
         raise NotImplementedError()
 
     @property
-    def resource_type(self):
+    def resource_type(self):  # pragma: no cover
         raise NotImplementedError()
 
     @property
-    def reference(self):
+    def reference(self):  # pragma: no cover
         raise NotImplementedError()
 
     @staticmethod
@@ -346,7 +346,7 @@ class FHIRBaseResource(dict):
         return 'reference' in value and \
                not (set(value.keys()) - {'reference', 'display'})
 
-    def _ipython_key_completions_(self):
+    def _ipython_key_completions_(self):  # pragma: no cover
         return self.get_root_keys()
 
     def _raise_error_if_invalid_keys(self, keys):
@@ -428,7 +428,7 @@ class FHIRResource(FHIRBaseResource):
         """
         if not self.reference:
             raise FHIRResourceNotFound(
-                'Can not get reference to unsaved resource')
+                'Can not get reference to unsaved resource without id')
 
         return FHIRReference(self.client, reference=self.reference, **kwargs)
 
