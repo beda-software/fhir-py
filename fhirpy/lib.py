@@ -506,4 +506,11 @@ class FHIRReference(FHIRBaseResource):
 
     @property
     def is_local(self):
-        return '/' in self.reference
+        if self.reference.count('/') != 1:
+            return False
+
+        resource_type, _ = self.reference.split('/')
+        if self.client._get_schema(resource_type):
+            return True
+
+        return False

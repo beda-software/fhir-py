@@ -1,8 +1,10 @@
 from unittest2 import TestCase
 
 from fhirpy import FHIRClient
+from fhirpy.lib import load_schema
 
-from fhirpy.exceptions import (FHIRResourceNotFound, FHIROperationOutcome)
+from fhirpy.exceptions import (FHIRResourceNotFound, FHIROperationOutcome,
+                               FHIRNotSupportedVersionError)
 
 
 class LibTestCase(TestCase):
@@ -30,6 +32,10 @@ class LibTestCase(TestCase):
     def tearDown(self):
         self.client.clear_resources_cache()
         self.clearDb()
+
+    def test_load_schema_for_invalid_version_failed(self):
+        with self.assertRaises(FHIRNotSupportedVersionError):
+            load_schema('invalid')
 
     def create_resource(self, resource_type, **kwargs):
         p = self.client.resource(
@@ -90,12 +96,65 @@ class LibTestCase(TestCase):
             patient = self.client.resource('Patient')
             _ = patient['notPatientField']
 
-    def test_reference(self):
-        reference = self.client.reference('Patient', 'patient_1')
+    def test_resource_without_resource_type_failed(self):
+        with self.assertRaises(TypeError):
+            self.client.resource()
+
+    def test_resource_success(self):
+        resource = self.client.resource('Patient', id='p1')
+        self.assertEqual(resource.resource_type, 'Patient')
+        self.assertEqual(resource['resourceType'], 'Patient')
+        self.assertEqual(resource.id, 'p1')
+        self.assertEqual(resource['id'], 'p1')
+        self.assertEqual(resource.reference, 'Patient/p1')
+        self.assertDictEqual(
+            resource.serialize(),
+            {
+                'resourceType': 'Patient',
+                'id': 'p1',
+            }
+        )
+
+    def test_reference_from_local_reference(self):
+        reference = self.client.reference(reference='Patient/p1')
+        self.assertTrue(reference.is_local)
+        self.assertEqual(reference.resource_type, 'Patient')
+        self.assertEqual(reference.id, 'p1')
+        self.assertEqual(reference.reference, 'Patient/p1')
+        self.assertEqual(reference['reference'], 'Patient/p1')
         self.assertDictEqual(
             reference.serialize(),
             {
-                'reference': 'Patient/patient_1'
+                'reference': 'Patient/p1'
+            }
+        )
+
+    def test_reference_from_external_reference(self):
+        reference = self.client.reference(
+            reference='http://external.com/Patient/p1')
+        self.assertFalse(reference.is_local)
+        self.assertIsNone(reference.resource_type)
+        self.assertIsNone(reference.id)
+        self.assertEqual(reference.reference, 'http://external.com/Patient/p1')
+        self.assertEqual(
+            reference['reference'], 'http://external.com/Patient/p1')
+        self.assertDictEqual(
+            reference.serialize(),
+            {
+                'reference': 'http://external.com/Patient/p1'
+            }
+        )
+
+    def test_reference_from_resource_type_and_id(self):
+        reference = self.client.reference('Patient', 'p1')
+        self.assertEqual(reference.resource_type, 'Patient')
+        self.assertEqual(reference.id, 'p1')
+        self.assertEqual(reference.reference, 'Patient/p1')
+        self.assertEqual(reference['reference'], 'Patient/p1')
+        self.assertDictEqual(
+            reference.serialize(),
+            {
+                'reference': 'Patient/p1'
             }
         )
 
