@@ -343,6 +343,27 @@ class SearchSetTestCase(TestCase):
             {'_include': ['Patient:general-practitioner']}
         )
 
+    def test_has(self):
+        search_set = self.client.resources('Patient') \
+            .has('Observation', 'patient', 'AuditEvent', 'entity',
+                 user='id',
+                 type='test')
+        self.assertEqual(
+            search_set.params,
+            {
+                '_has:Observation:patient:_has:AuditEvent:entity:user': [
+                    'id'
+                ],
+                '_has:Observation:patient:_has:AuditEvent:entity:type': [
+                    'test'
+                ],
+            }
+        )
+
+    def test_has_failed(self):
+        with self.assertRaises(TypeError):
+            self.client.resources('Patient').has('Observation',code='code')
+
     def test_include_multiple(self):
         search_set = self.client.resources('Orginaztion') \
             .include('Patient', 'general-practitioner') \

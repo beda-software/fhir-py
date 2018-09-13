@@ -7,7 +7,8 @@ from collections import defaultdict
 import requests
 
 
-from .utils import encode_params, convert_values, get_by_path, parse_path
+from .utils import (
+    encode_params, convert_values, get_by_path, parse_path, chunks)
 from .exceptions import (
     FHIRResourceNotFound, FHIROperationOutcome, FHIRNotSupportedVersionError,
     FHIRInvalidResponse)
@@ -240,6 +241,21 @@ class FHIRSearchSet:
         value = ':'.join(value_params)
 
         return self.clone(**{key: value})
+
+    def has(self, *args, **kwargs):
+        if len(args) % 2 != 0:
+            raise TypeError(
+                'You should pass even size of arguments, for example: '
+                '`.has(\'Observation\', \'patient\', '
+                '\'AuditEvent\', \'entity\', user=\'id\')`')
+
+        key_part = ':'.join(
+            ['_has:{0}'.format(':'.join(pair))
+             for pair in chunks(args, 2)])
+
+        return self.clone(
+            **{':'.join([key_part, key]): value
+               for key, value in kwargs.items()})
 
     def revinclude(self, resource_type, attr, recursive=False):
         # For the moment, this method might only have useless behaviour

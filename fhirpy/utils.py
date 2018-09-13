@@ -2,6 +2,17 @@ import reprlib
 from urllib.parse import urlencode
 
 
+def chunks(l, n):
+    """
+    Yield successive n-sized chunks from l
+
+    >>> list(chunks([1, 2, 3, 4], 2))
+    [[1, 2], [3, 4]]
+    """
+    for i in range(0, len(l), n):
+        yield l[i:i + n]
+
+
 def encode_params(params):
     return urlencode(params or {}, doseq=True, safe=':,')
 
