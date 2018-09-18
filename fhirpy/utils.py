@@ -1,5 +1,5 @@
 import reprlib
-from urllib.parse import urlencode
+from urllib.parse import urlencode, quote
 
 
 def chunks(l, n):
@@ -14,7 +14,7 @@ def chunks(l, n):
 
 
 def encode_params(params):
-    return urlencode(params or {}, doseq=True, safe=':,')
+    return urlencode(params or {}, doseq=True, safe=':,', quote_via=quote)
 
 
 def convert_values(data, fn):
