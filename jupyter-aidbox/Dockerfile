@@ -1,4 +1,5 @@
 FROM jupyter/datascience-notebook:latest
 
-RUN  pip install git+https://github.com/beda-software/fhir-py.git --upgrade
+RUN  pip install fhirpy --upgrade
 ADD examples /examples/
+
