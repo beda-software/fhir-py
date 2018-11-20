@@ -306,7 +306,7 @@ class SearchSetTestCase(TestCase):
             .page(1).page(2)
         self.assertEqual(
             search_set.params,
-            {'_page': [2]}
+            {'page': [2]}
         )
 
     def test_limit(self):

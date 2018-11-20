@@ -270,7 +270,7 @@ class FHIRSearchSet:
         return self.clone(_count=limit, override=True)
 
     def page(self, page):
-        return self.clone(_page=page, override=True)
+        return self.clone(page=page, override=True)
 
     def sort(self, *keys):
         sort_keys = ','.join(keys)

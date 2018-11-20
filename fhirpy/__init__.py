@@ -1,7 +1,7 @@
 from .lib import FHIRClient
 
 __title__ = 'fhir-py'
-__version__ = '0.1.0'
+__version__ = '0.1.2'
 __author__ = 'beda.software'
 __license__ = 'None'
 __copyright__ = 'Copyright 2018 beda.software'
