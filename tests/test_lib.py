@@ -4,7 +4,8 @@ from requests.auth import _basic_auth_str
 from fhirpy import FHIRClient
 from fhirpy.lib import FHIRReference, FHIRResource
 from base_fhirpy.lib import load_schema
-from base_fhirpy.exceptions import ResourceNotFound, InvalidResponse, AuthorizationError, OperationOutcome, NotSupportedVersionError
+from base_fhirpy.exceptions import ResourceNotFound, OperationOutcome, NotSupportedVersionError
+
 
 class LibTestCase(TestCase):
     URL = 'http://localhost:8080/fhir'
