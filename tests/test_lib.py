@@ -3,8 +3,8 @@ from requests.auth import _basic_auth_str
 
 from fhirpy import FHIRClient
 from fhirpy.lib import FHIRReference, FHIRResource
-from base_fhirpy.lib import load_schema
-from base_fhirpy.exceptions import ResourceNotFound, OperationOutcome, NotSupportedVersionError
+from fhirpy.lib import load_schema
+from base_fhirpy.exceptions import ResourceNotFound, OperationOutcome
 
 
 class LibTestCase(TestCase):
@@ -33,8 +33,8 @@ class LibTestCase(TestCase):
         self.client.clear_resources_cache()
         self.clearDb()
 
-    def test_load_schema_for_invalid_version_failed(self):
-        with self.assertRaises(NotSupportedVersionError):
+    def test_load_schema_for_invalid_path_failed(self):
+        with self.assertRaises(FileNotFoundError):
             load_schema('invalid')
 
     def create_resource(self, resource_type, **kwargs):

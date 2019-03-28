@@ -1,18 +1,7 @@
+import pickle
+from os.path import dirname
+
 from base_fhirpy import Client, SearchSet, Resource, Reference
-
-
-class FHIRClient(Client):
-    @property
-    def searchset_class(self):
-        return FHIRSearchSet
-
-    @property
-    def resource_class(self):
-        return FHIRResource
-
-    @property
-    def reference_class(self):
-        return FHIRReference
 
 
 class FHIRSearchSet(SearchSet):
@@ -20,8 +9,7 @@ class FHIRSearchSet(SearchSet):
 
 
 class FHIRResource(Resource):
-    @staticmethod
-    def is_reference(value):
+    def is_reference(self, value):
         if not isinstance(value, dict):
             return False
 
@@ -61,3 +49,24 @@ class FHIRReference(Reference):
         """
         if self.is_local:
             return self.reference.split('/', 1)[0]
+
+    @property
+    def is_local(self):
+        return self.reference.count('/') == 1
+
+
+def load_schema(version):
+    filename = '{0}/schemas/fhir-{1}.pkl'.format(dirname(__file__), version)
+    with open(filename, 'rb') as f:
+        return pickle.load(f)
+
+
+class FHIRClient(Client):
+    searchset_class = FHIRSearchSet
+    resource_class = FHIRResource
+    reference_class = FHIRReference
+
+    def __init__(self, url, authorization=None, with_cache=False,
+                 fhir_version='3.0.1'):
+        schema = load_schema(fhir_version)
+        super(FHIRClient, self).__init__(url, authorization, with_cache, schema)
