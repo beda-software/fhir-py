@@ -1,14 +1,13 @@
 from unittest2 import TestCase
+from requests.auth import _basic_auth_str
 
 from fhirpy import FHIRClient
-from fhirpy.lib import load_schema, FHIRReference, FHIRResource
-
-from fhirpy.exceptions import (FHIRResourceNotFound, FHIROperationOutcome,
-                               FHIRNotSupportedVersionError)
-
+from fhirpy.lib import FHIRReference, FHIRResource
+from base_fhirpy.lib import load_schema
+from base_fhirpy.exceptions import ResourceNotFound, InvalidResponse, AuthorizationError, OperationOutcome, NotSupportedVersionError
 
 class LibTestCase(TestCase):
-    URL = 'https://jupyterdemo.aidbox.app/fhir'
+    URL = 'http://localhost:8080/fhir'
     client = None
 
     @classmethod
@@ -26,7 +25,7 @@ class LibTestCase(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.client = FHIRClient(cls.URL)
+        cls.client = FHIRClient(cls.URL, authorization=_basic_auth_str('root', 'secret'))
         cls.clearDb()
 
     def tearDown(self):
@@ -34,7 +33,7 @@ class LibTestCase(TestCase):
         self.clearDb()
 
     def test_load_schema_for_invalid_version_failed(self):
-        with self.assertRaises(FHIRNotSupportedVersionError):
+        with self.assertRaises(NotSupportedVersionError):
             load_schema('invalid')
 
     def create_resource(self, resource_type, **kwargs):
@@ -77,11 +76,11 @@ class LibTestCase(TestCase):
         patient = self.create_resource('Patient', id='patient')
         patient.delete()
 
-        with self.assertRaises(FHIROperationOutcome):
+        with self.assertRaises(OperationOutcome):
             self.get_search_set('Patient').get(id='patient')
 
     def test_get_not_existing_id(self):
-        with self.assertRaises(FHIRResourceNotFound):
+        with self.assertRaises(ResourceNotFound):
             self.client.resources('Patient').get(id='FHIRPypy_not_existing_id')
 
     def test_get_set_bad_attr(self):
@@ -175,11 +174,11 @@ class LibTestCase(TestCase):
         )
 
     def test_not_found_error(self):
-        with self.assertRaises(FHIRResourceNotFound):
+        with self.assertRaises(ResourceNotFound):
             self.client.resources('FHIRPyNotExistingResource').fetch()
 
     def test_operation_outcome_error(self):
-        with self.assertRaises(FHIROperationOutcome):
+        with self.assertRaises(OperationOutcome):
             self.create_resource('Patient', name='invalid')
 
     def test_to_resource_for_local_reference(self):
@@ -201,7 +200,7 @@ class LibTestCase(TestCase):
         reference = self.client.reference(
             reference='http://external.com/Patient/p1')
 
-        with self.assertRaises(FHIRResourceNotFound):
+        with self.assertRaises(ResourceNotFound):
             reference.to_resource()
 
     def test_to_resource_for_resource(self):
@@ -217,7 +216,7 @@ class LibTestCase(TestCase):
 
     def test_to_reference_for_resource_without_id(self):
         resource = self.client.resource('Patient')
-        with self.assertRaises(FHIRResourceNotFound):
+        with self.assertRaises(ResourceNotFound):
             resource.to_reference()
 
     def test_to_reference_for_resource(self):
