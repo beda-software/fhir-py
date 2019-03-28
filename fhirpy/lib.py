@@ -30,6 +30,9 @@ class FHIRResource(Resource):
 
 
 class FHIRReference(Reference):
+    def get_root_keys(self):
+        return ['reference', 'display']
+
     @property
     def reference(self):
         return self['reference']
