@@ -145,22 +145,6 @@ class LibTestCase(TestCase):
             }
         )
 
-    def test_reference_from_external_reference_2(self):
-        reference = self.client.reference(
-            reference='notfhirresource/n1')
-        self.assertFalse(reference.is_local)
-        self.assertIsNone(reference.resource_type)
-        self.assertIsNone(reference.id)
-        self.assertEqual(reference.reference, 'notfhirresource/n1')
-        self.assertEqual(
-            reference['reference'], 'notfhirresource/n1')
-        self.assertDictEqual(
-            reference.serialize(),
-            {
-                'reference': 'notfhirresource/n1'
-            }
-        )
-
     def test_reference_from_resource_type_and_id(self):
         reference = self.client.reference('Patient', 'p1')
         self.assertEqual(reference.resource_type, 'Patient')

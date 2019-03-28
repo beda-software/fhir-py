@@ -64,9 +64,18 @@ def load_schema(version):
 class FHIRClient(Client):
     searchset_class = FHIRSearchSet
     resource_class = FHIRResource
-    reference_class = FHIRReference
 
     def __init__(self, url, authorization=None, with_cache=False,
                  fhir_version='3.0.1'):
         schema = load_schema(fhir_version)
         super(FHIRClient, self).__init__(url, authorization, with_cache, schema)
+
+    def reference(self, resource_type=None, id=None, reference=None, **kwargs):
+        if resource_type and id:
+            reference = '{0}/{1}'.format(resource_type, id)
+
+        if not reference:
+            raise TypeError(
+                'Arguments `resource_type` and `id` or `reference` '
+                'are required')
+        return FHIRReference(self, reference=reference, **kwargs)
