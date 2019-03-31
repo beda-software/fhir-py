@@ -30,14 +30,16 @@ class FHIRClient:
     url = None
     authorization = None
     without_cache = False
+    extra_headers = None
 
     def __init__(self, url, authorization=None, without_cache=False,
-                 fhir_version='3.0.1'):
+                 fhir_version='3.0.1', extra_headers=None):
         self.url = url
         self.authorization = authorization
         self.resources_cache = defaultdict(dict)
         self.without_cache = without_cache
         self.schema = load_schema(fhir_version)
+        self.extra_headers = extra_headers
 
     def __str__(self):  # pragma: no cover
         return '<FHIRClient {0}>'.format(self.url)
@@ -101,11 +103,16 @@ class FHIRClient:
         params.update({'_format': 'json'})
         url = '{0}/{1}?{2}'.format(
             self.url, path, encode_params(params))
+        headers={'Authorization': self.authorization}
+
+        if self.extra_headers is not None:
+            headers = {**headers, **self.extra_headers}
+
         r = requests.request(
             method,
             url,
             json=data,
-            headers={'Authorization': self.authorization})
+            headers=headers)
 
         if 200 <= r.status_code < 300:
             return json.loads(r.content) if r.content else None
