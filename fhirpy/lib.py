@@ -108,7 +108,7 @@ class FHIRClient:
             headers={'Authorization': self.authorization})
 
         if 200 <= r.status_code < 300:
-            return json.loads(r.content) if r.content else None
+            return json.loads(r.content.decode()) if r.content else None
 
         if r.status_code == 404:
             raise FHIRResourceNotFound(r.content.decode())
