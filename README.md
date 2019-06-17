@@ -13,7 +13,7 @@ Import library:
 
 To create FHIR instance use:
 
-`FHIRClient(url, authorization='', version='3.0.1', without_cache=False)`
+`FHIRClient(url, authorization='', fhir_version='4.0.0', without_cache=False)`
 
 Returns an instance of the connection to the server which provides:
 * .reference(resource_type, id, reference, **kwargs) - returns `FHIRReference` to the resource
