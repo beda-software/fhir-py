@@ -4,7 +4,7 @@ from requests.auth import _basic_auth_str
 from fhirpy import FHIRClient
 from fhirpy.lib import FHIRReference, FHIRResource
 from fhirpy.lib import load_schema
-from base_fhirpy.exceptions import ResourceNotFound, OperationOutcome
+from fhirpy.base.exceptions import ResourceNotFound, OperationOutcome
 
 
 class LibTestCase(TestCase):

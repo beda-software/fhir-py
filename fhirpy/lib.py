@@ -1,7 +1,7 @@
 import pickle
 from os.path import dirname
 
-from base_fhirpy import Client, SearchSet, Resource, Reference
+from .base import Client, SearchSet, Resource, Reference
 
 
 class FHIRSearchSet(SearchSet):
