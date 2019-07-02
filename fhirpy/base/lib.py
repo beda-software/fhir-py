@@ -18,13 +18,15 @@ class Client(ABC):
     url = None
     authorization = None
     without_cache = False
+    extra_headers = None
 
     def __init__(self, url, authorization=None, with_cache=False,
-                 schema=None):
+                 schema=None, extra_headers=None):
         self.url = url
         self.authorization = authorization
         self.resources_cache = defaultdict(dict)
         self.without_cache = not with_cache
+        self.extra_headers = extra_headers
         if schema:
             self.schema = schema
 
@@ -94,11 +96,16 @@ class Client(ABC):
         url = '{0}/{1}?{2}'.format(
             self.url, path, encode_params(params))
 
+        headers = {'Authorization': self.authorization}
+
+        if self.extra_headers is not None:
+            headers = {**headers, **self.extra_headers}
+
         r = requests.request(
             method,
             url,
             json=data,
-            headers={'Authorization': self.authorization})
+            headers=headers)
 
         if 200 <= r.status_code < 300:
             return json.loads(r.content) if r.content else None
