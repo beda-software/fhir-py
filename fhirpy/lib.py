@@ -34,15 +34,11 @@ class BaseFHIRResource:
 
 
 class SyncFHIRResource(SyncResource, BaseFHIRResource):
-    @property
-    def id(self):
-        return self.get('id', None)
+    pass
 
 
 class AsyncFHIRResource(AsyncResource, BaseFHIRResource):
-    @property
-    async def id(self):
-        return await self.get('id', None)
+    pass
 
 
 class BaseFHIRReference:

@@ -104,6 +104,33 @@ class AbstractClient(ABC):
         return self.schema
 
 
+class AsyncAbstractClient(AbstractClient):
+
+    async def _do_request(self, method, path, data=None, params=None):
+        params = params or {}
+        params.update({'_format': 'json'})
+        url = '{0}/{1}?{2}'.format(
+            self.url, path, encode_params(params))
+
+        headers = {'Authorization': self.authorization}
+
+        if self.extra_headers is not None:
+            headers = {**headers, **self.extra_headers}
+        
+        async with aiohttp.request(method, url, json=data, headers=headers) as r:
+            if 200 <= r.status < 300:
+                return await r.json()
+                # return json.loads(r.content) if r.content else None
+
+            if r.status == 404:
+                raise ResourceNotFound(await r.text())
+
+            raise OperationOutcome(await r.text())
+
+    async def _fetch_resource(self, path, params=None):
+        return await self._do_request('get', path, params=params)
+
+
 class SyncAbstractClient(AbstractClient):
 
     def _do_request(self, method, path, data=None, params=None):
@@ -133,44 +160,6 @@ class SyncAbstractClient(AbstractClient):
 
     def _fetch_resource(self, path, params=None):
         return self._do_request('get', path, params=params)
-
-
-class AsyncAbstractClient(AbstractClient):
-    session = None
-
-    def __init__(self, url, authorization=None, with_cache=False,
-                 schema=None, extra_headers=None):
-        super(AsyncAbstractClient, self).__init__(
-            self, url, authorization, with_cache,
-            schema, extra_headers
-        )
-        self.session = aiohttp.ClientSession()
-
-    # await session.close()
-
-    async def _do_request(self, method, path, data=None, params=None):
-        params = params or {}
-        params.update({'_format': 'json'})
-        url = '{0}/{1}?{2}'.format(
-            self.url, path, encode_params(params))
-
-        headers = {'Authorization': self.authorization}
-
-        if self.extra_headers is not None:
-            headers = {**headers, **self.extra_headers}
-
-        async with self.session(method, url, json=data, headers=headers) as r:
-            if 200 <= r.status < 300:
-                return await resp.json()
-                # return json.loads(r.content) if r.content else None
-
-            if r.status == 404:
-                raise ResourceNotFound(r.text())
-
-            raise OperationOutcome(r.text())
-
-    async def _fetch_resource(self, path, params=None):
-        return await self._do_request('get', path, params=params)
 
 
 class AbstractSearchSet(ABC):
@@ -294,9 +283,6 @@ class AbstractSearchSet(ABC):
     def __repr__(self):  # pragma: no cover
         return self.__str__()
 
-    def __iter__(self):
-        return iter(self.fetch())
-
 
 class SyncSearchSet(AbstractSearchSet):
     def fetch(self, *, skip_caching=False):
@@ -361,8 +347,13 @@ class SyncSearchSet(AbstractSearchSet):
 
         return result[0] if result else None
 
+    def __iter__(self):
+        return iter(self.fetch())
+
 
 class AsyncSearchSet(AbstractSearchSet):
+    # TODO: AsyncSearchSet may implements async iterator methods
+
     async def fetch(self, *, skip_caching=False):
         bundle_data = await self.client._fetch_resource(
             self.resource_type, self.params)
@@ -415,10 +406,10 @@ class AsyncSearchSet(AbstractSearchSet):
         new_params['_count'] = 1
         new_params['_totalMethod'] = 'count'
 
-        return await self.client._fetch_resource(
+        return (await self.client._fetch_resource(
             self.resource_type,
             params=new_params
-        )['total']
+        ))['total']
 
     async def first(self):
         result = await self.limit(1).fetch()
