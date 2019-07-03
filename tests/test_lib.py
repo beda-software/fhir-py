@@ -1,8 +1,8 @@
 from unittest2 import TestCase
 from requests.auth import _basic_auth_str
 
-from fhirpy import FHIRClient
-from fhirpy.lib import FHIRReference, FHIRResource
+from fhirpy import SyncFHIRClient
+from fhirpy.lib import SyncFHIRReference, SyncFHIRResource
 from fhirpy.lib import load_schema
 from fhirpy.base.exceptions import ResourceNotFound, OperationOutcome
 
@@ -28,7 +28,7 @@ class LibTestCase(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.client = FHIRClient(cls.URL, authorization=_basic_auth_str('root', 'secret'))
+        cls.client = SyncFHIRClient(cls.URL, authorization=_basic_auth_str('root', 'secret'))
         cls.clearDb()
 
     def tearDown(self):
@@ -193,7 +193,7 @@ class LibTestCase(TestCase):
         resource = self.client.resource(
             'Patient', id='p1', name=[{'text': 'Name'}])
         resource_copy = resource.to_resource()
-        self.assertTrue(isinstance(resource_copy, FHIRResource))
+        self.assertTrue(isinstance(resource_copy, SyncFHIRResource))
         self.assertEqual(
             resource_copy.serialize(),
             {'resourceType': 'Patient',
@@ -222,7 +222,7 @@ class LibTestCase(TestCase):
     def test_to_reference_for_reference(self):
         reference = self.client.reference('Patient', 'p1')
         reference_copy = reference.to_reference(display='patient')
-        self.assertTrue(isinstance(reference_copy, FHIRReference))
+        self.assertTrue(isinstance(reference_copy, SyncFHIRReference))
         self.assertEqual(
             reference_copy.serialize(),
             {
@@ -300,7 +300,7 @@ class LibTestCase(TestCase):
 class SearchSetTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.client = FHIRClient('mock')
+        cls.client = SyncFHIRClient('mock')
 
     def test_search(self):
         search_set = self.client.resources('Patient') \

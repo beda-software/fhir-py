@@ -1,24 +1,28 @@
 import pickle
 from os.path import dirname
 
-from .base import Client, SearchSet, Resource, Reference
+from .base import (
+    SyncAbstractClient, AsyncAbstractClient, SyncSearchSet,
+    AsyncSearchSet, SyncResource, AsyncResource, SyncReference,
+    AsyncReference,
+)
 
 
-class FHIRSearchSet(SearchSet):
+class SyncFHIRSearchSet(SyncSearchSet):
     pass
 
 
-class FHIRResource(Resource):
+class AsyncFHIRSearchSet(AsyncSearchSet):
+    pass
+
+
+class BaseFHIRResource:
     def is_reference(self, value):
         if not isinstance(value, dict):
             return False
 
         return 'reference' in value and \
                not (set(value.keys()) - {'reference', 'display'})
-
-    @property
-    def id(self):
-        return self.get('id', None)
 
     @property
     def reference(self):
@@ -29,7 +33,19 @@ class FHIRResource(Resource):
             return '{0}/{1}'.format(self.resource_type, self.id)
 
 
-class FHIRReference(Reference):
+class SyncFHIRResource(SyncResource, BaseFHIRResource):
+    @property
+    def id(self):
+        return self.get('id', None)
+
+
+class AsyncFHIRResource(AsyncResource, BaseFHIRResource):
+    @property
+    async def id(self):
+        return await self.get('id', None)
+
+
+class BaseFHIRReference:
     def get_root_keys(self):
         return ['reference', 'display']
 
@@ -58,20 +74,28 @@ class FHIRReference(Reference):
         return self.reference.count('/') == 1
 
 
+class SyncFHIRReference(BaseFHIRReference, SyncReference):
+    pass
+
+
+class AsyncFHIRReference(BaseFHIRReference, SyncReference):
+    pass
+
+
 def load_schema(version):
     filename = '{0}/schemas/fhir-{1}.pkl'.format(dirname(__file__), version)
     with open(filename, 'rb') as f:
         return pickle.load(f)
 
 
-class FHIRClient(Client):
-    searchset_class = FHIRSearchSet
-    resource_class = FHIRResource
+class SyncFHIRClient(SyncAbstractClient):
+    searchset_class = SyncFHIRSearchSet
+    resource_class = SyncFHIRResource
 
     def __init__(self, url, authorization=None, with_cache=False,
                  fhir_version='3.0.1'):
         schema = load_schema(fhir_version)
-        super(FHIRClient, self).__init__(url, authorization, with_cache, schema)
+        super(SyncFHIRClient, self).__init__(url, authorization, with_cache, schema)
 
     def reference(self, resource_type=None, id=None, reference=None, **kwargs):
         if resource_type and id:
@@ -81,4 +105,24 @@ class FHIRClient(Client):
             raise TypeError(
                 'Arguments `resource_type` and `id` or `reference` '
                 'are required')
-        return FHIRReference(self, reference=reference, **kwargs)
+        return SyncFHIRReference(self, reference=reference, **kwargs)
+
+
+class AsyncFHIRClient(AsyncAbstractClient):
+    searchset_class = AsyncFHIRSearchSet
+    resource_class = AsyncFHIRResource
+
+    def __init__(self, url, authorization=None, with_cache=False,
+                 fhir_version='3.0.1'):
+        schema = load_schema(fhir_version)
+        super(AsyncFHIRClient, self).__init__(url, authorization, with_cache, schema)
+
+    def reference(self, resource_type=None, id=None, reference=None, **kwargs):
+        if resource_type and id:
+            reference = '{0}/{1}'.format(resource_type, id)
+
+        if not reference:
+            raise TypeError(
+                'Arguments `resource_type` and `id` or `reference` '
+                'are required')
+        return AsyncFHIRReference(self, reference=reference, **kwargs)

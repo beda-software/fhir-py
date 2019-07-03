@@ -1,4 +1,4 @@
-from .lib import FHIRClient
+from .lib import SyncFHIRClient, AsyncFHIRClient
 
 __title__ = 'fhir-py'
 __version__ = '0.2.0'

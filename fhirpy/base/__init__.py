@@ -1,1 +1,5 @@
-from .lib import Client, SearchSet, Resource, Reference
+from .lib import (
+    SyncAbstractClient, AsyncAbstractClient, SyncSearchSet,
+    AsyncSearchSet, SyncResource, AsyncResource, SyncReference,
+    AsyncReference,
+)
