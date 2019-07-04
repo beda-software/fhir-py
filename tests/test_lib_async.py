@@ -1,5 +1,4 @@
 import pytest
-import logging
 from requests.auth import _basic_auth_str
 
 from fhirpy import AsyncFHIRClient
@@ -25,8 +24,8 @@ class TestLibAsyncCase(object):
     @pytest.mark.asyncio
     async def clearDb(self):
         for resource_type in ['Patient', 'Practitioner']:
-            search_set = await self.get_search_set(resource_type).fetch()
-            for item in search_set:
+            search_set = self.get_search_set(resource_type)
+            async for item in search_set:
                 await item.delete()
 
     @classmethod
@@ -42,7 +41,6 @@ class TestLibAsyncCase(object):
             load_schema('invalid')
     
     async def create_resource(self, resource_type, **kwargs):
-        logging.error('Self client: %s', self.client)
         p = self.client.resource(
             resource_type,
             identifier=self.identifier,

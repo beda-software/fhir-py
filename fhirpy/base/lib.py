@@ -351,6 +351,12 @@ class SyncSearchSet(AbstractSearchSet):
         return iter(self.fetch())
 
 
+async def aiter(iterable_coroutine):
+    items = await iterable_coroutine
+    for item in items:
+        yield item
+
+
 class AsyncSearchSet(AbstractSearchSet):
     # TODO: AsyncSearchSet may implements async iterator methods
 
@@ -415,6 +421,9 @@ class AsyncSearchSet(AbstractSearchSet):
         result = await self.limit(1).fetch()
 
         return result[0] if result else None
+
+    def __aiter__(self):
+        return aiter(self.fetch())
 
 
 class AbstractResource(dict):
