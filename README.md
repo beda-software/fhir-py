@@ -8,7 +8,7 @@ This package provides an API for CRUD operations over FHIR resources
 
 # Getting started
 ## Async example
-```
+```Python
 import asyncio
 from fhirpy import AsyncFHIRClient
 
