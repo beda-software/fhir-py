@@ -89,9 +89,11 @@ class SyncFHIRClient(SyncAbstractClient):
     resource_class = SyncFHIRResource
 
     def __init__(self, url, authorization=None, with_cache=False,
-                 fhir_version='3.0.1'):
+                 fhir_version='3.0.1', extra_headers=None):
         schema = load_schema(fhir_version)
-        super(SyncFHIRClient, self).__init__(url, authorization, with_cache, schema)
+        super(SyncFHIRClient, self).__init__(
+            url, authorization, with_cache, schema, extra_headers
+        )
 
     def reference(self, resource_type=None, id=None, reference=None, **kwargs):
         if resource_type and id:
@@ -109,9 +111,11 @@ class AsyncFHIRClient(AsyncAbstractClient):
     resource_class = AsyncFHIRResource
 
     def __init__(self, url, authorization=None, with_cache=False,
-                 fhir_version='3.0.1'):
+                 fhir_version='3.0.1', extra_headers=None):
         schema = load_schema(fhir_version)
-        super(AsyncFHIRClient, self).__init__(url, authorization, with_cache, schema)
+        super(AsyncFHIRClient, self).__init__(
+            url, authorization, with_cache, schema, extra_headers
+        )
 
     def reference(self, resource_type=None, id=None, reference=None, **kwargs):
         if resource_type and id:
