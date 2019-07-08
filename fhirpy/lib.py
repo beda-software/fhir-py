@@ -74,7 +74,7 @@ class SyncFHIRReference(BaseFHIRReference, SyncReference):
     pass
 
 
-class AsyncFHIRReference(BaseFHIRReference, SyncReference):
+class AsyncFHIRReference(BaseFHIRReference, AsyncReference):
     pass
 
 
