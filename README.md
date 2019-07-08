@@ -76,7 +76,7 @@ or
 
 
 Returns an instance of the connection to the server which provides:
-* .reference(resource_type, id, reference, **kwargs) - returns `Referenct` to the resource
+* .reference(resource_type, id, reference, **kwargs) - returns `Reference` to the resource
 * .resource(resource_type, **kwargs) - returns `Resource` which described below
 * .resources(resource_type) - returns `SearchSet`
 

@@ -6,7 +6,6 @@ from fhirpy.lib import AsyncFHIRReference, AsyncFHIRResource
 from fhirpy.lib import load_schema
 from fhirpy.base.exceptions import ResourceNotFound, OperationOutcome
 
-# pytestmark = pytest.mark.asyncio
 
 class TestLibAsyncCase(object):
     URL = 'http://localhost:8080/fhir'
@@ -30,7 +29,9 @@ class TestLibAsyncCase(object):
 
     @classmethod
     def setup_class(cls):
-        cls.client = AsyncFHIRClient(cls.URL, authorization=_basic_auth_str('root', 'secret'))
+        cls.client = AsyncFHIRClient(
+            cls.URL,
+            authorization=_basic_auth_str('root', 'secret'))
 
     @classmethod
     def teardown_class(self):
@@ -256,7 +257,7 @@ class TestLibAsyncCase(object):
         assert bundle_resource._get_path() == ''
 
     @pytest.mark.asyncio
-    async def test_create_bundle(self): 
+    async def test_create_bundle(self):
         bundle = {
             'resourceType': 'bundle',
             'type': 'transaction',

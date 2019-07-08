@@ -4,7 +4,7 @@ from os.path import dirname
 from .base import (
     SyncAbstractClient, AsyncAbstractClient, SyncSearchSet,
     AsyncSearchSet, SyncResource, AsyncResource, SyncReference,
-    AsyncReference,
+    AsyncReference
 )
 
 
