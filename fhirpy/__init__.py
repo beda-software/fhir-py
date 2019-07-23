@@ -1,7 +1,7 @@
 from .lib import SyncFHIRClient, AsyncFHIRClient
 
 __title__ = 'fhir-py'
-__version__ = '0.2.0'
+__version__ = '0.3.0'
 __author__ = 'beda.software'
 __license__ = 'None'
 __copyright__ = 'Copyright 2019 beda.software'
