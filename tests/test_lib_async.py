@@ -187,10 +187,11 @@ class TestLibAsyncCase(object):
         with pytest.raises(ResourceNotFound):
             await reference.to_resource()
 
-    def test_to_resource_for_resource(self):
+    @pytest.mark.asyncio
+    async def test_to_resource_for_resource(self):
         resource = self.client.resource(
             'Patient', id='p1', name=[{'text': 'Name'}])
-        resource_copy = resource.to_resource()
+        resource_copy = await resource.to_resource()
         assert isinstance(resource_copy, AsyncFHIRResource)
         assert resource_copy.serialize() == {'resourceType': 'Patient',
             'id': 'p1',

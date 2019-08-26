@@ -33,11 +33,11 @@ class BaseFHIRResource:
             return '{0}/{1}'.format(self.resource_type, self.id)
 
 
-class SyncFHIRResource(SyncResource, BaseFHIRResource):
+class SyncFHIRResource(BaseFHIRResource, SyncResource):
     pass
 
 
-class AsyncFHIRResource(AsyncResource, BaseFHIRResource):
+class AsyncFHIRResource(BaseFHIRResource, AsyncResource):
     pass
 
 
