@@ -386,7 +386,8 @@ class AsyncSearchSet(AbstractSearchSet):
         resources = []
 
         while True:
-            new_resources = self.page(page).fetch(skip_caching=skip_caching)
+            new_resources = await self.page(page).fetch(
+                skip_caching=skip_caching)
             if not new_resources:
                 break
 
