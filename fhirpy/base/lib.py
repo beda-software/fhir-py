@@ -116,7 +116,7 @@ class AsyncAbstractClient(AbstractClient):
 
         if self.extra_headers is not None:
             headers = {**headers, **self.extra_headers}
-        
+
         async with aiohttp.request(method, url, json=data, headers=headers) as r:
             if 200 <= r.status < 300:
                 return await r.json()
@@ -180,7 +180,7 @@ class AbstractSearchSet(ABC):
             self.client._add_resource_to_cache(resource)
 
         return resource
-    
+
     @abstractmethod
     def fetch(self, *, skip_caching=False):
         pass
@@ -605,8 +605,8 @@ class BaseResource(AbstractResource, ABC):
 class SyncResource(BaseResource):
     def save(self):
         data = self.client._do_request(
-            'put' if self.id else 'post', 
-            self._get_path(), 
+            'put' if self.id else 'post',
+            self._get_path(),
             data=self.serialize())
 
         self['meta'] = data.get('meta', {})
@@ -623,8 +623,8 @@ class SyncResource(BaseResource):
 class AsyncResource(BaseResource):
     async def save(self):
         data = await self.client._do_request(
-            'put' if self.id else 'post', 
-            self._get_path(), 
+            'put' if self.id else 'post',
+            self._get_path(),
             data=self.serialize())
 
         self['meta'] = data.get('meta', {})
@@ -636,6 +636,9 @@ class AsyncResource(BaseResource):
         self.client._remove_resource_from_cache(self)
 
         return await self.client._do_request('delete', self._get_path())
+
+    async def to_resource(self, *args, **kwargs):
+        return super(AsyncResource, self).to_resource(*args, **kwargs)
 
 
 class BaseReference(AbstractResource):
