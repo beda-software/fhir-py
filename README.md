@@ -49,6 +49,8 @@ if __name__ == '__main__':
 
 
 # Main class structure
+Both async and sync clients have identical sets of classes and methods.
+
 |               | Sync                | Async                |
 | ------------- | ------------------- | -------------------- |
 | Client        | SyncFHIRClient      | AsyncFHIRClient      |
@@ -57,42 +59,33 @@ if __name__ == '__main__':
 | Reference     | SyncFHIRReference   | AsyncFHIRReference   |
 
 
-# API
+# AsyncFHIRClient
 Import library:
-
-`from fhirpy import SyncFHIRClient`
-
-or
 
 `from fhirpy import AsyncFHIRClient`
 
-To create FHIR instance use:
-
-`SyncFHIRClient(url, authorization='', fhir_version='3.0.1', with_cache=False, extra_headers={})`
-
-or
+To create AsyncFHIRClient instance use:
 
 `AsyncFHIRClient(url, authorization='', fhir_version='3.0.1', with_cache=False, extra_headers={})`
 
-
 Returns an instance of the connection to the server which provides:
-* .reference(resource_type, id, reference, **kwargs) - returns `Reference` to the resource
-* .resource(resource_type, **kwargs) - returns `Resource` which described below
-* .resources(resource_type) - returns `SearchSet`
+* .reference(resource_type, id, reference, **kwargs) - returns `AsyncFHIRReference` to the resource
+* .resource(resource_type, **kwargs) - returns `AsyncFHIRResource` which described below
+* .resources(resource_type) - returns `AsyncFHIRSearchSet`
 
-`SyncFHIRResource` / `AsyncFHIRResource`
-
-provides:
-* .save() - creates or updates resource instance
-* .delete() - deletes resource instance
-* .to_reference(**kwargs) - returns `Reference` for this resource
-
-`SyncFHIRReference` / `AsyncFHIRReference`
+## AsyncFHIRResource
 
 provides:
-* .to_resource(nocache=False) - returns `Resource` for this reference
+* `async` .save() - creates or updates resource instance
+* `async` .delete() - deletes resource instance
+* `async` .to_reference(**kwargs) - returns `AsyncFHIRReference` for this resource
 
-`SyncFHIRSearchSet` / `AsyncFHIRReference`
+## AsyncFHIRReference
+
+provides:
+* `async` .to_resource(nocache=False) - returns `AsyncFHIRResource` for this reference
+
+## AsyncFHIRReference
 
 provides:
 * .search(param=value)
@@ -101,7 +94,49 @@ provides:
 * .sort(*args)
 * .elements(*args, exclude=False)
 * .include(resource_type, attr)
-* .fetch() - makes query to the server and returns a list of `Resource`
-* .fetch_all() - makes query to the server and returns a full list of `Resource`
-* .first() - returns `Resource` or None
-* .get(id=id) - returns `Resource` or raises `ResourceNotFound`
+* `async` .fetch() - makes query to the server and returns a list of `Resource`
+* `async` .fetch_all() - makes query to the server and returns a full list of `Resource`
+* `async` .first() - returns `Resource` or None
+* `async` .get(id=id) - returns `Resource` or raises `ResourceNotFound`
+
+
+# SyncFHIRClient
+Import library:
+
+`from fhirpy import SyncFHIRClient`
+
+To create SyncFHIRClient instance use:
+
+`SyncFHIRClient(url, authorization='', fhir_version='3.0.1', with_cache=False, extra_headers={})`
+
+
+Returns an instance of the connection to the server which provides:
+* .reference(resource_type, id, reference, **kwargs) - returns `SyncFHIRReference` to the resource
+* .resource(resource_type, **kwargs) - returns `SyncFHIRResource` which described below
+* .resources(resource_type) - returns `SyncFHIRSearchSet`
+
+## SyncFHIRResource
+
+provides:
+* .save() - creates or updates resource instance
+* .delete() - deletes resource instance
+* .to_reference(**kwargs) - returns `SyncFHIRReference` for this resource
+
+## SyncFHIRReference
+
+provides:
+* .to_resource(nocache=False) - returns `SyncFHIRResource` for this reference
+
+## SyncFHIRSearchSet
+
+provides:
+* .search(param=value)
+* .limit(count)
+* .page(page)
+* .sort(*args)
+* .elements(*args, exclude=False)
+* .include(resource_type, attr)
+* .fetch() - makes query to the server and returns a list of `SyncFHIRResource`
+* .fetch_all() - makes query to the server and returns a full list of `SyncFHIRResource`
+* .first() - returns `SyncFHIRResource` or None
+* .get(id=id) - returns `SyncFHIRResource` or raises `ResourceNotFound`
