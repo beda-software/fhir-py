@@ -4,3 +4,4 @@ pytest-cov==2.5.1
 unittest2==1.1.0
 aiohttp==3.5.4
 pytest-asyncio==0.10.0
+yapf==0.28.0

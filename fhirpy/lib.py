@@ -2,9 +2,8 @@ import pickle
 from os.path import dirname
 
 from .base import (
-    SyncAbstractClient, AsyncAbstractClient, SyncSearchSet,
-    AsyncSearchSet, SyncResource, AsyncResource, SyncReference,
-    AsyncReference
+    SyncAbstractClient, AsyncAbstractClient, SyncSearchSet, AsyncSearchSet,
+    SyncResource, AsyncResource, SyncReference, AsyncReference
 )
 
 
@@ -88,8 +87,14 @@ class SyncFHIRClient(SyncAbstractClient):
     searchset_class = SyncFHIRSearchSet
     resource_class = SyncFHIRResource
 
-    def __init__(self, url, authorization=None, with_cache=False,
-                 fhir_version='3.0.1', extra_headers=None):
+    def __init__(
+        self,
+        url,
+        authorization=None,
+        with_cache=False,
+        fhir_version='3.0.1',
+        extra_headers=None
+    ):
         schema = load_schema(fhir_version)
         super(SyncFHIRClient, self).__init__(
             url, authorization, with_cache, schema, extra_headers
@@ -102,7 +107,8 @@ class SyncFHIRClient(SyncAbstractClient):
         if not reference:
             raise TypeError(
                 'Arguments `resource_type` and `id` or `reference` '
-                'are required')
+                'are required'
+            )
         return SyncFHIRReference(self, reference=reference, **kwargs)
 
 
@@ -110,8 +116,14 @@ class AsyncFHIRClient(AsyncAbstractClient):
     searchset_class = AsyncFHIRSearchSet
     resource_class = AsyncFHIRResource
 
-    def __init__(self, url, authorization=None, with_cache=False,
-                 fhir_version='3.0.1', extra_headers=None):
+    def __init__(
+        self,
+        url,
+        authorization=None,
+        with_cache=False,
+        fhir_version='3.0.1',
+        extra_headers=None
+    ):
         schema = load_schema(fhir_version)
         super(AsyncFHIRClient, self).__init__(
             url, authorization, with_cache, schema, extra_headers
@@ -124,5 +136,6 @@ class AsyncFHIRClient(AsyncAbstractClient):
         if not reference:
             raise TypeError(
                 'Arguments `resource_type` and `id` or `reference` '
-                'are required')
+                'are required'
+            )
         return AsyncFHIRReference(self, reference=reference, **kwargs)

@@ -1,5 +1,10 @@
 from .lib import (
-    SyncAbstractClient, AsyncAbstractClient, SyncSearchSet,
-    AsyncSearchSet, SyncResource, AsyncResource, SyncReference,
+    SyncAbstractClient,
+    AsyncAbstractClient,
+    SyncSearchSet,
+    AsyncSearchSet,
+    SyncResource,
+    AsyncResource,
+    SyncReference,
     AsyncReference,
 )

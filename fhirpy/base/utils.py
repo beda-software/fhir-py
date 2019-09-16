@@ -53,8 +53,7 @@ def convert_values(data, fn):
     if isinstance(data, list):
         return [convert_values(x, fn) for x in data]
     if isinstance(data, dict):
-        return {key: convert_values(value, fn)
-                for key, value in data.items()}
+        return {key: convert_values(value, fn) for key, value in data.items()}
     return data
 
 
@@ -113,8 +112,9 @@ def get_by_path(data, path, default=None):
                 elif isinstance(key, dict):
                     matched_index = -1
                     for index, item in enumerate(rv):
-                        if all([item.get(k, None) == v for k, v in
-                                key.items()]):
+                        if all(
+                            [item.get(k, None) == v for k, v in key.items()]
+                        ):
                             matched_index = index
                             break
                     if matched_index == -1:
@@ -125,7 +125,9 @@ def get_by_path(data, path, default=None):
                     raise TypeError(
                         'Can not lookup by {0} in list. '
                         'Possible lookups are by int or by dict.'.format(
-                            reprlib.repr(key)))
+                            reprlib.repr(key)
+                        )
+                    )
             else:
                 rv = rv[key]
 

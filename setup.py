@@ -17,10 +17,8 @@ def get_version(package):
 
 version = get_version('fhirpy')
 
-
 with open('README.md') as f:
     long_description = f.read()
-
 
 setup(
     name='fhirpy',
@@ -36,7 +34,11 @@ setup(
     packages=['fhirpy'],
     include_package_data=True,
     install_requires=['requests', 'aiohttp'],
+    tests_require=['pytest', 'pytest-asyncio', 'unittest2'],
     zip_safe=False,
+    project_urls={
+        "Source Code": "https://github.com/beda-software/fhir-py",
+    },
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Web Environment',

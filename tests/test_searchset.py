@@ -2,9 +2,11 @@ import pytest
 from fhirpy import SyncFHIRClient, AsyncFHIRClient
 
 
-@pytest.mark.parametrize('client', [SyncFHIRClient('mock'), AsyncFHIRClient('mock')])
+@pytest.mark.parametrize(
+    'client',
+    [SyncFHIRClient('mock'), AsyncFHIRClient('mock')]
+)
 class TestSearchSet(object):
-
     def test_search(self, client):
         search_set = client.resources('Patient') \
             .search(name='John,Ivan') \
@@ -58,17 +60,13 @@ class TestSearchSet(object):
                  user='id',
                  type='test')
         assert search_set.params == {
-            '_has:Observation:patient:_has:AuditEvent:entity:user': [
-                'id'
-            ],
-            '_has:Observation:patient:_has:AuditEvent:entity:type': [
-                'test'
-            ],
+            '_has:Observation:patient:_has:AuditEvent:entity:user': ['id'],
+            '_has:Observation:patient:_has:AuditEvent:entity:type': ['test'],
         }
 
     def test_has_failed(self, client):
         with pytest.raises(TypeError):
-            client.resources('Patient').has('Observation',code='code')
+            client.resources('Patient').has('Observation', code='code')
 
     def test_include_multiple(self, client):
         search_set = client.resources('Orginaztion') \
@@ -76,8 +74,9 @@ class TestSearchSet(object):
             .include('Patient', 'organization')
 
         assert search_set.params == {
-            '_include': ['Patient:general-practitioner',
-                         'Patient:organization']
+            '_include': [
+                'Patient:general-practitioner', 'Patient:organization'
+            ]
         }
 
     def test_include_with_target(self, client):

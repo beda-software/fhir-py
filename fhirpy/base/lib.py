@@ -6,9 +6,9 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 
 from .utils import (
-    encode_params, convert_values, get_by_path, parse_path, chunks)
-from .exceptions import (
-    ResourceNotFound, OperationOutcome, InvalidResponse)
+    encode_params, convert_values, get_by_path, parse_path, chunks
+)
+from .exceptions import (ResourceNotFound, OperationOutcome, InvalidResponse)
 
 
 class AbstractClient(ABC):
@@ -19,8 +19,14 @@ class AbstractClient(ABC):
     without_cache = False
     extra_headers = None
 
-    def __init__(self, url, authorization=None, with_cache=False,
-                 schema=None, extra_headers=None):
+    def __init__(
+        self,
+        url,
+        authorization=None,
+        with_cache=False,
+        schema=None,
+        extra_headers=None
+    ):
         self.url = url
         self.authorization = authorization
         self.resources_cache = defaultdict(dict)
@@ -80,17 +86,10 @@ class AbstractClient(ABC):
         if resource_type is None:
             raise TypeError('Argument `resource_type` is required')
 
-        return self.resource_class(
-            self,
-            resource_type=resource_type,
-            **kwargs
-        )
+        return self.resource_class(self, resource_type=resource_type, **kwargs)
 
     def resources(self, resource_type):
-        return self.searchset_class(
-            self,
-            resource_type=resource_type
-        )
+        return self.searchset_class(self, resource_type=resource_type)
 
     @abstractmethod
     def _do_request(self, method, path, data=None, params=None):
@@ -105,19 +104,19 @@ class AbstractClient(ABC):
 
 
 class AsyncAbstractClient(AbstractClient):
-
     async def _do_request(self, method, path, data=None, params=None):
         params = params or {}
         params.update({'_format': 'json'})
-        url = '{0}/{1}?{2}'.format(
-            self.url, path, encode_params(params))
+        url = '{0}/{1}?{2}'.format(self.url, path, encode_params(params))
 
         headers = {'Authorization': self.authorization}
 
         if self.extra_headers is not None:
             headers = {**headers, **self.extra_headers}
 
-        async with aiohttp.request(method, url, json=data, headers=headers) as r:
+        async with aiohttp.request(
+            method, url, json=data, headers=headers
+        ) as r:
             if 200 <= r.status < 300:
                 return await r.json()
 
@@ -131,23 +130,17 @@ class AsyncAbstractClient(AbstractClient):
 
 
 class SyncAbstractClient(AbstractClient):
-
     def _do_request(self, method, path, data=None, params=None):
         params = params or {}
         params.update({'_format': 'json'})
-        url = '{0}/{1}?{2}'.format(
-            self.url, path, encode_params(params))
+        url = '{0}/{1}?{2}'.format(self.url, path, encode_params(params))
 
         headers = {'Authorization': self.authorization}
 
         if self.extra_headers is not None:
             headers = {**headers, **self.extra_headers}
 
-        r = requests.request(
-            method,
-            url,
-            json=data,
-            headers=headers)
+        r = requests.request(method, url, json=data, headers=headers)
 
         if 200 <= r.status_code < 300:
             return json.loads(r.content.decode()) if r.content else None
@@ -220,13 +213,18 @@ class AbstractSearchSet(ABC):
         attrs = [attr for attr in attrs]
 
         return self.clone(
-            _elements='{0}{1}'.format('-' if exclude else '',
-                                      ','.join(attrs)),
+            _elements='{0}{1}'.format('-' if exclude else '', ','.join(attrs)),
             override=True
         )
 
-    def include(self, resource_type, attr, target_resource_type=None,
-                *, recursive=False):
+    def include(
+        self,
+        resource_type,
+        attr,
+        target_resource_type=None,
+        *,
+        recursive=False
+    ):
         key_params = ['_include']
         if recursive:
             key_params.append('recursive')
@@ -244,15 +242,18 @@ class AbstractSearchSet(ABC):
             raise TypeError(
                 'You should pass even size of arguments, for example: '
                 '`.has(\'Observation\', \'patient\', '
-                '\'AuditEvent\', \'entity\', user=\'id\')`')
+                '\'AuditEvent\', \'entity\', user=\'id\')`'
+            )
 
         key_part = ':'.join(
-            ['_has:{0}'.format(':'.join(pair))
-             for pair in chunks(args, 2)])
+            ['_has:{0}'.format(':'.join(pair)) for pair in chunks(args, 2)]
+        )
 
         return self.clone(
-            **{':'.join([key_part, key]): value
-               for key, value in kwargs.items()})
+            **
+            {':'.join([key_part, key]): value
+             for key, value in kwargs.items()}
+        )
 
     def revinclude(self, resource_type, attr, recursive=False):
         # For the moment, this method might only have useless behaviour
@@ -275,9 +276,9 @@ class AbstractSearchSet(ABC):
 
     def __str__(self):  # pragma: no cover
         return '<{0} {1}?{2}>'.format(
-            self.__class__.__name__,
-            self.resource_type,
-            encode_params(self.params))
+            self.__class__.__name__, self.resource_type,
+            encode_params(self.params)
+        )
 
     def __repr__(self):  # pragma: no cover
         return self.__str__()
@@ -286,16 +287,19 @@ class AbstractSearchSet(ABC):
 class SyncSearchSet(AbstractSearchSet):
     def fetch(self, *, skip_caching=False):
         bundle_data = self.client._fetch_resource(
-            self.resource_type, self.params)
+            self.resource_type, self.params
+        )
         bundle_resource_type = bundle_data.get('resourceType', None)
 
         if bundle_resource_type != 'Bundle':
             raise InvalidResponse(
                 'Expected to receive Bundle '
-                'but {0} received'.format(bundle_resource_type))
+                'but {0} received'.format(bundle_resource_type)
+            )
 
         resources_data = [
-            res['resource'] for res in bundle_data.get('entry', [])]
+            res['resource'] for res in bundle_data.get('entry', [])
+        ]
 
         resources = []
         for data in resources_data:
@@ -321,13 +325,16 @@ class SyncSearchSet(AbstractSearchSet):
 
     def get(self, id, *, skip_caching=False):
         res_data = self.client._fetch_resource(
-            '{0}/{1}'.format(self.resource_type, id))
+            '{0}/{1}'.format(self.resource_type, id)
+        )
 
         if res_data['resourceType'] != self.resource_type:
             raise InvalidResponse(
                 'Expected to receive {0} '
-                'but {1} received'.format(self.resource_type,
-                                          res_data['resourceType']))
+                'but {1} received'.format(
+                    self.resource_type, res_data['resourceType']
+                )
+            )
 
         return self._perform_resource(res_data, skip_caching)
 
@@ -337,8 +344,7 @@ class SyncSearchSet(AbstractSearchSet):
         new_params['_totalMethod'] = 'count'
 
         return self.client._fetch_resource(
-            self.resource_type,
-            params=new_params
+            self.resource_type, params=new_params
         )['total']
 
     def first(self):
@@ -361,16 +367,19 @@ class AsyncSearchSet(AbstractSearchSet):
 
     async def fetch(self, *, skip_caching=False):
         bundle_data = await self.client._fetch_resource(
-            self.resource_type, self.params)
+            self.resource_type, self.params
+        )
         bundle_resource_type = bundle_data.get('resourceType', None)
 
         if bundle_resource_type != 'Bundle':
             raise InvalidResponse(
                 'Expected to receive Bundle '
-                'but {0} received'.format(bundle_resource_type))
+                'but {0} received'.format(bundle_resource_type)
+            )
 
         resources_data = [
-            res['resource'] for res in bundle_data.get('entry', [])]
+            res['resource'] for res in bundle_data.get('entry', [])
+        ]
 
         resources = []
         for data in resources_data:
@@ -386,7 +395,8 @@ class AsyncSearchSet(AbstractSearchSet):
 
         while True:
             new_resources = await self.page(page).fetch(
-                skip_caching=skip_caching)
+                skip_caching=skip_caching
+            )
             if not new_resources:
                 break
 
@@ -397,13 +407,16 @@ class AsyncSearchSet(AbstractSearchSet):
 
     async def get(self, id, *, skip_caching=False):
         res_data = await self.client._fetch_resource(
-            '{0}/{1}'.format(self.resource_type, id))
+            '{0}/{1}'.format(self.resource_type, id)
+        )
 
         if res_data['resourceType'] != self.resource_type:
             raise InvalidResponse(
                 'Expected to receive {0} '
-                'but {1} received'.format(self.resource_type,
-                                          res_data['resourceType']))
+                'but {1} received'.format(
+                    self.resource_type, res_data['resourceType']
+                )
+            )
 
         return self._perform_resource(res_data, skip_caching)
 
@@ -412,10 +425,10 @@ class AsyncSearchSet(AbstractSearchSet):
         new_params['_count'] = 1
         new_params['_totalMethod'] = 'count'
 
-        return (await self.client._fetch_resource(
-            self.resource_type,
-            params=new_params
-        ))['total']
+        return (
+            await
+            self.client._fetch_resource(self.resource_type, params=new_params)
+        )['total']
 
     async def first(self):
         result = await self.limit(1).fetch()
@@ -476,7 +489,9 @@ class AbstractResource(dict):
                 return item, False
 
         return convert_values(
-            {key: value for key, value in self.items()}, convert_fn)
+            {key: value
+             for key, value in self.items()}, convert_fn
+        )
 
     def get_root_keys(self):  # pragma: no cover
         raise NotImplementedError
@@ -505,7 +520,9 @@ class AbstractResource(dict):
             if key not in root_attrs:
                 raise KeyError(
                     'Invalid key `{0}`. Possible keys are `{1}`'.format(
-                        key, ', '.join(root_attrs)))
+                        key, ', '.join(root_attrs)
+                    )
+                )
 
     def _raise_error_if_invalid_key(self, key):
         self._raise_error_if_invalid_keys([key])
@@ -535,7 +552,8 @@ class BaseResource(AbstractResource, ABC):
             raise KeyError(
                 'Can not change `resourceType` after instantiating resource. '
                 'You must re-instantiate resource using '
-                '`Client.resource` method')
+                '`Client.resource` method'
+            )
 
         super(BaseResource, self).__setitem__(key, value)
 
@@ -572,7 +590,8 @@ class BaseResource(AbstractResource, ABC):
         """
         if not self.reference:
             raise ResourceNotFound(
-                'Can not get reference to unsaved resource without id')
+                'Can not get reference to unsaved resource without id'
+            )
 
         return self.client.reference(reference=self.reference, **kwargs)
 
@@ -606,7 +625,8 @@ class SyncResource(BaseResource):
         data = self.client._do_request(
             'put' if self.id else 'post',
             self._get_path(),
-            data=self.serialize())
+            data=self.serialize()
+        )
 
         self['meta'] = data.get('meta', {})
         self['id'] = data.get('id')
@@ -624,7 +644,8 @@ class AsyncResource(BaseResource):
         data = await self.client._do_request(
             'put' if self.id else 'post',
             self._get_path(),
-            data=self.serialize())
+            data=self.serialize()
+        )
 
         self['meta'] = data.get('meta', {})
         self['id'] = data.get('id')
@@ -695,11 +716,11 @@ class SyncReference(BaseReference):
         if nocache is not specified and from fhir server otherwise.
         """
         if not self.is_local:
-            raise ResourceNotFound(
-                'Can not resolve not local resource')
+            raise ResourceNotFound('Can not resolve not local resource')
 
         cached_resource = self.client._get_resource_from_cache(
-            self.resource_type, self.id)
+            self.resource_type, self.id
+        )
 
         if cached_resource and not nocache:
             return cached_resource
@@ -714,11 +735,11 @@ class AsyncReference(BaseReference):
         if nocache is not specified and from fhir server otherwise.
         """
         if not self.is_local:
-            raise ResourceNotFound(
-                'Can not resolve not local resource')
+            raise ResourceNotFound('Can not resolve not local resource')
 
         cached_resource = self.client._get_resource_from_cache(
-            self.resource_type, self.id)
+            self.resource_type, self.id
+        )
 
         if cached_resource and not nocache:
             return cached_resource
