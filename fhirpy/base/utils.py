@@ -111,11 +111,16 @@ def get_by_path(data, path, default=None):
                 if isinstance(key, int):
                     rv = rv[key]
                 elif isinstance(key, dict):
+                    matched_index = -1
                     for index, item in enumerate(rv):
                         if all([item.get(k, None) == v for k, v in
                                 key.items()]):
-                            rv = rv[index]
+                            matched_index = index
                             break
+                    if matched_index == -1:
+                        rv = None
+                    else:
+                        rv = rv[matched_index]
                 else:  # pragma: no cover
                     raise TypeError(
                         'Can not lookup by {0} in list. '

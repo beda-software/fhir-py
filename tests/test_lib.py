@@ -1,15 +1,17 @@
 from unittest2 import TestCase
+from requests.auth import _basic_auth_str
 
-from fhirpy import FHIRClient
-from fhirpy.lib import load_schema, FHIRReference, FHIRResource
-
-from fhirpy.exceptions import (FHIRResourceNotFound, FHIROperationOutcome,
-                               FHIRNotSupportedVersionError)
+from fhirpy import SyncFHIRClient
+from fhirpy.lib import SyncFHIRReference, SyncFHIRResource
+from fhirpy.lib import load_schema
+from fhirpy.base.exceptions import ResourceNotFound, OperationOutcome
 
 
 class LibTestCase(TestCase):
-    URL = 'https://jupyterdemo.aidbox.app/fhir'
+    URL = 'http://localhost:8080/fhir'
     client = None
+    identifier = [{'system': 'http://example.com/env',
+                   'value': 'fhirpy'}]
 
     @classmethod
     def get_search_set(cls, resource_type):
@@ -26,22 +28,21 @@ class LibTestCase(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.client = FHIRClient(cls.URL)
+        cls.client = SyncFHIRClient(cls.URL, authorization=_basic_auth_str('root', 'secret'))
         cls.clearDb()
 
     def tearDown(self):
         self.client.clear_resources_cache()
         self.clearDb()
 
-    def test_load_schema_for_invalid_version_failed(self):
-        with self.assertRaises(FHIRNotSupportedVersionError):
+    def test_load_schema_for_invalid_path_failed(self):
+        with self.assertRaises(FileNotFoundError):
             load_schema('invalid')
 
     def create_resource(self, resource_type, **kwargs):
         p = self.client.resource(
             resource_type,
-            identifier=[{'system': 'http://example.com/env',
-                         'value': 'fhirpy'}],
+            identifier=self.identifier,
             **kwargs)
         p.save()
 
@@ -77,11 +78,11 @@ class LibTestCase(TestCase):
         patient = self.create_resource('Patient', id='patient')
         patient.delete()
 
-        with self.assertRaises(FHIROperationOutcome):
+        with self.assertRaises(OperationOutcome):
             self.get_search_set('Patient').get(id='patient')
 
     def test_get_not_existing_id(self):
-        with self.assertRaises(FHIRResourceNotFound):
+        with self.assertRaises(ResourceNotFound):
             self.client.resources('Patient').get(id='FHIRPypy_not_existing_id')
 
     def test_get_set_bad_attr(self):
@@ -145,22 +146,6 @@ class LibTestCase(TestCase):
             }
         )
 
-    def test_reference_from_external_reference_2(self):
-        reference = self.client.reference(
-            reference='notfhirresource/n1')
-        self.assertFalse(reference.is_local)
-        self.assertIsNone(reference.resource_type)
-        self.assertIsNone(reference.id)
-        self.assertEqual(reference.reference, 'notfhirresource/n1')
-        self.assertEqual(
-            reference['reference'], 'notfhirresource/n1')
-        self.assertDictEqual(
-            reference.serialize(),
-            {
-                'reference': 'notfhirresource/n1'
-            }
-        )
-
     def test_reference_from_resource_type_and_id(self):
         reference = self.client.reference('Patient', 'p1')
         self.assertEqual(reference.resource_type, 'Patient')
@@ -175,11 +160,11 @@ class LibTestCase(TestCase):
         )
 
     def test_not_found_error(self):
-        with self.assertRaises(FHIRResourceNotFound):
+        with self.assertRaises(ResourceNotFound):
             self.client.resources('FHIRPyNotExistingResource').fetch()
 
     def test_operation_outcome_error(self):
-        with self.assertRaises(FHIROperationOutcome):
+        with self.assertRaises(OperationOutcome):
             self.create_resource('Patient', name='invalid')
 
     def test_to_resource_for_local_reference(self):
@@ -201,14 +186,14 @@ class LibTestCase(TestCase):
         reference = self.client.reference(
             reference='http://external.com/Patient/p1')
 
-        with self.assertRaises(FHIRResourceNotFound):
+        with self.assertRaises(ResourceNotFound):
             reference.to_resource()
 
     def test_to_resource_for_resource(self):
         resource = self.client.resource(
             'Patient', id='p1', name=[{'text': 'Name'}])
         resource_copy = resource.to_resource()
-        self.assertTrue(isinstance(resource_copy, FHIRResource))
+        self.assertTrue(isinstance(resource_copy, SyncFHIRResource))
         self.assertEqual(
             resource_copy.serialize(),
             {'resourceType': 'Patient',
@@ -217,7 +202,7 @@ class LibTestCase(TestCase):
 
     def test_to_reference_for_resource_without_id(self):
         resource = self.client.resource('Patient')
-        with self.assertRaises(FHIRResourceNotFound):
+        with self.assertRaises(ResourceNotFound):
             resource.to_reference()
 
     def test_to_reference_for_resource(self):
@@ -237,7 +222,7 @@ class LibTestCase(TestCase):
     def test_to_reference_for_reference(self):
         reference = self.client.reference('Patient', 'p1')
         reference_copy = reference.to_reference(display='patient')
-        self.assertTrue(isinstance(reference_copy, FHIRReference))
+        self.assertTrue(isinstance(reference_copy, SyncFHIRReference))
         self.assertEqual(
             reference_copy.serialize(),
             {
@@ -276,117 +261,37 @@ class LibTestCase(TestCase):
         reference = self.client.reference('Patient', 'p1')
         self.assertEqual(resource, reference)
 
+    def test_bundle_path(self):
+        bundle_resource = self.client.resource('Bundle')
+        self.assertEqual(bundle_resource._get_path(), '')
 
-class SearchSetTestCase(TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.client = FHIRClient('mock')
-
-    def test_search(self):
-        search_set = self.client.resources('Patient') \
-            .search(name='John,Ivan') \
-            .search(name='Smith') \
-            .search(birth_date='2010-01-01')
-        self.assertEqual(
-            search_set.params,
-            {'name': ['John,Ivan', 'Smith'],
-             'birth_date': ['2010-01-01']}
-        )
-
-    def test_sort(self):
-        search_set = self.client.resources('Patient') \
-            .sort('id').sort('deceased')
-        self.assertEqual(
-            search_set.params,
-            {'_sort': ['deceased']}
-        )
-
-    def test_page(self):
-        search_set = self.client.resources('Patient') \
-            .page(1).page(2)
-        self.assertEqual(
-            search_set.params,
-            {'page': [2]}
-        )
-
-    def test_limit(self):
-        search_set = self.client.resources('Patient') \
-            .limit(1).limit(2)
-        self.assertEqual(
-            search_set.params,
-            {'_count': [2]}
-        )
-
-    def test_elements(self):
-        search_set = self.client.resources('Patient') \
-            .elements('deceased').elements('gender')
-
-        self.assertEqual(set(search_set.params.keys()), {'_elements'})
-        self.assertEqual(len(search_set.params['_elements']), 1)
-        self.assertSetEqual(
-            set(search_set.params['_elements'][0].split(',')),
-            {'id', 'resourceType', 'gender'})
-
-    def test_elements_exclude(self):
-        search_set = self.client.resources('Patient') \
-            .elements('name', exclude=True)
-        self.assertEqual(
-            search_set.params,
-            {'_elements': ['-name']}
-        )
-
-    def test_include(self):
-        search_set = self.client.resources('Patient') \
-            .include('Patient', 'general-practitioner')
-        self.assertEqual(
-            search_set.params,
-            {'_include': ['Patient:general-practitioner']}
-        )
-
-    def test_has(self):
-        search_set = self.client.resources('Patient') \
-            .has('Observation', 'patient', 'AuditEvent', 'entity',
-                 user='id',
-                 type='test')
-        self.assertEqual(
-            search_set.params,
-            {
-                '_has:Observation:patient:_has:AuditEvent:entity:user': [
-                    'id'
-                ],
-                '_has:Observation:patient:_has:AuditEvent:entity:type': [
-                    'test'
-                ],
-            }
-        )
-
-    def test_has_failed(self):
-        with self.assertRaises(TypeError):
-            self.client.resources('Patient').has('Observation',code='code')
-
-    def test_include_multiple(self):
-        search_set = self.client.resources('Orginaztion') \
-            .include('Patient', 'general-practitioner') \
-            .include('Patient', 'organization')
-
-        self.assertEqual(
-            search_set.params,
-            {'_include': ['Patient:general-practitioner',
-                          'Patient:organization']}
-        )
-
-    def test_include_with_target(self):
-        search_set = self.client.resources('Patient') \
-            .include('Patient', 'general-practitioner', 'Organization')
-        self.assertEqual(
-            search_set.params,
-            {'_include': ['Patient:general-practitioner:Organization']}
-        )
-
-    def test_include_recursive(self):
-        search_set = self.client.resources('Patient') \
-            .include('Organization', 'partof', recursive=True)
-        self.assertEqual(
-            search_set.params,
-            {'_include:recursive': ['Organization:partof']}
-        )
+    def test_create_bundle(self): 
+        bundle = {
+            'resourceType': 'bundle',
+            'type': 'transaction',
+            'entry': [
+                {
+                    'request': {
+                        'method': 'POST',
+                        'url': '/Patient'
+                    },
+                    'resource': {
+                        'id': 'bundle_patient_1',
+                        'identifier': self.identifier,
+                    }
+                },
+                {
+                    'request': {
+                        'method': 'POST',
+                        'url': '/Patient'
+                    },
+                    'resource': {
+                        'id': 'bundle_patient_2',
+                        'identifier': self.identifier,
+                    }
+                },
+            ],
+        }
+        bundle_resource = self.create_resource('Bundle', **bundle)
+        patient_1 = self.client.resources('Patient').get(id='bundle_patient_1')
+        patient_2 = self.client.resources('Patient').get(id='bundle_patient_2')

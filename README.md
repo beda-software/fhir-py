@@ -3,36 +3,96 @@
 [![pypi](https://img.shields.io/pypi/v/fhirpy.svg)](https://pypi.python.org/pypi/fhirpy)
 
 # fhir-py
-FHIR client for python.
+async/sync FHIR client for python.
 This package provides an API for CRUD operations over FHIR resources
+
+# Getting started
+## Async example
+```Python
+import asyncio
+from fhirpy import AsyncFHIRClient
+
+async def main():
+    # Create an instance
+    client = AsyncFHIRClient(
+        'http://fhir-server/',
+        fhir_version='4.0.0',
+        authorization='Bearer TOKEN',
+    )
+
+    # Search for patients
+    resources = client.resources('Patient')  # Return lazy search set
+    resources = resources.search(name='John').limit(10).page(2).sort('name')
+    print(await resources.fetch())  # Returns list of AsyncFHIRResource
+
+    # Create Organization resource
+    organization = client.resource(
+        'Organization',
+        name='beda.software'
+    )
+    await organization.save()
+
+    # Get patient resource by reference and delete
+    patient_ref = client.reference('Patient', 'new_patient')
+    patient_res = await patient_ref.to_resource()
+    await patient_res.delete()
+
+    # Iterate over search set
+    org_resources = client.resources('Organization')
+    async for org_resource in org_resources:
+        print(org_resource.serialize())
+
+if __name__ == '__main__':
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
+```
+
+
+# Main class structure
+|               | Sync                | Async                |
+| ------------- | ------------------- | -------------------- |
+| Client        | SyncFHIRClient      | AsyncFHIRClient      |
+| SearchSet     | SyncFHIRSearchSet   | AsyncFHIRSearchSet   |
+| Resource      | SyncFHIRResource    | AsyncFHIRResource    |
+| Reference     | SyncFHIRReference   | AsyncFHIRReference   |
+
 
 # API
 Import library:
 
-`from fhirpy import FHIRClient`
+`from fhirpy import SyncFHIRClient`
+
+or
+
+`from fhirpy import AsyncFHIRClient`
 
 To create FHIR instance use:
 
-`FHIRClient(url, authorization='', fhir_version='4.0.0', without_cache=False)`
+`SyncFHIRClient(url, authorization='', fhir_version='3.0.1', with_cache=False, extra_headers={})`
+
+or
+
+`AsyncFHIRClient(url, authorization='', fhir_version='3.0.1', with_cache=False, extra_headers={})`
+
 
 Returns an instance of the connection to the server which provides:
-* .reference(resource_type, id, reference, **kwargs) - returns `FHIRReference` to the resource
-* .resource(resource_type, **kwargs) - returns `FHIRResource` which described below
-* .resources(resource_type) - returns `FHIRSearchSet`
+* .reference(resource_type, id, reference, **kwargs) - returns `Reference` to the resource
+* .resource(resource_type, **kwargs) - returns `Resource` which described below
+* .resources(resource_type) - returns `SearchSet`
 
-`FHIRResource`
+`SyncFHIRResource` / `AsyncFHIRResource`
 
 provides:
 * .save() - creates or updates resource instance
 * .delete() - deletes resource instance
-* .to_reference(**kwargs) - returns  `FHIRReference` for this resource
+* .to_reference(**kwargs) - returns `Reference` for this resource
 
-`FHIRReference`
+`SyncFHIRReference` / `AsyncFHIRReference`
 
 provides:
-* .to_resource(nocache=False) - returns `FHIRResource` for this reference
+* .to_resource(nocache=False) - returns `Resource` for this reference
 
-`FHIRSearchSet`
+`SyncFHIRSearchSet` / `AsyncFHIRReference`
 
 provides:
 * .search(param=value)
@@ -41,27 +101,7 @@ provides:
 * .sort(*args)
 * .elements(*args, exclude=False)
 * .include(resource_type, attr)
-* .fetch() - makes query to the server and returns a list of `FHIRResource`
-* .fetch_all() - makes query to the server and returns a full list of `FHIRResource`
-* .first() - returns `FHIRResource` or None
-* .get(id=id) - returns `FHIRResource` or raises `FHIRResourceNotFound`
-
-# Usage
-
-Create an instance
-```python
-client = FHIRClient(url='http://path-to-fhir-server', authorization='Bearer TOKEN')
-```
-
-Fetch list of resource's instances
-```python
-resources = client.resources('Patient')  # Return lazy search set
-resources = resources.search(name='John').limit(10).page(2).sort('name')
-
-resources.fetch()  # Returns list of FHIRResource
-```
-
-Get the particular instance of resource
-```python
-res = client.resources('Patient').get(id='ID')
-```
+* .fetch() - makes query to the server and returns a list of `Resource`
+* .fetch_all() - makes query to the server and returns a full list of `Resource`
+* .first() - returns `Resource` or None
+* .get(id=id) - returns `Resource` or raises `ResourceNotFound`
