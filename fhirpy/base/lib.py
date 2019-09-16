@@ -120,7 +120,6 @@ class AsyncAbstractClient(AbstractClient):
         async with aiohttp.request(method, url, json=data, headers=headers) as r:
             if 200 <= r.status < 300:
                 return await r.json()
-                # return json.loads(r.content) if r.content else None
 
             if r.status == 404:
                 raise ResourceNotFound(await r.text())
@@ -151,7 +150,7 @@ class SyncAbstractClient(AbstractClient):
             headers=headers)
 
         if 200 <= r.status_code < 300:
-            return json.loads(r.content) if r.content else None
+            return json.loads(r.content.decode()) if r.content else None
 
         if r.status_code == 404:
             raise ResourceNotFound(r.content.decode())
