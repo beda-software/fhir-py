@@ -120,7 +120,7 @@ class AsyncAbstractClient(AbstractClient):
             if 200 <= r.status < 300:
                 return await r.json()
 
-            if r.status == 404:
+            if r.status == 404 or r.status == 410:
                 raise ResourceNotFound(await r.text())
 
             raise OperationOutcome(await r.text())
@@ -145,7 +145,7 @@ class SyncAbstractClient(AbstractClient):
         if 200 <= r.status_code < 300:
             return json.loads(r.content.decode()) if r.content else None
 
-        if r.status_code == 404:
+        if r.status_code == 404 or r.status_code == 410:
             raise ResourceNotFound(r.content.decode())
 
         raise OperationOutcome(r.content.decode())
