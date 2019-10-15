@@ -98,6 +98,7 @@ provides:
 * `async` .fetch_all() - makes query to the server and returns a full list of `Resource`
 * `async` .first() - returns `Resource` or None
 * `async` .get(id=id) - returns `Resource` or raises `ResourceNotFound`
+* `async` .count() - makes query to the server and returns the total number of resources that match the SearchSet
 
 
 # SyncFHIRClient
@@ -140,3 +141,4 @@ provides:
 * .fetch_all() - makes query to the server and returns a full list of `SyncFHIRResource`
 * .first() - returns `SyncFHIRResource` or None
 * .get(id=id) - returns `SyncFHIRResource` or raises `ResourceNotFound`
+* .count() - makes query to the server and returns the total number of resources that match the SearchSet
