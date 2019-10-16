@@ -340,7 +340,7 @@ class SyncSearchSet(AbstractSearchSet):
 
     def count(self):
         new_params = copy.deepcopy(self.params)
-        new_params['_count'] = 1
+        new_params['_count'] = 0
         new_params['_totalMethod'] = 'count'
 
         return self.client._fetch_resource(
@@ -422,7 +422,7 @@ class AsyncSearchSet(AbstractSearchSet):
 
     async def count(self):
         new_params = copy.deepcopy(self.params)
-        new_params['_count'] = 1
+        new_params['_count'] = 0
         new_params['_totalMethod'] = 'count'
 
         return (
