@@ -84,7 +84,7 @@ class TestLibAsyncCase(object):
         patient = await self.create_resource('Patient', id='patient')
         await patient.delete()
 
-        with pytest.raises(OperationOutcome):
+        with pytest.raises(ResourceNotFound):
             await self.get_search_set('Patient').get(id='patient')
 
     @pytest.mark.asyncio

@@ -80,7 +80,7 @@ class LibTestCase(TestCase):
         patient = self.create_resource('Patient', id='patient')
         patient.delete()
 
-        with self.assertRaises(OperationOutcome):
+        with self.assertRaises(ResourceNotFound):
             self.get_search_set('Patient').get(id='patient')
 
     def test_get_not_existing_id(self):
