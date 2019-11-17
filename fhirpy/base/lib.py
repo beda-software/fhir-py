@@ -5,7 +5,7 @@ import requests
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from .utils import (
-    encode_params, convert_values, get_by_path, parse_path, chunks
+    AttrDict, encode_params, convert_values, get_by_path, parse_path, chunks
 )
 from .exceptions import (ResourceNotFound, OperationOutcome, InvalidResponse)
 
@@ -117,7 +117,8 @@ class AsyncAbstractClient(AbstractClient):
             method, url, json=data, headers=headers
         ) as r:
             if 200 <= r.status < 300:
-                return await r.json()
+                data = await r.text()
+                return json.loads(data, object_hook=AttrDict)
 
             if r.status == 404 or r.status == 410:
                 raise ResourceNotFound(await r.text())
@@ -142,7 +143,7 @@ class SyncAbstractClient(AbstractClient):
         r = requests.request(method, url, json=data, headers=headers)
 
         if 200 <= r.status_code < 300:
-            return json.loads(r.content.decode()) if r.content else None
+            return json.loads(r.content.decode(), object_hook=AttrDict) if r.content else None
 
         if r.status_code == 404 or r.status_code == 410:
             raise ResourceNotFound(r.content.decode())
@@ -174,6 +175,10 @@ class AbstractSearchSet(ABC):
 
     @abstractmethod
     def fetch(self, *, skip_caching=False):
+        pass
+
+    @abstractmethod
+    def fetch_raw(self, *, skip_caching=False):
         pass
 
     @abstractmethod
@@ -308,6 +313,19 @@ class SyncSearchSet(AbstractSearchSet):
 
         return resources
 
+    def fetch_raw(self, *, skip_caching=False):
+        data = self.client._fetch_resource(
+            self.resource_type, self.params
+        )
+        data_resource_type = data.get('resourceType', None)
+
+        if data_resource_type == 'Bundle':
+            for item in data['entry']:
+                item.resource = self._perform_resource(
+                    item.resource, skip_caching)
+
+        return data
+
     def fetch_all(self, *, skip_caching=False):
         page = 1
         resources = []
@@ -387,6 +405,19 @@ class AsyncSearchSet(AbstractSearchSet):
                 resources.append(resource)
 
         return resources
+
+    async def fetch_raw(self, *, skip_caching=False):
+        data = await self.client._fetch_resource(
+            self.resource_type, self.params
+        )
+        data_resource_type = data.get('resourceType', None)
+
+        if data_resource_type == 'Bundle':
+            for item in data['entry']:
+                item.resource = self._perform_resource(
+                    item.resource, skip_caching)
+
+        return data
 
     async def fetch_all(self, *, skip_caching=False):
         page = 1
