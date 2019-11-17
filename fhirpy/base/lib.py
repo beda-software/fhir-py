@@ -2,6 +2,8 @@ import json
 import copy
 import aiohttp
 import requests
+import datetime
+import pytz
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from .utils import (
@@ -143,7 +145,9 @@ class SyncAbstractClient(AbstractClient):
         r = requests.request(method, url, json=data, headers=headers)
 
         if 200 <= r.status_code < 300:
-            return json.loads(r.content.decode(), object_hook=AttrDict) if r.content else None
+            return json.loads(
+                r.content.decode(),
+                object_hook=AttrDict) if r.content else None
 
         if r.status_code == 404 or r.status_code == 410:
             raise ResourceNotFound(r.content.decode())
@@ -152,6 +156,115 @@ class SyncAbstractClient(AbstractClient):
 
     def _fetch_resource(self, path, params=None):
         return self._do_request('get', path, params=params)
+
+
+FHIR_DATE_TIME_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
+FHIR_DATE_FORMAT = '%Y-%m-%d'
+
+
+def format_date_time(date: datetime.datetime):
+    return pytz.utc.normalize(date).strftime(FHIR_DATE_TIME_FORMAT)
+
+
+def format_date(date: datetime.date):
+    return date.strftime(FHIR_DATE_FORMAT)
+
+
+def transform_param(param: str):
+    """
+    >>> transform_param('general_practitioner')
+    'general-practitioner'
+    """
+    if param[0] == '_':
+        # Don't correct _id, _has, _include, etc.
+        return param
+
+    return param.replace('_', '-')
+
+
+def transform_value(value):
+    """
+    >>> transform_value(datetime.datetime(2019, 1, 1))
+    '2019-01-01T00:00:00Z'
+
+    >>> transform_value(datetime.date(2019, 1, 1))
+    '2019-01-01'
+
+    >>> transform_value(True)
+    'true'
+    """
+    if isinstance(value, datetime.datetime):
+        return format_date_time(value)
+    if isinstance(value, datetime.date):
+        return format_date(value)
+    if isinstance(value, bool):
+        return 'true' if value else 'false'
+    if isinstance(value, (BaseReference, BaseResource)):
+        return value.reference
+    return value
+
+
+class Raw:
+    kwargs = {}
+
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+
+
+def SQ(*args, **kwargs):
+    """
+    Builds search query
+
+    >>> dict(SQ(general_practitioner='prid'))
+    {'general-practitioner': ['prid']}
+
+    >>> dict(SQ(period__ge='2018', period__lt='2019'))
+    {'period': ['ge2018', 'lt2019']}
+
+    >>> dict(SQ(text__contains='test'))
+    {'text:contains': ['test']}
+
+    >>> dict(SQ(status__not_in='success'))
+    {'status:not-in': ['success']}
+
+    >>> dict(SQ(name='family1,family2'))
+    {'name': ['family1,family2']}
+
+    >>> dict(SQ(status__not=['failed', 'completed']))
+    {'status:not': ['failed', 'completed']}
+
+    >>> dict(SQ(active=True))
+    {'active': ['true']}
+
+    >>> dict(SQ(Raw(**{'_has:Person:link:id': 'id'})))
+    {'_has:Person:link:id': ['id']}
+
+    """
+    res = defaultdict(list)
+    for key, value in kwargs.items():
+        value = value if isinstance(value, list) else [value]
+        value = [transform_value(sub_value) for sub_value in value]
+
+        if '__' in key:
+            param, op = key.split('__')
+            if op in ['contains', 'exact', 'missing', 'not',
+                      'below', 'above', 'in', 'not_in', 'text', 'of_type']:
+                param = '{0}:{1}'.format(param, transform_param(op))
+            elif op in ['eq', 'ne', 'gt', 'ge', 'lt', 'le', 'sa', 'eb', 'ap']:
+                value = ['{0}{1}'.format(op, sub_value) for sub_value in value]
+            res[transform_param(param)].extend(value)
+        else:
+            res[transform_param(key)].extend(value)
+
+    for arg in args:
+        if isinstance(arg, Raw):
+            for key, value in arg.kwargs.items():
+                value = value if isinstance(value, list) else [value]
+                res[key].extend(value)
+        else:
+            raise ValueError('Can\'t handle args without Raw() wrapper')
+
+    return res
 
 
 class AbstractSearchSet(ABC):
@@ -271,8 +384,8 @@ class AbstractSearchSet(ABC):
 
         return self.clone(**{key: value})
 
-    def search(self, **kwargs):
-        return self.clone(**kwargs)
+    def search(self, *args, **kwargs):
+        return self.clone(**SQ(*args, **kwargs))
 
     def limit(self, limit):
         return self.clone(_count=limit, override=True)
