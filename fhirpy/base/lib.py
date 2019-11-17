@@ -260,10 +260,16 @@ class AbstractSearchSet(ABC):
         )
 
     def revinclude(self, resource_type, attr, recursive=False):
-        # For the moment, this method might only have useless behaviour
-        # because you don't have any possibilities to access the related data
+        key_params = ['_revinclude']
 
-        raise NotImplementedError()
+        if recursive:
+            key_params.append('recursive')
+        key = ':'.join(key_params)
+
+        value_params = [resource_type, attr]
+        value = ':'.join(value_params)
+
+        return self.clone(**{key: value})
 
     def search(self, **kwargs):
         return self.clone(**kwargs)
