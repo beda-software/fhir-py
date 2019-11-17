@@ -4,9 +4,8 @@ import aiohttp
 import requests
 from abc import ABC, abstractmethod
 from collections import defaultdict
-
 from .utils import (
-    encode_params, convert_values, get_by_path, parse_path, chunks
+    AttrDict, encode_params, convert_values, parse_path, chunks
 )
 from .exceptions import (ResourceNotFound, OperationOutcome, InvalidResponse)
 

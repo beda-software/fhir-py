@@ -2,6 +2,16 @@ import reprlib
 from urllib.parse import urlencode, quote
 
 
+class AttrDict(dict):
+    def __init__(self, *args, **kwargs):
+        super(AttrDict, self).__init__(*args, **kwargs)
+        self.__dict__ = self
+
+    def get_by_path(self, path, default=None):
+        keys = parse_path(path)
+        return get_by_path(self, keys, default)
+
+
 def chunks(l, n):
     """
     Yield successive n-sized chunks from l
@@ -53,7 +63,7 @@ def convert_values(data, fn):
     if isinstance(data, list):
         return [convert_values(x, fn) for x in data]
     if isinstance(data, dict):
-        return {key: convert_values(value, fn) for key, value in data.items()}
+        return AttrDict({key: convert_values(value, fn) for key, value in data.items()})
     return data
 
 
