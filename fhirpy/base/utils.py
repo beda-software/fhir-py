@@ -12,6 +12,12 @@ class AttrDict(dict):
         return get_by_path(self, keys, default)
 
 
+class SearchList(list):
+    def get_by_path(self, path, default=None):
+        keys = parse_path(path)
+        return get_by_path(self, keys, default)
+
+
 def chunks(l, n):
     """
     Yield successive n-sized chunks from l
@@ -61,7 +67,7 @@ def convert_values(data, fn):
         return data
 
     if isinstance(data, list):
-        return [convert_values(x, fn) for x in data]
+        return SearchList(convert_values(x, fn) for x in data)
     if isinstance(data, dict):
         return AttrDict({key: convert_values(value, fn) for key, value in data.items()})
     return data

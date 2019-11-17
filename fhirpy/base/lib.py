@@ -5,7 +5,7 @@ import requests
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from .utils import (
-    AttrDict, encode_params, convert_values, parse_path, chunks
+    encode_params, convert_values, get_by_path, parse_path, chunks
 )
 from .exceptions import (ResourceNotFound, OperationOutcome, InvalidResponse)
 
@@ -460,6 +460,18 @@ class AbstractResource(dict):
         self._raise_error_if_invalid_key(key)
 
         return super(AbstractResource, self).__getitem__(key)
+
+    def __getattribute__(self, key):
+        try:
+            return super().__getattribute__(key)
+        except AttributeError:
+            return self[key]
+
+    def __setattribute__(self, key, value):
+        try:
+            super().__setattribute__(key, value)
+        except AttributeError:
+            self[key] = value
 
     def get_by_path(self, path, default=None):
         keys = parse_path(path)
