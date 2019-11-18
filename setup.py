@@ -33,7 +33,7 @@ setup(
     author_email='fhirpy@beda.software',
     packages=['fhirpy'],
     include_package_data=True,
-    install_requires=['requests', 'aiohttp'],
+    install_requires=['requests', 'aiohttp', 'pytz'],
     tests_require=['pytest', 'pytest-asyncio', 'unittest2'],
     zip_safe=False,
     project_urls={
