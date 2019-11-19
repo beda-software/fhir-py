@@ -12,6 +12,7 @@ This package provides an API for CRUD operations over FHIR resources
 import asyncio
 from fhirpy import AsyncFHIRClient
 
+
 async def main():
     # Create an instance
     client = AsyncFHIRClient(
@@ -42,13 +43,157 @@ async def main():
     async for org_resource in org_resources:
         print(org_resource.serialize())
 
+
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     loop.run_until_complete(main())
 ```
 
+## Searchset examples
+```Python
+patients = client.resources('Patient')
 
-# Main class structure
+patients.search(birthdate__gt='1944', birthdate__lt='1964')
+# /Patient?birthdate=gt1944&birthdate=lt1964
+
+patients.search(name__contains='John')
+# /Patient?name:contains=John
+
+patients.search(name=['John', 'Rivera'])
+# /Patient?name=John,Eve
+
+patients.search(family__exact='Moore')
+# /Patient?family:exact=Eve
+
+patients.search(general_practitioner='id')
+# /Patient?general-practitioner=id
+
+patients.search(active=True, _id='id)
+# /Patient?active=true&_id=id
+
+patients.search(gender__not_in='http://hl7.org/fhir/ValueSet/administrative-gender')
+# /Patient?gender:not-in=http://hl7.org/fhir/ValueSet/administrative-gender
+
+patients.search(gender__not=['male', 'female'])
+# /Patient?gender:not=male&gender:not=female
+```
+
+```Python
+import pytz
+import datetime
+
+
+patients.search(birthdate__lt=datetime.datetime.now(pytz.utc))
+# /Patient?birthdate=lt2019-11-19T20:16:08Z
+
+patients.search(birthdate__gt=datetime.datetime(2013, 10, 27, tzinfo=pytz.utc))
+# /Patient?birthdate=gt2013-10-27T00:00:00Z
+```
+
+## Get exactly one resource
+```Python
+practitioners = client.resources('Practitioner')
+patients = client.resources('Patient')
+
+try:
+    await practitioners.get(id='id')
+except ResourceNotFound:
+    pass
+```
+
+## Get first result
+```Python
+await practitioners.search(name='Jack').first()
+# /Practitioner?name=Jack&_count=1
+
+await patients.sort('active, ''-birthdate').first()
+# /Patient?_sort=-birthdate&_count=1
+```
+
+## Get total count
+```Python
+await practitioners.search(active=True).count()
+
+await patients.count()
+```
+
+## Fetch one page
+```Python
+await practitioners.fetch()
+# /Practitioner
+
+await patients.elements('name', 'telecom').fetch()
+# /Patient?_elements=resourceType,name,id,telecom
+```
+
+## Fetch all resources on all pages
+```Python
+await practitioners.search(address_city='Krasnoyarsk').fetch_all()
+
+await patients.fetch_all()
+```
+
+## Page number (page)
+```Python
+# Get third page
+await practitioners.limit(10).page(3).fetch()
+# /Practitioner?_count=10&page=3
+```
+
+## Page count (_count)
+```Python
+# Get 100 resources
+await practitioners.limit(100).fetch()
+
+# Get all resources with page count=100
+await patients.limit(100).fetch_all()
+```
+
+## Sort (_sort)
+```Python
+observations = client.resources('Observation')
+
+observations.sort('status', '-date', 'category')
+# /Observation?_sort=status,-date,category
+```
+
+## Elements (_elements)
+```Python
+# Get only specified set of elements for each resource
+patients.elements('identifier', 'active', 'link')
+# /Patient?_elements=identifier,active,link
+
+# Get all elements except specified set
+practitioners.elements('address', 'telecom', exclude=True)
+```
+
+## Include
+```Python
+await client.resources('EpisodeOfCare') \
+    .include('EpisodeOfCare', 'patient').fetch_raw()
+# /EpisodeOfCare?_include=EpisodeOfCare:patient
+
+await client.resources('MedicationRequest') \
+    .include('MedicationRequest', 'patient', target_resource_type='Patient') \
+    .fetch_raw()
+# /MedicationRequest?_include=MedicationRequest:patient:Patient
+```
+
+## Revinclude
+```Python
+await practitioners.revinclude('Group', 'member').fetch_raw()
+# /Practitioner?_revinclude=Group:member
+```
+
+## Revinclude
+```Python
+await practitioners.revinclude('Group', 'member').fetch_raw()
+# /Practitioner?_revinclude=Group:member
+```
+
+# Reference
+
+## Main class structure
 Both async and sync clients have identical sets of classes and methods.
 
 |               | Sync                | Async                |
@@ -59,7 +204,7 @@ Both async and sync clients have identical sets of classes and methods.
 | Reference     | SyncFHIRReference   | AsyncFHIRReference   |
 
 
-# AsyncFHIRClient
+## Acync client (based on _aiohttp_) – AsyncFHIRClient
 Import library:
 
 `from fhirpy import AsyncFHIRClient`
@@ -73,19 +218,19 @@ Returns an instance of the connection to the server which provides:
 * .resource(resource_type, **kwargs) - returns `AsyncFHIRResource` which described below
 * .resources(resource_type) - returns `AsyncFHIRSearchSet`
 
-## AsyncFHIRResource
+### AsyncFHIRResource
 
 provides:
 * `async` .save() - creates or updates resource instance
 * `async` .delete() - deletes resource instance
 * `async` .to_reference(**kwargs) - returns `AsyncFHIRReference` for this resource
 
-## AsyncFHIRReference
+### AsyncFHIRReference
 
 provides:
 * `async` .to_resource(nocache=False) - returns `AsyncFHIRResource` for this reference
 
-## AsyncFHIRReference
+### AsyncFHIRReference
 
 provides:
 * .search(param=value)
@@ -94,6 +239,8 @@ provides:
 * .sort(*args)
 * .elements(*args, exclude=False)
 * .include(resource_type, attr)
+* .revinclude(resource_type, attr, recursive=False)
+* .has(*args, **kwargs)
 * `async` .fetch() - makes query to the server and returns a list of `Resource`
 * `async` .fetch_all() - makes query to the server and returns a full list of `Resource`
 * `async` .first() - returns `Resource` or None
@@ -101,7 +248,7 @@ provides:
 * `async` .count() - makes query to the server and returns the total number of resources that match the SearchSet
 
 
-# SyncFHIRClient
+## Sync client (based on _requests_) – SyncFHIRClient
 Import library:
 
 `from fhirpy import SyncFHIRClient`
@@ -116,19 +263,19 @@ Returns an instance of the connection to the server which provides:
 * .resource(resource_type, **kwargs) - returns `SyncFHIRResource` which described below
 * .resources(resource_type) - returns `SyncFHIRSearchSet`
 
-## SyncFHIRResource
+### SyncFHIRResource
 
 provides:
 * .save() - creates or updates resource instance
 * .delete() - deletes resource instance
 * .to_reference(**kwargs) - returns `SyncFHIRReference` for this resource
 
-## SyncFHIRReference
+### SyncFHIRReference
 
 provides:
 * .to_resource(nocache=False) - returns `SyncFHIRResource` for this reference
 
-## SyncFHIRSearchSet
+### SyncFHIRSearchSet
 
 provides:
 * .search(param=value)
@@ -137,6 +284,8 @@ provides:
 * .sort(*args)
 * .elements(*args, exclude=False)
 * .include(resource_type, attr)
+* .revinclude(resource_type, attr, recursive=False)
+* .has(*args, **kwargs)
 * .fetch() - makes query to the server and returns a list of `SyncFHIRResource`
 * .fetch_all() - makes query to the server and returns a full list of `SyncFHIRResource`
 * .first() - returns `SyncFHIRResource` or None
