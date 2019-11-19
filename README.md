@@ -106,7 +106,7 @@ except ResourceNotFound:
 await practitioners.search(name='Jack').first()
 # /Practitioner?name=Jack&_count=1
 
-await patients.sort('active, ''-birthdate').first()
+await patients.sort('active, '-birthdate').first()
 # /Patient?_sort=-birthdate&_count=1
 ```
 
@@ -177,12 +177,6 @@ await client.resources('MedicationRequest') \
     .include('MedicationRequest', 'patient', target_resource_type='Patient') \
     .fetch_raw()
 # /MedicationRequest?_include=MedicationRequest:patient:Patient
-```
-
-## Revinclude
-```Python
-await practitioners.revinclude('Group', 'member').fetch_raw()
-# /Practitioner?_revinclude=Group:member
 ```
 
 ## Revinclude
