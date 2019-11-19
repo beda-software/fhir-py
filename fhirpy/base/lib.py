@@ -369,7 +369,7 @@ class AbstractSearchSet(ABC):
         return self.clone(
             **
             {':'.join([key_part, key]): value
-             for key, value in kwargs.items()}
+             for key, value in SQ(**kwargs).items()}
         )
 
     def revinclude(self, resource_type, attr, recursive=False):
