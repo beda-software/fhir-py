@@ -24,7 +24,7 @@ async def main():
     # Search for patients
     resources = client.resources('Patient')  # Return lazy search set
     resources = resources.search(name='John').limit(10).page(2).sort('name')
-    print(await resources.fetch())  # Returns list of AsyncFHIRResource
+    patients = await resources.fetch()  # Returns list of AsyncFHIRResource
 
     # Create Organization resource
     organization = client.resource(
@@ -191,6 +191,51 @@ await practitioners.revinclude('Group', 'member').fetch_raw()
 # /Practitioner?_revinclude=Group:member
 ```
 
+# Resource and helper methods
+
+## Accessing resource attributes
+```Python
+patient = await client.resources('Patient').first()
+
+# Work with the resource as a dictionary
+patient_family = patient['name'][0]['family']
+
+# Or access value by an attribute
+patient_given_name = patient.name[0].given[0]
+```
+
+## get_by_path(path, default=None)
+```Python
+patient_postal = patient.get_by_path(['resource', 'address', 0, 'postalCode'])
+
+# get_by_path can be also used on any nested attribute
+patient_name = patient.name[0]
+patient_fullname = '{} {}'.format(
+    patient_name.get_by_path(['given', 0]),
+    patient_name.get_by_path(['given', 0])
+)
+
+# Get identifier value by specified system or empty string
+uid = patient.get_by_path([
+        'resource', 'identifier',
+        {'system':'http://example.com/identifier/uid'},
+        'value'
+    ], '')
+
+# Get base value amount or 0
+invoice = await client.resources('Invoice').first()
+base_value = invoice.get_by_path([
+    'totalPriceComponent',
+    {'type': 'base'},
+    'amount', 'value'], 0)
+```
+
+## serialize()
+```Python
+# Serialize resource
+patient.serialize()
+```
+
 # Reference
 
 ## Main class structure
@@ -221,6 +266,8 @@ Returns an instance of the connection to the server which provides:
 ### AsyncFHIRResource
 
 provides:
+* .serialize() - serializes resource
+* .get_by_path(path, default=None) – gets the value at path of resource
 * `async` .save() - creates or updates resource instance
 * `async` .delete() - deletes resource instance
 * `async` .to_reference(**kwargs) - returns `AsyncFHIRReference` for this resource
@@ -266,6 +313,8 @@ Returns an instance of the connection to the server which provides:
 ### SyncFHIRResource
 
 provides:
+* .serialize() - serializes resource
+* .get_by_path(path, default=None) - gets the value at path of resource
 * .save() - creates or updates resource instance
 * .delete() - deletes resource instance
 * .to_reference(**kwargs) - returns `SyncFHIRReference` for this resource
