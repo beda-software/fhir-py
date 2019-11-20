@@ -12,9 +12,9 @@ class TestSearchSet(object):
             .search(name='John,Ivan') \
             .search(name='Smith') \
             .search(birth_date='2010-01-01')
-        assert search_set.params == {
+        assert dict(search_set.params) == {
             'name': ['John,Ivan', 'Smith'],
-            'birth_date': ['2010-01-01']
+            'birth-date': ['2010-01-01']
         }
 
     def test_sort(self, client):

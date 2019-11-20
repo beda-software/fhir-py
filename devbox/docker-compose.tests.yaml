@@ -1,0 +1,30 @@
+version: '3.1'
+services:
+  devbox:
+    image: "healthsamurai/devbox:0.4.7"
+    command: ["wait-for-it.sh", "database:5432", "--strict", "--timeout=0", "--", "java", "-jar", "/aidbox.jar", "-m", "devbox.core"]
+    depends_on:
+      - devbox-db
+      - chat
+    ports:
+      - 8080:8080
+    links:
+      - "devbox-db:database"
+    env_file:
+      - env_tests
+    environment:
+      AIDBOX_LICENSE_ID: ${AIDBOX_LICENSE_ID_TESTS}
+      AIDBOX_LICENSE_KEY: ${AIDBOX_LICENSE_KEY_TESTS}
+    volumes:
+      - ./wait-for-it.sh:/usr/local/bin/wait-for-it.sh
+  devbox-db:
+    image: "aidbox/db:11.4.0.2"
+    environment:
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB:       devbox
+  chat:
+    image: ir4y/aidbox-chat:v2.0.11
+    environment:
+      CHAT_SECRET: meegae6Aquae5AibmaaL1ooroomaej6S
+      CHAT_AUTH_REMOTE: http://devbox:8080/chat-auth
