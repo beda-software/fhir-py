@@ -60,22 +60,47 @@ patients.search(name__contains='John')
 # /Patient?name:contains=John
 
 patients.search(name=['John', 'Rivera'])
-# /Patient?name=John,Eve
+# /Patient?name=John&name=Rivera
+
+patients.search(name='John,Eva')
+# /Patient?name=John,Eva
 
 patients.search(family__exact='Moore')
-# /Patient?family:exact=Eve
+# /Patient?family:exact=Moore
 
-patients.search(general_practitioner='id')
-# /Patient?general-practitioner=id
+patients.search(address_state='TX')
+# /Patient?address-state=TX
 
-patients.search(active=True, _id='id)
+patients.search(active=True, _id='id')
 # /Patient?active=true&_id=id
-
-patients.search(gender__not_in='http://hl7.org/fhir/ValueSet/administrative-gender')
-# /Patient?gender:not-in=http://hl7.org/fhir/ValueSet/administrative-gender
 
 patients.search(gender__not=['male', 'female'])
 # /Patient?gender:not=male&gender:not=female
+```
+
+```Python
+practitioner = client.resources('Practitioner').search(id='john-smith').first()
+patients.search(general_practitioner=practitioner)
+# /Patient?general-practitioner=Practitioner/john-smith
+```
+
+```Python
+conditions = client.resources('Condition')
+
+conditions.search(code__text='headache')
+# /Condition?code:text=headache
+
+conditions.search(code__in='http://acme.org/fhir/ValueSet/cardiac-conditions')
+# /Condition?code:in=http://acme.org/fhir/ValueSet/cardiac-conditions
+
+conditions.search(code__not_in='http://acme.org/fhir/ValueSet/cardiac-conditions')
+# /Condition?code:not-in=http://acme.org/fhir/ValueSet/cardiac-conditions
+
+conditions.search(code__below='126851005')
+# /Condition?code:below=126851005
+
+conditions.search(code__above='126851005')
+# /Condition?code:above=126851005
 ```
 
 ```Python
@@ -106,8 +131,8 @@ except ResourceNotFound:
 await practitioners.search(name='Jack').first()
 # /Practitioner?name=Jack&_count=1
 
-await patients.sort('active, '-birthdate').first()
-# /Patient?_sort=-birthdate&_count=1
+await patients.sort('active', '-birthdate').first()
+# /Patient?_sort=active,-birthdate&_count=1
 ```
 
 ## Get total count
@@ -144,9 +169,6 @@ await practitioners.limit(10).page(3).fetch()
 ```Python
 # Get 100 resources
 await practitioners.limit(100).fetch()
-
-# Get all resources with page count=100
-await patients.limit(100).fetch_all()
 ```
 
 ## Sort (_sort)
@@ -226,7 +248,7 @@ base_value = invoice.get_by_path([
 
 ## serialize()
 ```Python
-# Serialize resource
+# Returns dict
 patient.serialize()
 ```
 
@@ -271,7 +293,7 @@ provides:
 provides:
 * `async` .to_resource(nocache=False) - returns `AsyncFHIRResource` for this reference
 
-### AsyncFHIRReference
+### AsyncFHIRSearchSet
 
 provides:
 * .search(param=value)
@@ -306,31 +328,13 @@ Returns an instance of the connection to the server which provides:
 
 ### SyncFHIRResource
 
-provides:
-* .serialize() - serializes resource
-* .get_by_path(path, default=None) - gets the value at path of resource
-* .save() - creates or updates resource instance
-* .delete() - deletes resource instance
-* .to_reference(**kwargs) - returns `SyncFHIRReference` for this resource
+The same as AsyncFHIRResource but with sync methods
 
 ### SyncFHIRReference
 
 provides:
-* .to_resource(nocache=False) - returns `SyncFHIRResource` for this reference
+The same as AsyncFHIRReference but with sync methods
 
 ### SyncFHIRSearchSet
 
-provides:
-* .search(param=value)
-* .limit(count)
-* .page(page)
-* .sort(*args)
-* .elements(*args, exclude=False)
-* .include(resource_type, attr)
-* .revinclude(resource_type, attr, recursive=False)
-* .has(*args, **kwargs)
-* .fetch() - makes query to the server and returns a list of `SyncFHIRResource`
-* .fetch_all() - makes query to the server and returns a full list of `SyncFHIRResource`
-* .first() - returns `SyncFHIRResource` or None
-* .get(id=id) - returns `SyncFHIRResource` or raises `ResourceNotFound`
-* .count() - makes query to the server and returns the total number of resources that match the SearchSet
+The same as AsyncFHIRSearchSet but with sync methods
