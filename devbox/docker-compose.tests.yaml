@@ -23,8 +23,3 @@ services:
       POSTGRES_USER:     postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB:       devbox
-  chat:
-    image: ir4y/aidbox-chat:v2.0.11
-    environment:
-      CHAT_SECRET: meegae6Aquae5AibmaaL1ooroomaej6S
-      CHAT_AUTH_REMOTE: http://devbox:8080/chat-auth
