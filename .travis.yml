@@ -5,7 +5,7 @@ services:
 
 env:
   - DOCKER_COMPOSE_VERSION=1.24.1
-  - TIMEZONE=UTC
+  - TZ=UTC
 
 python:
     - "3.6"
