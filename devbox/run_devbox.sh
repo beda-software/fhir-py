@@ -12,5 +12,5 @@ fi
 
 docker-compose -f docker-compose.tests.yaml pull
 docker-compose -f docker-compose.tests.yaml up -d
-./wait-for-it.sh localhost:8080 --strict --timeout=0
+./wait-for-it.sh localhost:3333 --strict --timeout=0
 exit $?
