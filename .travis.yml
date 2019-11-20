@@ -9,7 +9,7 @@ env:
 python:
     - "3.6"
 
-sudo: false
+sudo: true
 
 before_install:
   - sudo rm /usr/local/bin/docker-compose
@@ -22,7 +22,7 @@ install:
 
 before_script:
     - cd devbox && ./run_devbox.sh
-    - export TZ=UTC
+    - echo 'UTC' | sudo tee /etc/timezone
 
 script:
     - tox
