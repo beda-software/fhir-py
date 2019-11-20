@@ -1,12 +1,18 @@
 version: '3.1'
 services:
+  dockerize:
+    image: jwilder/dockerize
+    command: dockerize -wait http://devbox:8080/ -timeout 300s
+    depends_on:
+      - devbox
+    links:
+      - devbox
   devbox:
     image: "healthsamurai/devbox:0.4.7"
-    command: ["wait-for-it.sh", "database:5432", "--strict", "--timeout=0", "--", "java", "-jar", "/aidbox.jar", "-m", "devbox.core"]
     depends_on:
       - devbox-db
     ports:
-      - 3333:8080
+      - 8080:8080
     links:
       - "devbox-db:database"
     env_file:
@@ -14,8 +20,6 @@ services:
     environment:
       AIDBOX_LICENSE_ID: ${AIDBOX_LICENSE_ID_TESTS}
       AIDBOX_LICENSE_KEY: ${AIDBOX_LICENSE_KEY_TESTS}
-    volumes:
-      - ./wait-for-it.sh:/usr/local/bin/wait-for-it.sh
   devbox-db:
     image: "aidbox/db:11.4.0.2"
     environment:

@@ -8,7 +8,7 @@ from fhirpy.base.exceptions import ResourceNotFound, OperationOutcome
 
 
 class TestLibAsyncCase(object):
-    URL = 'http://localhost:3333/fhir'
+    URL = 'http://localhost:8080/fhir'
     client = None
     identifier = [{'system': 'http://example.com/env', 'value': 'fhirpy'}]
 
