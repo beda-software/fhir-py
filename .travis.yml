@@ -20,12 +20,16 @@ before_install:
 install:
     - pip install tox tox-travis
 
+before_script:
+    - cd devbox && ./run_devbox.sh
+
 script:
     - tox
 
 after_success:
     - pip install codecov
     - codecov -e TOXENV
+    - cd ./devbox && docker-compose -f docker-compose.tests.yaml down
 
 notifications:
     email: false
