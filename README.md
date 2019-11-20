@@ -6,6 +6,8 @@
 async/sync FHIR client for python.
 This package provides an API for CRUD operations over FHIR resources
 
+You can test this library by interactive FHIR course in the repository [Aidbox/jupyter-course](https://github.com/Aidbox/jupyter-course).
+
 # Getting started
 ## Async example
 ```Python
