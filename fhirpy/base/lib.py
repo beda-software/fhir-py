@@ -184,7 +184,7 @@ def transform_param(param: str):
 
 def transform_value(value):
     """
-    >>> transform_value(datetime.datetime(2019, 1, 1))
+    >>> transform_value(datetime.datetime(2019, 1, 1, tzinfo=pytz.utc))
     '2019-01-01T00:00:00Z'
 
     >>> transform_value(datetime.date(2019, 1, 1))
