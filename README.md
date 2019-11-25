@@ -19,7 +19,6 @@ async def main():
     # Create an instance
     client = AsyncFHIRClient(
         'http://fhir-server/',
-        fhir_version='4.0.0',
         authorization='Bearer TOKEN',
     )
 
@@ -274,7 +273,7 @@ Import library:
 
 To create AsyncFHIRClient instance use:
 
-`AsyncFHIRClient(url, authorization='', fhir_version='3.0.1', with_cache=False, extra_headers={})`
+`AsyncFHIRClient(url, authorization='', with_cache=False, extra_headers={})`
 
 Returns an instance of the connection to the server which provides:
 * .reference(resource_type, id, reference, **kwargs) - returns `AsyncFHIRReference` to the resource
@@ -320,7 +319,7 @@ Import library:
 
 To create SyncFHIRClient instance use:
 
-`SyncFHIRClient(url, authorization='', fhir_version='3.0.1', with_cache=False, extra_headers={})`
+`SyncFHIRClient(url, authorization='', with_cache=False, extra_headers={})`
 
 
 Returns an instance of the connection to the server which provides:
