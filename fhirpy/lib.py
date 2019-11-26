@@ -41,9 +41,6 @@ class AsyncFHIRResource(BaseFHIRResource, AsyncResource):
 
 
 class BaseFHIRReference:
-    def get_root_keys(self):
-        return ['reference', 'display']
-
     @property
     def reference(self):
         return self['reference']
@@ -77,12 +74,6 @@ class AsyncFHIRReference(BaseFHIRReference, AsyncReference):
     pass
 
 
-def load_schema(version):
-    filename = '{0}/schemas/fhir-{1}.pkl'.format(dirname(__file__), version)
-    with open(filename, 'rb') as f:
-        return pickle.load(f)
-
-
 class SyncFHIRClient(SyncAbstractClient):
     searchset_class = SyncFHIRSearchSet
     resource_class = SyncFHIRResource
@@ -92,12 +83,10 @@ class SyncFHIRClient(SyncAbstractClient):
         url,
         authorization=None,
         with_cache=False,
-        fhir_version='3.0.1',
         extra_headers=None
     ):
-        schema = load_schema(fhir_version)
         super(SyncFHIRClient, self).__init__(
-            url, authorization, with_cache, schema, extra_headers
+            url, authorization, with_cache, extra_headers
         )
 
     def reference(self, resource_type=None, id=None, reference=None, **kwargs):
@@ -121,12 +110,10 @@ class AsyncFHIRClient(AsyncAbstractClient):
         url,
         authorization=None,
         with_cache=False,
-        fhir_version='3.0.1',
         extra_headers=None
     ):
-        schema = load_schema(fhir_version)
         super(AsyncFHIRClient, self).__init__(
-            url, authorization, with_cache, schema, extra_headers
+            url, authorization, with_cache, extra_headers
         )
 
     def reference(self, resource_type=None, id=None, reference=None, **kwargs):

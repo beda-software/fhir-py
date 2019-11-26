@@ -3,7 +3,6 @@ from requests.auth import _basic_auth_str
 
 from fhirpy import SyncFHIRClient
 from fhirpy.lib import SyncFHIRReference, SyncFHIRResource
-from fhirpy.lib import load_schema
 from fhirpy.base.exceptions import ResourceNotFound, OperationOutcome
 
 
@@ -35,10 +34,6 @@ class LibTestCase(TestCase):
     def tearDown(self):
         self.client.clear_resources_cache()
         self.clearDb()
-
-    def test_load_schema_for_invalid_path_failed(self):
-        with self.assertRaises(FileNotFoundError):
-            load_schema('invalid')
 
     def create_resource(self, resource_type, **kwargs):
         p = self.client.resource(
@@ -86,18 +81,6 @@ class LibTestCase(TestCase):
     def test_get_not_existing_id(self):
         with self.assertRaises(ResourceNotFound):
             self.client.resources('Patient').get(id='FHIRPypy_not_existing_id')
-
-    def test_get_set_bad_attr(self):
-        with self.assertRaises(KeyError):
-            self.client.resource('Patient', notPatientField='field')
-
-        with self.assertRaises(KeyError):
-            patient = self.client.resource('Patient')
-            patient['notPatientField'] = 'field'
-
-        with self.assertRaises(KeyError):
-            patient = self.client.resource('Patient')
-            _ = patient['notPatientField']
 
     def test_resource_without_resource_type_failed(self):
         with self.assertRaises(TypeError):

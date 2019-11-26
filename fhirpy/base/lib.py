@@ -13,7 +13,6 @@ from .exceptions import (ResourceNotFound, OperationOutcome, InvalidResponse)
 
 
 class AbstractClient(ABC):
-    schema = None
     resources_cache = None
     url = None
     authorization = None
@@ -25,7 +24,6 @@ class AbstractClient(ABC):
         url,
         authorization=None,
         with_cache=False,
-        schema=None,
         extra_headers=None
     ):
         self.url = url
@@ -33,8 +31,6 @@ class AbstractClient(ABC):
         self.resources_cache = defaultdict(dict)
         self.without_cache = not with_cache
         self.extra_headers = extra_headers
-        if schema:
-            self.schema = schema
 
     def __str__(self):  # pragma: no cover
         return '<{0} {1}>'.format(self.__class__.__name__, self.url)
@@ -99,9 +95,6 @@ class AbstractClient(ABC):
     @abstractmethod
     def _fetch_resource(self, path, params=None):
         pass
-
-    def _get_schema(self):
-        return self.schema
 
 
 class AsyncAbstractClient(AbstractClient):
@@ -594,7 +587,6 @@ class AbstractResource(dict):
     def __init__(self, client, **kwargs):
         self.client = client
 
-        self._raise_error_if_invalid_keys(kwargs.keys())
         super(AbstractResource, self).__init__(**kwargs)
 
     def __eq__(self, other):
@@ -602,13 +594,9 @@ class AbstractResource(dict):
                and self.reference == other.reference
 
     def __setitem__(self, key, value):
-        self._raise_error_if_invalid_key(key)
-
         super(AbstractResource, self).__setitem__(key, value)
 
     def __getitem__(self, key):
-        self._raise_error_if_invalid_key(key)
-
         return super(AbstractResource, self).__getitem__(key)
 
     def __getattribute__(self, key):
@@ -626,18 +614,12 @@ class AbstractResource(dict):
     def get_by_path(self, path, default=None):
         keys = parse_path(path)
 
-        self._raise_error_if_invalid_key(keys[0])
-
         return get_by_path(self, keys, default)
 
     def get(self, key, default=None):
-        self._raise_error_if_invalid_key(key)
-
         return super(AbstractResource, self).get(key, default)
 
     def setdefault(self, key, default=None):
-        self._raise_error_if_invalid_key(key)
-
         return super(AbstractResource, self).setdefault(key, default)
 
     def serialize(self):
@@ -654,9 +636,6 @@ class AbstractResource(dict):
              for key, value in self.items()}, convert_fn
         )
 
-    def get_root_keys(self):  # pragma: no cover
-        raise NotImplementedError
-
     @property
     def id(self):  # pragma: no cover
         raise NotImplementedError()
@@ -668,25 +647,6 @@ class AbstractResource(dict):
     @property
     def reference(self):  # pragma: no cover
         raise NotImplementedError()
-
-    def _ipython_key_completions_(self):  # pragma: no cover
-        return self.get_root_keys()
-
-    def _raise_error_if_invalid_keys(self, keys):
-        schema = self.client._get_schema()
-        if not schema:
-            return
-        root_attrs = self.get_root_keys()
-        for key in keys:
-            if key not in root_attrs:
-                raise KeyError(
-                    'Invalid key `{0}`. Possible keys are `{1}`'.format(
-                        key, ', '.join(root_attrs)
-                    )
-                )
-
-    def _raise_error_if_invalid_key(self, key):
-        self._raise_error_if_invalid_keys([key])
 
 
 class BaseResource(AbstractResource, ABC):
@@ -723,13 +683,6 @@ class BaseResource(AbstractResource, ABC):
 
     def __repr__(self):  # pragma: no cover
         return self.__str__()
-
-    def get_root_keys(self):
-        schema = self.client._get_schema()
-        if not schema:
-            return set()
-        return set(schema.get(self.resource_type, [])) | \
-               {'resourceType', 'id', 'meta', 'extension'}
 
     @abstractmethod
     def save(self):
@@ -838,10 +791,6 @@ class BaseReference(AbstractResource):
         Returns Reference instance for this reference
         """
         return self.client.reference(reference=self.reference, **kwargs)
-
-    @abstractmethod
-    def get_root_keys(self):
-        pass
 
     @property
     @abstractmethod
