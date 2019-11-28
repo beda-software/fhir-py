@@ -10,8 +10,11 @@ This version breaks backward compatibility, but the main class structure and set
 * Update readme, add more examples
 * Add searchset methods .revinclude() and .fetch_raw()
 * Add support for using get_by_path on any nested attribute of resource
-* Add support for python date/datetime as a search value 
 * Add support for snake case search parameters
+* Add support for quantifiers in .search
+* Transform boolean value into 'true' or 'false' instead of 'True' or 'False' in .search()
+* Add support for python date/datetime as a search value in .search()
+* Transform FHIRResource/FHIRReference in search lookups
 
 ## 0.2.0
 * Fix requirements
