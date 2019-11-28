@@ -1,9 +1,17 @@
+## Development
+* Remove schemas and resource key validation
+* Add support for operation $validate for resource – method is_valid(raise_exception=True)
+
 ## 1.0.0
 This version breaks backward compatibility, but the main class structure and set of methods remain the same.
 * Rework library and make separate sync (based on requests) and async (based on aiohttp client) versions
 * Fix bug where we feed bytes instead of str to json.loads on success response
 * Add fhir-4.0.0 schema
-* Improved readme
+* Update readme, add more examples
+* Add searchset methods .revinclude() and .fetch_raw()
+* Add support for using get_by_path on any nested attribute of resource
+* Add support for python date/datetime as a search value 
+* Add support for snake case search parameters
 
 ## 0.2.0
 * Fix requirements
