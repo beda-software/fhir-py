@@ -712,6 +712,10 @@ class BaseResource(AbstractResource, ABC):
     @abstractmethod
     def is_reference(self, value):
         pass
+    
+    @abstractmethod
+    def is_valid(self, raise_exception=False):
+        pass
 
     @property
     def id(self):
@@ -751,6 +755,18 @@ class SyncResource(BaseResource):
         self.client._remove_resource_from_cache(self)
 
         return self.client._do_request('delete', self._get_path())
+    
+    def is_valid(self, raise_exception=False):
+        data = self.client._do_request(
+            'post',
+            '{0}/$validate'.format(self.resource_type),
+            data=self.serialize()
+        )
+        if any(issue['severity'] in ['fatal', 'error'] for issue in data['issue']):
+            if raise_exception:
+                raise OperationOutcome(data)
+            return False
+        return True
 
 
 class AsyncResource(BaseResource):
@@ -773,6 +789,18 @@ class AsyncResource(BaseResource):
 
     async def to_resource(self, *args, **kwargs):
         return super(AsyncResource, self).to_resource(*args, **kwargs)
+    
+    async def is_valid(self, raise_exception=False):
+        data = await self.client._do_request(
+            'post',
+            '{0}/$validate'.format(self.resource_type),
+            data=self.serialize()
+        )
+        if any(issue['severity'] in ['fatal', 'error'] for issue in data['issue']):
+            if raise_exception:
+                raise OperationOutcome(data)
+            return False
+        return True
 
 
 class BaseReference(AbstractResource):

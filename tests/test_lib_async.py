@@ -292,3 +292,27 @@ class TestLibAsyncCase(object):
         patient_2 = await self.client.resources('Patient').get(
             id='bundle_patient_2'
         )
+
+    @pytest.mark.asyncio
+    async def test_is_valid(self):
+        resource = self.client.resource
+        assert await resource('Patient', id='id123').is_valid() is True
+        assert await resource('Patient', gender='female') \
+            .is_valid(raise_exception=True) is True
+
+        assert await resource('Patient', gender=True).is_valid() is False
+        with pytest.raises(OperationOutcome):
+            await resource('Patient', gender=True) \
+                .is_valid(raise_exception=True)
+
+        assert await resource('Patient', gender='female', custom_prop='123') \
+            .is_valid() is False
+        with pytest.raises(OperationOutcome):
+            await resource('Patient', gender='female', custom_prop='123') \
+                .is_valid(raise_exception=True)
+
+        assert await resource('Patient', gender='female', custom_prop='123') \
+            .is_valid() is False
+        with pytest.raises(OperationOutcome):
+            await resource('Patient', birthDate='date', custom_prop='123', telecom=True) \
+                .is_valid(raise_exception=True)

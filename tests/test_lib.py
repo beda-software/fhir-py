@@ -290,3 +290,24 @@ class LibTestCase(TestCase):
         bundle_resource = self.create_resource('Bundle', **bundle)
         patient_1 = self.client.resources('Patient').get(id='bundle_patient_1')
         patient_2 = self.client.resources('Patient').get(id='bundle_patient_2')
+
+    def test_is_valid(self):
+        self.assertTrue(self.client.resource('Patient', id='id123').is_valid())
+        self.assertTrue(self.client.resource('Patient', gender='female').is_valid(raise_exception=True))
+
+        self.assertFalse(self.client.resource('Patient', gender=True).is_valid())
+        with self.assertRaises(OperationOutcome):
+            self.client.resource('Patient', gender=True) \
+                .is_valid(raise_exception=True)
+
+        self.assertFalse(self.client.resource('Patient', gender='female', custom_prop='123')
+                         .is_valid())
+        with self.assertRaises(OperationOutcome):
+            self.client.resource('Patient', gender='female', custom_prop='123') \
+                .is_valid(raise_exception=True)
+
+        self.assertFalse(self.client.resource('Patient', gender='female', custom_prop='123')
+                         .is_valid())
+        with self.assertRaises(OperationOutcome):
+            self.client.resource('Patient', birthDate='date', custom_prop='123', telecom=True) \
+                .is_valid(raise_exception=True)
