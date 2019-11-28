@@ -482,7 +482,7 @@ class SyncSearchSet(AbstractSearchSet):
         return result[0] if result else None
 
     def __iter__(self):
-        return iter(self.fetch())
+        return iter(self.fetch_all())
 
 
 async def aiter(iterable_coroutine):
@@ -492,8 +492,6 @@ async def aiter(iterable_coroutine):
 
 
 class AsyncSearchSet(AbstractSearchSet):
-    # TODO: AsyncSearchSet may implements async iterator methods
-
     async def fetch(self, *, skip_caching=False):
         bundle_data = await self.client._fetch_resource(
             self.resource_type, self.params
@@ -578,7 +576,7 @@ class AsyncSearchSet(AbstractSearchSet):
         return result[0] if result else None
 
     def __aiter__(self):
-        return aiter(self.fetch())
+        return aiter(self.fetch_all())
 
 
 class AbstractResource(dict):
