@@ -32,7 +32,6 @@ class LibTestCase(TestCase):
         cls.clearDb()
 
     def tearDown(self):
-        self.client.clear_resources_cache()
         self.clearDb()
 
     def create_resource(self, resource_type, **kwargs):

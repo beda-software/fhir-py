@@ -82,11 +82,10 @@ class SyncFHIRClient(SyncAbstractClient):
         self,
         url,
         authorization=None,
-        with_cache=False,
         extra_headers=None
     ):
         super(SyncFHIRClient, self).__init__(
-            url, authorization, with_cache, extra_headers
+            url, authorization, extra_headers
         )
 
     def reference(self, resource_type=None, id=None, reference=None, **kwargs):
@@ -109,11 +108,10 @@ class AsyncFHIRClient(AsyncAbstractClient):
         self,
         url,
         authorization=None,
-        with_cache=False,
         extra_headers=None
     ):
         super(AsyncFHIRClient, self).__init__(
-            url, authorization, with_cache, extra_headers
+            url, authorization, extra_headers
         )
 
     def reference(self, resource_type=None, id=None, reference=None, **kwargs):

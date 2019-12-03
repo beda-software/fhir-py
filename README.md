@@ -273,7 +273,7 @@ Import library:
 
 To create AsyncFHIRClient instance use:
 
-`AsyncFHIRClient(url, authorization='', with_cache=False, extra_headers={})`
+`AsyncFHIRClient(url, authorization='', extra_headers={})`
 
 Returns an instance of the connection to the server which provides:
 * .reference(resource_type, id, reference, **kwargs) - returns `AsyncFHIRReference` to the resource
@@ -292,7 +292,7 @@ provides:
 ### AsyncFHIRReference
 
 provides:
-* `async` .to_resource(nocache=False) - returns `AsyncFHIRResource` for this reference
+* `async` .to_resource() - returns `AsyncFHIRResource` for this reference
 
 ### AsyncFHIRSearchSet
 
@@ -319,7 +319,7 @@ Import library:
 
 To create SyncFHIRClient instance use:
 
-`SyncFHIRClient(url, authorization='', with_cache=False, extra_headers={})`
+`SyncFHIRClient(url, authorization='', extra_headers={})`
 
 
 Returns an instance of the connection to the server which provides:

@@ -31,10 +31,6 @@ class TestLibAsyncCase(object):
             cls.URL, authorization=_basic_auth_str('root', 'secret')
         )
 
-    @classmethod
-    def teardown_class(self):
-        self.client.clear_resources_cache()
-
     async def create_resource(self, resource_type, **kwargs):
         p = self.client.resource(
             resource_type, identifier=self.identifier, **kwargs
