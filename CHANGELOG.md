@@ -1,6 +1,7 @@
 ## Development
-* Remove schemas and resource key validation
-* Add support for operation $validate for resource – method is_valid(raise_exception=True)
+* Remove schemas and resource key validation #33
+* Add support for operation $validate for resource – method is_valid(raise_exception=True) #30
+* Remove caching #36
 
 ## 1.0.0
 This version breaks backward compatibility, but the main class structure and set of methods remain the same.
