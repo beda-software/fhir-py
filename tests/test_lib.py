@@ -3,7 +3,7 @@ from requests.auth import _basic_auth_str
 
 from fhirpy import SyncFHIRClient
 from fhirpy.lib import SyncFHIRReference, SyncFHIRResource
-from fhirpy.base.exceptions import ResourceNotFound, OperationOutcome
+from fhirpy.base.exceptions import ResourceNotFound, OperationOutcome, MultipleResourcesFound
 
 
 class LibTestCase(TestCase):
@@ -80,6 +80,29 @@ class LibTestCase(TestCase):
     def test_get_not_existing_id(self):
         with self.assertRaises(ResourceNotFound):
             self.client.resources('Patient').get(id='FHIRPypy_not_existing_id')
+
+    def test_get_more_than_one_resources(self):
+        self.create_resource('Patient', birthDate='1901-05-25')
+        self.create_resource('Patient', birthDate='1905-05-25')
+        with self.assertRaises(MultipleResourcesFound):
+            self.client.resources('Patient').get()
+        with self.assertRaises(MultipleResourcesFound):
+            self.client.resources('Patient').search(birthdate__gt='1900').get()
+
+    def test_get_resource_by_id(self):
+        self.create_resource('Patient', id='patient', gender='male')
+        patient = self.client.resources('Patient').search(gender='male').get('patient')
+        self.assertEqual(patient.id, 'patient')
+        with self.assertRaises(ResourceNotFound):
+            self.client.resources('Patient').search(gender='female').get('patient')
+
+    def test_get_resource_by_search(self):
+        self.create_resource('Patient', id='patient1', gender='male', birthDate='1901-05-25')
+        self.create_resource('Patient', id='patient2', gender='female', birthDate='1905-05-25')
+        patient_1 = self.client.resources('Patient').search(gender='male', birthdate='1901-05-25').get()
+        self.assertEqual(patient_1.id, 'patient1')
+        patient_2 = self.client.resources('Patient').search(gender='female', birthdate='1905-05-25').get()
+        self.assertEqual(patient_2.id, 'patient2')
 
     def test_resource_without_resource_type_failed(self):
         with self.assertRaises(TypeError):

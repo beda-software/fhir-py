@@ -3,7 +3,7 @@ from requests.auth import _basic_auth_str
 
 from fhirpy import AsyncFHIRClient
 from fhirpy.lib import AsyncFHIRReference, AsyncFHIRResource
-from fhirpy.base.exceptions import ResourceNotFound, OperationOutcome
+from fhirpy.base.exceptions import ResourceNotFound, OperationOutcome, MultipleResourcesFound
 
 
 class TestLibAsyncCase(object):
@@ -84,6 +84,32 @@ class TestLibAsyncCase(object):
             await self.client.resources('Patient').get(
                 id='FHIRPypy_not_existing_id'
             )
+
+    @pytest.mark.asyncio
+    async def test_get_more_than_one_resources(self):
+        await self.create_resource('Patient', birthDate='1901-05-25')
+        await self.create_resource('Patient', birthDate='1905-05-25')
+        with pytest.raises(MultipleResourcesFound):
+            await self.client.resources('Patient').get()
+        with pytest.raises(MultipleResourcesFound):
+            await self.client.resources('Patient').search(birthdate__gt='1900').get()
+
+    @pytest.mark.asyncio
+    async def test_get_resource_by_id(self):
+        await self.create_resource('Patient', id='patient', gender='male')
+        patient = await self.client.resources('Patient').search(gender='male').get('patient')
+        assert patient.id == 'patient'
+        with pytest.raises(ResourceNotFound):
+            await self.client.resources('Patient').search(gender='female').get('patient')
+
+    @pytest.mark.asyncio
+    async def test_get_resource_by_search(self):
+        await self.create_resource('Patient', id='patient1', gender='male', birthDate='1901-05-25')
+        await self.create_resource('Patient', id='patient2', gender='female', birthDate='1905-05-25')
+        patient_1 = await self.client.resources('Patient').search(gender='male', birthdate='1901-05-25').get()
+        assert patient_1.id == 'patient1'
+        patient_2 = await self.client.resources('Patient').search(gender='female', birthdate='1905-05-25').get()
+        assert patient_2.id == 'patient2'
 
     def test_resource_without_resource_type_failed(self):
         with pytest.raises(TypeError):

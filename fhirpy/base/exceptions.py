@@ -16,3 +16,7 @@ class AuthorizationError(BaseFHIRError):
 
 class OperationOutcome(BaseFHIRError):
     pass
+
+
+class MultipleResourcesFound(BaseFHIRError):
+    pass

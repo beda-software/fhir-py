@@ -9,7 +9,7 @@ from collections import defaultdict
 from .utils import (
     AttrDict, encode_params, convert_values, get_by_path, parse_path, chunks
 )
-from .exceptions import (ResourceNotFound, OperationOutcome, InvalidResponse)
+from .exceptions import (ResourceNotFound, OperationOutcome, InvalidResponse, MultipleResourcesFound)
 
 
 class AbstractClient(ABC):
@@ -416,20 +416,24 @@ class SyncSearchSet(AbstractSearchSet):
 
         return resources
 
-    def get(self, id):
-        res_data = self.client._fetch_resource(
-            '{0}/{1}'.format(self.resource_type, id)
-        )
-
-        if res_data['resourceType'] != self.resource_type:
+    def get(self, id=None):
+        searchset = self.limit(2)
+        if id:
+            searchset = searchset.search(_id=id)
+        res_data = searchset.fetch()
+        if len(res_data) == 0:
+            raise ResourceNotFound('No resources found')
+        elif len(res_data) > 1:
+            raise MultipleResourcesFound('More than one resource found')
+        resource = res_data[0]
+        if resource['resourceType'] != self.resource_type:
             raise InvalidResponse(
                 'Expected to receive {0} '
                 'but {1} received'.format(
-                    self.resource_type, res_data['resourceType']
+                    self.resource_type, resource['resourceType']
                 )
             )
-
-        return self._perform_resource(res_data)
+        return self._perform_resource(resource)
 
     def count(self):
         new_params = copy.deepcopy(self.params)
@@ -507,20 +511,24 @@ class AsyncSearchSet(AbstractSearchSet):
 
         return resources
 
-    async def get(self, id):
-        res_data = await self.client._fetch_resource(
-            '{0}/{1}'.format(self.resource_type, id)
-        )
-
-        if res_data['resourceType'] != self.resource_type:
+    async def get(self, id=None):
+        searchset = self.limit(2)
+        if id:
+            searchset = searchset.search(_id=id)
+        res_data = await searchset.fetch()
+        if len(res_data) == 0:
+            raise ResourceNotFound('No resources found')
+        elif len(res_data) > 1:
+            raise MultipleResourcesFound('More than one resource found')
+        resource = res_data[0]
+        if resource['resourceType'] != self.resource_type:
             raise InvalidResponse(
                 'Expected to receive {0} '
                 'but {1} received'.format(
-                    self.resource_type, res_data['resourceType']
+                    self.resource_type, resource['resourceType']
                 )
             )
-
-        return self._perform_resource(res_data)
+        return self._perform_resource(resource)
 
     async def count(self):
         new_params = copy.deepcopy(self.params)
