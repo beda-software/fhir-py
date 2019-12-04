@@ -450,13 +450,16 @@ class SyncSearchSet(AbstractSearchSet):
         return result[0] if result else None
 
     def __iter__(self):
-        return iter(self.fetch())
+        page = 1
+        while True:
+            new_resources = self.page(page).fetch()
+            if not new_resources:
+                break
 
+            for item in new_resources:
+                yield item
 
-async def aiter(iterable_coroutine):
-    items = await iterable_coroutine
-    for item in items:
-        yield item
+            page += 1
 
 
 class AsyncSearchSet(AbstractSearchSet):
@@ -545,8 +548,18 @@ class AsyncSearchSet(AbstractSearchSet):
 
         return result[0] if result else None
 
-    def __aiter__(self):
-        return aiter(self.fetch())
+    async def __aiter__(self):
+        # TODO: Add tests
+        page = 1
+        while True:
+            new_resources = await self.page(page).fetch()
+            if not new_resources:
+                break
+
+            for item in new_resources:
+                yield item
+
+            page += 1
 
 
 class AbstractResource(dict):

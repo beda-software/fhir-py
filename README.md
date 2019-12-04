@@ -41,7 +41,8 @@ async def main():
 
     # Iterate over search set
     org_resources = client.resources('Organization')
-    async for org_resource in org_resources:
+    # Lazy loading resources page by page with page count = 100
+    async for org_resource in org_resources.limit(100):
         print(org_resource.serialize())
 
 
