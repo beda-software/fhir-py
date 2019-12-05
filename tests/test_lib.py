@@ -49,7 +49,7 @@ class LibTestCase(TestCase):
             }]
         )
 
-        patient = self.client.resources('Patient').get('patient')
+        patient = self.client.resources('Patient').search(id='patient').get()
         self.assertEqual(patient['name'], [{'text': 'My patient'}])
 
     def test_count(self):

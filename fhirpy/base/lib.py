@@ -843,7 +843,7 @@ class SyncReference(BaseReference):
         """
         if not self.is_local:
             raise ResourceNotFound('Can not resolve not local resource')
-        return self.client.resources(self.resource_type).get(self.id)
+        return self.client.resources(self.resource_type).search(id=self.id).get()
 
 
 class AsyncReference(BaseReference):
@@ -854,4 +854,4 @@ class AsyncReference(BaseReference):
         """
         if not self.is_local:
             raise ResourceNotFound('Can not resolve not local resource')
-        return await self.client.resources(self.resource_type).get(self.id)
+        return await self.client.resources(self.resource_type).search(id=self.id).get()
