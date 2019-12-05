@@ -33,8 +33,10 @@ setup(
     author_email='fhirpy@beda.software',
     packages=['fhirpy'],
     include_package_data=True,
-    install_requires=['requests', 'aiohttp', 'pytz'],
-    tests_require=['pytest', 'pytest-asyncio', 'unittest2'],
+    install_requires=['requests>=2.19.0', 'aiohttp>=3.5.1', 'pytz'],
+    tests_require=[
+        'pytest>=3.6.1', 'pytest-asyncio>=0.10.0', 'unittest2>=1.1.0'
+    ],
     zip_safe=False,
     project_urls={
         "Source Code": "https://github.com/beda-software/fhir-py",

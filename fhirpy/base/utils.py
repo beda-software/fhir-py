@@ -69,7 +69,10 @@ def convert_values(data, fn):
     if isinstance(data, list):
         return SearchList(convert_values(x, fn) for x in data)
     if isinstance(data, dict):
-        return AttrDict({key: convert_values(value, fn) for key, value in data.items()})
+        return AttrDict(
+            {key: convert_values(value, fn)
+             for key, value in data.items()}
+        )
     return data
 
 

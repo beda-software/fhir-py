@@ -123,8 +123,10 @@ practitioners = client.resources('Practitioner')
 patients = client.resources('Patient')
 
 try:
-    await practitioners.get(id='id')
+    await practitioners.search(active=True, id='id').get()
 except ResourceNotFound:
+    pass
+except MultipleResourcesFound:
     pass
 ```
 
@@ -154,7 +156,9 @@ await patients.elements('name', 'telecom').fetch()
 ```
 
 ## Fetch all resources on all pages
+Keep in mind that this method as well as .fetch() doesn't return any included resources. Use fetch_raw() if you want to get all included resources.
 ```Python
+# Returns a list of `Practitioner` resources
 await practitioners.search(address_city='Krasnoyarsk').fetch_all()
 
 await patients.fetch_all()
@@ -193,9 +197,11 @@ practitioners.elements('address', 'telecom', exclude=True)
 
 ## Include
 ```Python
-await client.resources('EpisodeOfCare') \
+result = await client.resources('EpisodeOfCare') \
     .include('EpisodeOfCare', 'patient').fetch_raw()
 # /EpisodeOfCare?_include=EpisodeOfCare:patient
+for entry in result.entry:
+    print(entry.resource)
 
 await client.resources('MedicationRequest') \
     .include('MedicationRequest', 'patient', target_resource_type='Patient') \
@@ -274,7 +280,7 @@ Import library:
 
 To create AsyncFHIRClient instance use:
 
-`AsyncFHIRClient(url, authorization='', with_cache=False, extra_headers={})`
+`AsyncFHIRClient(url, authorization='', extra_headers={})`
 
 Returns an instance of the connection to the server which provides:
 * .reference(resource_type, id, reference, **kwargs) - returns `AsyncFHIRReference` to the resource
@@ -293,7 +299,7 @@ provides:
 ### AsyncFHIRReference
 
 provides:
-* `async` .to_resource(nocache=False) - returns `AsyncFHIRResource` for this reference
+* `async` .to_resource() - returns `AsyncFHIRResource` for this reference
 
 ### AsyncFHIRSearchSet
 
@@ -306,10 +312,11 @@ provides:
 * .include(resource_type, attr)
 * .revinclude(resource_type, attr, recursive=False)
 * .has(*args, **kwargs)
-* `async` .fetch() - makes query to the server and returns a list of `Resource`
-* `async` .fetch_all() - makes query to the server and returns a full list of `Resource`
+* `async` .fetch() - makes query to the server and returns a list of `Resource` filtered by resource type
+* `async` .fetch_all() - makes query to the server and returns a full list of `Resource` filtered by resource type
+* `async` .fetch_raw() - makes query to the server and returns a raw Bundle `Resource`
 * `async` .first() - returns `Resource` or None
-* `async` .get(id=id) - returns `Resource` or raises `ResourceNotFound`
+* `async` .get(id=None) - returns `Resource` or raises `ResourceNotFound` when no resource found or MultipleResourcesFound when more than one resource found (parameter 'id' is deprecated)
 * `async` .count() - makes query to the server and returns the total number of resources that match the SearchSet
 
 
@@ -320,7 +327,7 @@ Import library:
 
 To create SyncFHIRClient instance use:
 
-`SyncFHIRClient(url, authorization='', with_cache=False, extra_headers={})`
+`SyncFHIRClient(url, authorization='', extra_headers={})`
 
 
 Returns an instance of the connection to the server which provides:

@@ -4,32 +4,25 @@ import aiohttp
 import requests
 import datetime
 import pytz
+import warnings
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from .utils import (
     AttrDict, encode_params, convert_values, get_by_path, parse_path, chunks
 )
-from .exceptions import (ResourceNotFound, OperationOutcome, InvalidResponse)
+from .exceptions import (
+    ResourceNotFound, OperationOutcome, InvalidResponse, MultipleResourcesFound
+)
 
 
 class AbstractClient(ABC):
-    resources_cache = None
     url = None
     authorization = None
-    without_cache = False
     extra_headers = None
 
-    def __init__(
-        self,
-        url,
-        authorization=None,
-        with_cache=False,
-        extra_headers=None
-    ):
+    def __init__(self, url, authorization=None, extra_headers=None):
         self.url = url
         self.authorization = authorization
-        self.resources_cache = defaultdict(dict)
-        self.without_cache = not with_cache
         self.extra_headers = extra_headers
 
     def __str__(self):  # pragma: no cover
@@ -47,33 +40,6 @@ class AbstractClient(ABC):
     @abstractmethod
     def resource_class(self):
         pass
-
-    def _add_resource_to_cache(self, resource):
-        if self.without_cache:
-            return
-
-        self.resources_cache[resource.resource_type][resource.id] = resource
-
-    def _remove_resource_from_cache(self, resource):
-        if self.without_cache:
-            return
-
-        del self.resources_cache[resource.resource_type][resource.id]
-
-    def _get_resource_from_cache(self, resource_type, id):
-        if self.without_cache:
-            return None
-
-        return self.resources_cache[resource_type].get(id, None)
-
-    def clear_resources_cache(self, resource_type=None):
-        if self.without_cache:
-            return
-
-        if resource_type:
-            self.resources_cache[resource_type] = {}
-        else:
-            self.resources_cache = defaultdict(dict)
 
     @abstractmethod
     def reference(self, resource_type=None, id=None, reference=None, **kwargs):
@@ -139,8 +105,8 @@ class SyncAbstractClient(AbstractClient):
 
         if 200 <= r.status_code < 300:
             return json.loads(
-                r.content.decode(),
-                object_hook=AttrDict) if r.content else None
+                r.content.decode(), object_hook=AttrDict
+            ) if r.content else None
 
         if r.status_code == 404 or r.status_code == 410:
             raise ResourceNotFound(r.content.decode())
@@ -240,8 +206,10 @@ def SQ(*args, **kwargs):
 
         if '__' in key:
             param, op = key.split('__')
-            if op in ['contains', 'exact', 'missing', 'not',
-                      'below', 'above', 'in', 'not_in', 'text', 'of_type']:
+            if op in [
+                'contains', 'exact', 'missing', 'not', 'below', 'above', 'in',
+                'not_in', 'text', 'of_type'
+            ]:
                 param = '{0}:{1}'.format(param, transform_param(op))
             elif op in ['eq', 'ne', 'gt', 'ge', 'lt', 'le', 'sa', 'eb', 'ap']:
                 value = ['{0}{1}'.format(op, sub_value) for sub_value in value]
@@ -270,29 +238,25 @@ class AbstractSearchSet(ABC):
         self.resource_type = resource_type
         self.params = defaultdict(list, params or {})
 
-    def _perform_resource(self, data, skip_caching):
+    def _perform_resource(self, data):
         resource_type = data.get('resourceType', None)
         resource = self.client.resource(resource_type, **data)
-
-        if not skip_caching:
-            self.client._add_resource_to_cache(resource)
-
         return resource
 
     @abstractmethod
-    def fetch(self, *, skip_caching=False):
+    def fetch(self):
         pass
 
     @abstractmethod
-    def fetch_raw(self, *, skip_caching=False):
+    def fetch_raw(self):
         pass
 
     @abstractmethod
-    def fetch_all(self, *, skip_caching=False):
+    def fetch_all(self):
         pass
 
     @abstractmethod
-    def get(self, id, *, skip_caching=False):
+    def get(self, id):
         pass
 
     @abstractmethod
@@ -360,9 +324,10 @@ class AbstractSearchSet(ABC):
         )
 
         return self.clone(
-            **
-            {':'.join([key_part, key]): value
-             for key, value in SQ(**kwargs).items()}
+            **{
+                ':'.join([key_part, key]): value
+                for key, value in SQ(**kwargs).items()
+            }
         )
 
     def revinclude(self, resource_type, attr, recursive=False):
@@ -401,7 +366,7 @@ class AbstractSearchSet(ABC):
 
 
 class SyncSearchSet(AbstractSearchSet):
-    def fetch(self, *, skip_caching=False):
+    def fetch(self):
         bundle_data = self.client._fetch_resource(
             self.resource_type, self.params
         )
@@ -419,31 +384,28 @@ class SyncSearchSet(AbstractSearchSet):
 
         resources = []
         for data in resources_data:
-            resource = self._perform_resource(data, skip_caching)
+            resource = self._perform_resource(data)
             if resource.resource_type == self.resource_type:
                 resources.append(resource)
 
         return resources
 
-    def fetch_raw(self, *, skip_caching=False):
-        data = self.client._fetch_resource(
-            self.resource_type, self.params
-        )
+    def fetch_raw(self):
+        data = self.client._fetch_resource(self.resource_type, self.params)
         data_resource_type = data.get('resourceType', None)
 
         if data_resource_type == 'Bundle':
             for item in data['entry']:
-                item.resource = self._perform_resource(
-                    item.resource, skip_caching)
+                item.resource = self._perform_resource(item.resource)
 
         return data
 
-    def fetch_all(self, *, skip_caching=False):
+    def fetch_all(self):
         page = 1
         resources = []
 
         while True:
-            new_resources = self.page(page).fetch(skip_caching=skip_caching)
+            new_resources = self.page(page).fetch()
             if not new_resources:
                 break
 
@@ -452,20 +414,31 @@ class SyncSearchSet(AbstractSearchSet):
 
         return resources
 
-    def get(self, id, *, skip_caching=False):
-        res_data = self.client._fetch_resource(
-            '{0}/{1}'.format(self.resource_type, id)
-        )
-
-        if res_data['resourceType'] != self.resource_type:
+    def get(self, id=None):
+        searchset = self.limit(2)
+        if id:
+            warnings.warn(
+                "parameter 'id' of method get() is deprecated "
+                "and will be removed in future versions. "
+                "Please use 'search(id='...').get()'",
+                DeprecationWarning,
+                stacklevel=2
+            )
+            searchset = searchset.search(_id=id)
+        res_data = searchset.fetch()
+        if len(res_data) == 0:
+            raise ResourceNotFound('No resources found')
+        elif len(res_data) > 1:
+            raise MultipleResourcesFound('More than one resource found')
+        resource = res_data[0]
+        if resource['resourceType'] != self.resource_type:
             raise InvalidResponse(
                 'Expected to receive {0} '
                 'but {1} received'.format(
-                    self.resource_type, res_data['resourceType']
+                    self.resource_type, resource['resourceType']
                 )
             )
-
-        return self._perform_resource(res_data, skip_caching)
+        return self._perform_resource(resource)
 
     def count(self):
         new_params = copy.deepcopy(self.params)
@@ -484,9 +457,7 @@ class SyncSearchSet(AbstractSearchSet):
     def __iter__(self):
         page = 1
         while True:
-            new_resources = self.page(page).fetch(
-                skip_caching=True
-            )
+            new_resources = self.page(page).fetch()
             if not new_resources:
                 break
 
@@ -497,7 +468,7 @@ class SyncSearchSet(AbstractSearchSet):
 
 
 class AsyncSearchSet(AbstractSearchSet):
-    async def fetch(self, *, skip_caching=False):
+    async def fetch(self):
         bundle_data = await self.client._fetch_resource(
             self.resource_type, self.params
         )
@@ -515,13 +486,13 @@ class AsyncSearchSet(AbstractSearchSet):
 
         resources = []
         for data in resources_data:
-            resource = self._perform_resource(data, skip_caching)
+            resource = self._perform_resource(data)
             if resource.resource_type == self.resource_type:
                 resources.append(resource)
 
         return resources
 
-    async def fetch_raw(self, *, skip_caching=False):
+    async def fetch_raw(self):
         data = await self.client._fetch_resource(
             self.resource_type, self.params
         )
@@ -529,19 +500,16 @@ class AsyncSearchSet(AbstractSearchSet):
 
         if data_resource_type == 'Bundle':
             for item in data['entry']:
-                item.resource = self._perform_resource(
-                    item.resource, skip_caching)
+                item.resource = self._perform_resource(item.resource)
 
         return data
 
-    async def fetch_all(self, *, skip_caching=False):
+    async def fetch_all(self):
         page = 1
         resources = []
 
         while True:
-            new_resources = await self.page(page).fetch(
-                skip_caching=skip_caching
-            )
+            new_resources = await self.page(page).fetch()
             if not new_resources:
                 break
 
@@ -550,20 +518,31 @@ class AsyncSearchSet(AbstractSearchSet):
 
         return resources
 
-    async def get(self, id, *, skip_caching=False):
-        res_data = await self.client._fetch_resource(
-            '{0}/{1}'.format(self.resource_type, id)
-        )
-
-        if res_data['resourceType'] != self.resource_type:
+    async def get(self, id=None):
+        searchset = self.limit(2)
+        if id:
+            warnings.warn(
+                "parameter 'id' of method get() is deprecated "
+                "and will be removed in future versions. "
+                "Please use 'search(id='...').get()'",
+                DeprecationWarning,
+                stacklevel=2
+            )
+            searchset = searchset.search(_id=id)
+        res_data = await searchset.fetch()
+        if len(res_data) == 0:
+            raise ResourceNotFound('No resources found')
+        elif len(res_data) > 1:
+            raise MultipleResourcesFound('More than one resource found')
+        resource = res_data[0]
+        if resource['resourceType'] != self.resource_type:
             raise InvalidResponse(
                 'Expected to receive {0} '
                 'but {1} received'.format(
-                    self.resource_type, res_data['resourceType']
+                    self.resource_type, resource['resourceType']
                 )
             )
-
-        return self._perform_resource(res_data, skip_caching)
+        return self._perform_resource(resource)
 
     async def count(self):
         new_params = copy.deepcopy(self.params)
@@ -584,9 +563,7 @@ class AsyncSearchSet(AbstractSearchSet):
         # TODO: Add tests
         page = 1
         while True:
-            new_resources = await self.page(page).fetch(
-                skip_caching=True
-            )
+            new_resources = await self.page(page).fetch()
             if not new_resources:
                 break
 
@@ -707,7 +684,7 @@ class BaseResource(AbstractResource, ABC):
     def delete(self):
         pass
 
-    def to_resource(self, nocache=False):
+    def to_resource(self):
         """
         Returns Resource instance for this resource
         """
@@ -726,6 +703,10 @@ class BaseResource(AbstractResource, ABC):
 
     @abstractmethod
     def is_reference(self, value):
+        pass
+
+    @abstractmethod
+    def is_valid(self, raise_exception=False):
         pass
 
     @property
@@ -760,12 +741,22 @@ class SyncResource(BaseResource):
         self['meta'] = data.get('meta', {})
         self['id'] = data.get('id')
 
-        self.client._add_resource_to_cache(self)
-
     def delete(self):
-        self.client._remove_resource_from_cache(self)
-
         return self.client._do_request('delete', self._get_path())
+
+    def is_valid(self, raise_exception=False):
+        data = self.client._do_request(
+            'post',
+            '{0}/$validate'.format(self.resource_type),
+            data=self.serialize()
+        )
+        if any(
+            issue['severity'] in ['fatal', 'error'] for issue in data['issue']
+        ):
+            if raise_exception:
+                raise OperationOutcome(data)
+            return False
+        return True
 
 
 class AsyncResource(BaseResource):
@@ -779,15 +770,25 @@ class AsyncResource(BaseResource):
         self['meta'] = data.get('meta', {})
         self['id'] = data.get('id')
 
-        self.client._add_resource_to_cache(self)
-
     async def delete(self):
-        self.client._remove_resource_from_cache(self)
-
         return await self.client._do_request('delete', self._get_path())
 
     async def to_resource(self, *args, **kwargs):
         return super(AsyncResource, self).to_resource(*args, **kwargs)
+
+    async def is_valid(self, raise_exception=False):
+        data = await self.client._do_request(
+            'post',
+            '{0}/$validate'.format(self.resource_type),
+            data=self.serialize()
+        )
+        if any(
+            issue['severity'] in ['fatal', 'error'] for issue in data['issue']
+        ):
+            if raise_exception:
+                raise OperationOutcome(data)
+            return False
+        return True
 
 
 class BaseReference(AbstractResource):
@@ -798,7 +799,7 @@ class BaseReference(AbstractResource):
         return self.__str__()
 
     @abstractmethod
-    def to_resource(self, nocache=False):
+    def to_resource(self):
         pass
 
     def to_reference(self, **kwargs):
@@ -835,38 +836,24 @@ class BaseReference(AbstractResource):
 
 
 class SyncReference(BaseReference):
-    def to_resource(self, nocache=False):
+    def to_resource(self):
         """
-        Returns Resource instance for this reference from cache
-        if nocache is not specified and from fhir server otherwise.
+        Returns Resource instance for this reference
+        from fhir server otherwise.
         """
         if not self.is_local:
             raise ResourceNotFound('Can not resolve not local resource')
-
-        cached_resource = self.client._get_resource_from_cache(
-            self.resource_type, self.id
-        )
-
-        if cached_resource and not nocache:
-            return cached_resource
-
-        return self.client.resources(self.resource_type).get(self.id)
+        return self.client.resources(self.resource_type).search(id=self.id
+                                                               ).get()
 
 
 class AsyncReference(BaseReference):
-    async def to_resource(self, nocache=False):
+    async def to_resource(self):
         """
-        Returns Resource instance for this reference from cache
-        if nocache is not specified and from fhir server otherwise.
+        Returns Resource instance for this reference
+        from fhir server otherwise.
         """
         if not self.is_local:
             raise ResourceNotFound('Can not resolve not local resource')
-
-        cached_resource = self.client._get_resource_from_cache(
-            self.resource_type, self.id
-        )
-
-        if cached_resource and not nocache:
-            return cached_resource
-
-        return await self.client.resources(self.resource_type).get(self.id)
+        return await self.client.resources(self.resource_type
+                                          ).search(id=self.id).get()

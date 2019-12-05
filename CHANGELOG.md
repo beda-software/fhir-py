@@ -1,9 +1,24 @@
+## 1.1.0
+* Remove schemas and resource key validation #33
+* Add support for operation $validate for resource – method is_valid(raise_exception=True) #30
+* Remove caching #36
+* Support search params with method .get() #29
+* Parameter 'id' of method .get() is now deprecated (use .search(id='...').get() instead)
+* Make searchset iterating lazy #35
+
 ## 1.0.0
 This version breaks backward compatibility, but the main class structure and set of methods remain the same.
 * Rework library and make separate sync (based on requests) and async (based on aiohttp client) versions
 * Fix bug where we feed bytes instead of str to json.loads on success response
 * Add fhir-4.0.0 schema
-* Improved readme
+* Update readme, add more examples
+* Add searchset methods .revinclude() and .fetch_raw()
+* Add support for using get_by_path on any nested attribute of resource
+* Add support for snake case search parameters
+* Add support for quantifiers in .search
+* Transform boolean value into 'true' or 'false' instead of 'True' or 'False' in .search()
+* Add support for python date/datetime as a search value in .search()
+* Transform FHIRResource/FHIRReference in search lookups
 
 ## 0.2.0
 * Fix requirements
