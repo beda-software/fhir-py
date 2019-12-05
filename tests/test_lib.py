@@ -109,16 +109,10 @@ class LibTestCase(TestCase):
 
     def test_get_resource_by_search(self):
         self.create_resource(
-            'Patient',
-            id='patient1',
-            gender='male',
-            birthDate='1901-05-25'
+            'Patient', id='patient1', gender='male', birthDate='1901-05-25'
         )
         self.create_resource(
-            'Patient',
-            id='patient2',
-            gender='female',
-            birthDate='1905-05-25'
+            'Patient', id='patient2', gender='female', birthDate='1905-05-25'
         )
         patient_1 = self.client.resources('Patient') \
             .search(gender='male', birthdate='1901-05-25').get()
@@ -333,26 +327,40 @@ class LibTestCase(TestCase):
                 ],
         }
         bundle_resource = self.create_resource('Bundle', **bundle)
-        patient_1 = self.client.resources('Patient').search(id='bundle_patient_1').get()
-        patient_2 = self.client.resources('Patient').search(id='bundle_patient_2').get()
+        patient_1 = self.client.resources('Patient').search(
+            id='bundle_patient_1'
+        ).get()
+        patient_2 = self.client.resources('Patient').search(
+            id='bundle_patient_2'
+        ).get()
 
     def test_is_valid(self):
         self.assertTrue(self.client.resource('Patient', id='id123').is_valid())
-        self.assertTrue(self.client.resource('Patient', gender='female').is_valid(raise_exception=True))
+        self.assertTrue(
+            self.client.resource('Patient', gender='female').is_valid(
+                raise_exception=True
+            )
+        )
 
-        self.assertFalse(self.client.resource('Patient', gender=True).is_valid())
+        self.assertFalse(
+            self.client.resource('Patient', gender=True).is_valid()
+        )
         with self.assertRaises(OperationOutcome):
             self.client.resource('Patient', gender=True) \
                 .is_valid(raise_exception=True)
 
-        self.assertFalse(self.client.resource('Patient', gender='female', custom_prop='123')
-                         .is_valid())
+        self.assertFalse(
+            self.client.resource('Patient', gender='female',
+                                 custom_prop='123').is_valid()
+        )
         with self.assertRaises(OperationOutcome):
             self.client.resource('Patient', gender='female', custom_prop='123') \
                 .is_valid(raise_exception=True)
 
-        self.assertFalse(self.client.resource('Patient', gender='female', custom_prop='123')
-                         .is_valid())
+        self.assertFalse(
+            self.client.resource('Patient', gender='female',
+                                 custom_prop='123').is_valid()
+        )
         with self.assertRaises(OperationOutcome):
             self.client.resource('Patient', birthDate='date', custom_prop='123', telecom=True) \
                 .is_valid(raise_exception=True)

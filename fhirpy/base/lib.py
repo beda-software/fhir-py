@@ -10,7 +10,9 @@ from collections import defaultdict
 from .utils import (
     AttrDict, encode_params, convert_values, get_by_path, parse_path, chunks
 )
-from .exceptions import (ResourceNotFound, OperationOutcome, InvalidResponse, MultipleResourcesFound)
+from .exceptions import (
+    ResourceNotFound, OperationOutcome, InvalidResponse, MultipleResourcesFound
+)
 
 
 class AbstractClient(ABC):
@@ -18,12 +20,7 @@ class AbstractClient(ABC):
     authorization = None
     extra_headers = None
 
-    def __init__(
-        self,
-        url,
-        authorization=None,
-        extra_headers=None
-    ):
+    def __init__(self, url, authorization=None, extra_headers=None):
         self.url = url
         self.authorization = authorization
         self.extra_headers = extra_headers
@@ -108,8 +105,8 @@ class SyncAbstractClient(AbstractClient):
 
         if 200 <= r.status_code < 300:
             return json.loads(
-                r.content.decode(),
-                object_hook=AttrDict) if r.content else None
+                r.content.decode(), object_hook=AttrDict
+            ) if r.content else None
 
         if r.status_code == 404 or r.status_code == 410:
             raise ResourceNotFound(r.content.decode())
@@ -209,8 +206,10 @@ def SQ(*args, **kwargs):
 
         if '__' in key:
             param, op = key.split('__')
-            if op in ['contains', 'exact', 'missing', 'not',
-                      'below', 'above', 'in', 'not_in', 'text', 'of_type']:
+            if op in [
+                'contains', 'exact', 'missing', 'not', 'below', 'above', 'in',
+                'not_in', 'text', 'of_type'
+            ]:
                 param = '{0}:{1}'.format(param, transform_param(op))
             elif op in ['eq', 'ne', 'gt', 'ge', 'lt', 'le', 'sa', 'eb', 'ap']:
                 value = ['{0}{1}'.format(op, sub_value) for sub_value in value]
@@ -325,9 +324,10 @@ class AbstractSearchSet(ABC):
         )
 
         return self.clone(
-            **
-            {':'.join([key_part, key]): value
-             for key, value in SQ(**kwargs).items()}
+            **{
+                ':'.join([key_part, key]): value
+                for key, value in SQ(**kwargs).items()
+            }
         )
 
     def revinclude(self, resource_type, attr, recursive=False):
@@ -391,15 +391,12 @@ class SyncSearchSet(AbstractSearchSet):
         return resources
 
     def fetch_raw(self):
-        data = self.client._fetch_resource(
-            self.resource_type, self.params
-        )
+        data = self.client._fetch_resource(self.resource_type, self.params)
         data_resource_type = data.get('resourceType', None)
 
         if data_resource_type == 'Bundle':
             for item in data['entry']:
-                item.resource = self._perform_resource(
-                    item.resource)
+                item.resource = self._perform_resource(item.resource)
 
         return data
 
@@ -503,8 +500,7 @@ class AsyncSearchSet(AbstractSearchSet):
 
         if data_resource_type == 'Bundle':
             for item in data['entry']:
-                item.resource = self._perform_resource(
-                    item.resource)
+                item.resource = self._perform_resource(item.resource)
 
         return data
 
@@ -754,7 +750,9 @@ class SyncResource(BaseResource):
             '{0}/$validate'.format(self.resource_type),
             data=self.serialize()
         )
-        if any(issue['severity'] in ['fatal', 'error'] for issue in data['issue']):
+        if any(
+            issue['severity'] in ['fatal', 'error'] for issue in data['issue']
+        ):
             if raise_exception:
                 raise OperationOutcome(data)
             return False
@@ -784,7 +782,9 @@ class AsyncResource(BaseResource):
             '{0}/$validate'.format(self.resource_type),
             data=self.serialize()
         )
-        if any(issue['severity'] in ['fatal', 'error'] for issue in data['issue']):
+        if any(
+            issue['severity'] in ['fatal', 'error'] for issue in data['issue']
+        ):
             if raise_exception:
                 raise OperationOutcome(data)
             return False
@@ -843,7 +843,8 @@ class SyncReference(BaseReference):
         """
         if not self.is_local:
             raise ResourceNotFound('Can not resolve not local resource')
-        return self.client.resources(self.resource_type).search(id=self.id).get()
+        return self.client.resources(self.resource_type).search(id=self.id
+                                                               ).get()
 
 
 class AsyncReference(BaseReference):
@@ -854,4 +855,5 @@ class AsyncReference(BaseReference):
         """
         if not self.is_local:
             raise ResourceNotFound('Can not resolve not local resource')
-        return await self.client.resources(self.resource_type).search(id=self.id).get()
+        return await self.client.resources(self.resource_type
+                                          ).search(id=self.id).get()

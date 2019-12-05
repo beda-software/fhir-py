@@ -116,16 +116,10 @@ class TestLibAsyncCase(object):
     @pytest.mark.asyncio
     async def test_get_resource_by_search(self):
         await self.create_resource(
-            'Patient',
-            id='patient1',
-            gender='male',
-            birthDate='1901-05-25'
+            'Patient', id='patient1', gender='male', birthDate='1901-05-25'
         )
         await self.create_resource(
-            'Patient',
-            id='patient2',
-            gender='female',
-            birthDate='1905-05-25'
+            'Patient', id='patient2', gender='female', birthDate='1905-05-25'
         )
         patient_1 = await self.client.resources('Patient') \
             .search(gender='male', birthdate='1901-05-25').get()
