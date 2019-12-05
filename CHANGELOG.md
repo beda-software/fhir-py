@@ -4,6 +4,7 @@
 * Remove caching #36
 * Support search params with method .get() #29
 * Parameter 'id' of method .get() is now deprecated (use .search(id='...').get() instead)
+* Make searchset iterating lazy #35
 
 ## 1.0.0
 This version breaks backward compatibility, but the main class structure and set of methods remain the same.
