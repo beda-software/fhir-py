@@ -75,11 +75,12 @@ class LibTestCase(TestCase):
         patient.delete()
 
         with self.assertRaises(ResourceNotFound):
-            self.get_search_set('Patient').get(id='patient')
+            self.get_search_set('Patient').search(id='patient').get()
 
     def test_get_not_existing_id(self):
         with self.assertRaises(ResourceNotFound):
-            self.client.resources('Patient').get(id='FHIRPypy_not_existing_id')
+            self.client.resources('Patient') \
+                .search(id='FHIRPypy_not_existing_id').get()
 
     def test_get_more_than_one_resources(self):
         self.create_resource('Patient', birthDate='1901-05-25')
@@ -87,21 +88,43 @@ class LibTestCase(TestCase):
         with self.assertRaises(MultipleResourcesFound):
             self.client.resources('Patient').get()
         with self.assertRaises(MultipleResourcesFound):
-            self.client.resources('Patient').search(birthdate__gt='1900').get()
+            self.client.resources('Patient') \
+                .search(birthdate__gt='1900').get()
 
-    def test_get_resource_by_id(self):
+    def test_get_resource_by_id_is_deprecated(self):
         self.create_resource('Patient', id='patient', gender='male')
-        patient = self.client.resources('Patient').search(gender='male').get('patient')
+        with self.assertWarns(DeprecationWarning):
+            patient = self.client.resources('Patient') \
+                .search(gender='male').get(id='patient')
+        self.assertEqual(patient.id, 'patient')
+
+    def test_get_resource_by_search_with_id(self):
+        self.create_resource('Patient', id='patient', gender='male')
+        patient = self.client.resources('Patient') \
+            .search(gender='male', id='patient').get()
         self.assertEqual(patient.id, 'patient')
         with self.assertRaises(ResourceNotFound):
-            self.client.resources('Patient').search(gender='female').get('patient')
+            self.client.resources('Patient') \
+                .search(gender='female', id='patient').get()
 
     def test_get_resource_by_search(self):
-        self.create_resource('Patient', id='patient1', gender='male', birthDate='1901-05-25')
-        self.create_resource('Patient', id='patient2', gender='female', birthDate='1905-05-25')
-        patient_1 = self.client.resources('Patient').search(gender='male', birthdate='1901-05-25').get()
+        self.create_resource(
+            'Patient',
+            id='patient1',
+            gender='male',
+            birthDate='1901-05-25'
+        )
+        self.create_resource(
+            'Patient',
+            id='patient2',
+            gender='female',
+            birthDate='1905-05-25'
+        )
+        patient_1 = self.client.resources('Patient') \
+            .search(gender='male', birthdate='1901-05-25').get()
         self.assertEqual(patient_1.id, 'patient1')
-        patient_2 = self.client.resources('Patient').search(gender='female', birthdate='1905-05-25').get()
+        patient_2 = self.client.resources('Patient') \
+            .search(gender='female', birthdate='1905-05-25').get()
         self.assertEqual(patient_2.id, 'patient2')
 
     def test_resource_without_resource_type_failed(self):
@@ -310,8 +333,8 @@ class LibTestCase(TestCase):
                 ],
         }
         bundle_resource = self.create_resource('Bundle', **bundle)
-        patient_1 = self.client.resources('Patient').get(id='bundle_patient_1')
-        patient_2 = self.client.resources('Patient').get(id='bundle_patient_2')
+        patient_1 = self.client.resources('Patient').search(id='bundle_patient_1').get()
+        patient_2 = self.client.resources('Patient').search(id='bundle_patient_2').get()
 
     def test_is_valid(self):
         self.assertTrue(self.client.resource('Patient', id='id123').is_valid())

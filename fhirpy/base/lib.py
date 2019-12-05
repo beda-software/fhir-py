@@ -4,6 +4,7 @@ import aiohttp
 import requests
 import datetime
 import pytz
+import warnings
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from .utils import (
@@ -419,6 +420,13 @@ class SyncSearchSet(AbstractSearchSet):
     def get(self, id=None):
         searchset = self.limit(2)
         if id:
+            warnings.warn(
+                "parameter 'id' of method get() is deprecated "
+                "and will be removed in future versions. "
+                "Please use 'search(id='...').get()'",
+                DeprecationWarning,
+                stacklevel=2
+            )
             searchset = searchset.search(_id=id)
         res_data = searchset.fetch()
         if len(res_data) == 0:
@@ -517,6 +525,13 @@ class AsyncSearchSet(AbstractSearchSet):
     async def get(self, id=None):
         searchset = self.limit(2)
         if id:
+            warnings.warn(
+                "parameter 'id' of method get() is deprecated "
+                "and will be removed in future versions. "
+                "Please use 'search(id='...').get()'",
+                DeprecationWarning,
+                stacklevel=2
+            )
             searchset = searchset.search(_id=id)
         res_data = await searchset.fetch()
         if len(res_data) == 0:

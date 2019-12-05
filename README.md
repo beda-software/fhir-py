@@ -123,7 +123,7 @@ practitioners = client.resources('Practitioner')
 patients = client.resources('Patient')
 
 try:
-    await practitioners.search(active=True).get(id='id')
+    await practitioners.search(active=True, id='id').get()
 except ResourceNotFound:
     pass
 except MultipleResourcesFound:
@@ -316,7 +316,7 @@ provides:
 * `async` .fetch_all() - makes query to the server and returns a full list of `Resource` filtered by resource type
 * `async` .fetch_raw() - makes query to the server and returns a raw Bundle `Resource`
 * `async` .first() - returns `Resource` or None
-* `async` .get(id=None) - returns `Resource` or raises `ResourceNotFound` when no resource found or MultipleResourcesFound when more than one resource found
+* `async` .get(id=None) - returns `Resource` or raises `ResourceNotFound` when no resource found or MultipleResourcesFound when more than one resource found (parameter 'id' is deprecated)
 * `async` .count() - makes query to the server and returns the total number of resources that match the SearchSet
 
 

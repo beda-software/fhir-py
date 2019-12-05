@@ -47,7 +47,8 @@ class TestLibAsyncCase(object):
             }]
         )
 
-        patient = await self.client.resources('Patient').get('patient')
+        patient = await self.client.resources('Patient') \
+            .search(id='patient').get()
         assert patient['name'] == [{'text': 'My patient'}]
 
     @pytest.mark.asyncio
@@ -76,14 +77,13 @@ class TestLibAsyncCase(object):
         await patient.delete()
 
         with pytest.raises(ResourceNotFound):
-            await self.get_search_set('Patient').get(id='patient')
+            await self.get_search_set('Patient').search(id='patient').get()
 
     @pytest.mark.asyncio
     async def test_get_not_existing_id(self):
         with pytest.raises(ResourceNotFound):
-            await self.client.resources('Patient').get(
-                id='FHIRPypy_not_existing_id'
-            )
+            await self.client.resources('Patient') \
+                .search(id='FHIRPypy_not_existing_id').get()
 
     @pytest.mark.asyncio
     async def test_get_more_than_one_resources(self):
@@ -92,23 +92,46 @@ class TestLibAsyncCase(object):
         with pytest.raises(MultipleResourcesFound):
             await self.client.resources('Patient').get()
         with pytest.raises(MultipleResourcesFound):
-            await self.client.resources('Patient').search(birthdate__gt='1900').get()
+            await self.client.resources('Patient') \
+                .search(birthdate__gt='1900').get()
 
     @pytest.mark.asyncio
-    async def test_get_resource_by_id(self):
+    async def test_get_resource_by_id_is_deprecated(self):
         await self.create_resource('Patient', id='patient', gender='male')
-        patient = await self.client.resources('Patient').search(gender='male').get('patient')
+        with pytest.warns(DeprecationWarning):
+            patient = await self.client.resources('Patient') \
+                .search(gender='male').get(id='patient')
+        assert patient.id == 'patient'
+
+    @pytest.mark.asyncio
+    async def test_get_resource_by_search_with_id(self):
+        await self.create_resource('Patient', id='patient', gender='male')
+        patient = await self.client.resources('Patient') \
+            .search(gender='male', id='patient').get()
         assert patient.id == 'patient'
         with pytest.raises(ResourceNotFound):
-            await self.client.resources('Patient').search(gender='female').get('patient')
+            await self.client.resources('Patient') \
+                .search(gender='female', id='patient').get()
 
     @pytest.mark.asyncio
     async def test_get_resource_by_search(self):
-        await self.create_resource('Patient', id='patient1', gender='male', birthDate='1901-05-25')
-        await self.create_resource('Patient', id='patient2', gender='female', birthDate='1905-05-25')
-        patient_1 = await self.client.resources('Patient').search(gender='male', birthdate='1901-05-25').get()
+        await self.create_resource(
+            'Patient',
+            id='patient1',
+            gender='male',
+            birthDate='1901-05-25'
+        )
+        await self.create_resource(
+            'Patient',
+            id='patient2',
+            gender='female',
+            birthDate='1905-05-25'
+        )
+        patient_1 = await self.client.resources('Patient') \
+            .search(gender='male', birthdate='1901-05-25').get()
         assert patient_1.id == 'patient1'
-        patient_2 = await self.client.resources('Patient').search(gender='female', birthdate='1905-05-25').get()
+        patient_2 = await self.client.resources('Patient') \
+            .search(gender='female', birthdate='1905-05-25').get()
         assert patient_2.id == 'patient2'
 
     def test_resource_without_resource_type_failed(self):
@@ -308,12 +331,12 @@ class TestLibAsyncCase(object):
                 ],
         }
         bundle_resource = await self.create_resource('Bundle', **bundle)
-        patient_1 = await self.client.resources('Patient').get(
+        patient_1 = await self.client.resources('Patient').search(
             id='bundle_patient_1'
-        )
-        patient_2 = await self.client.resources('Patient').get(
+        ).get()
+        patient_2 = await self.client.resources('Patient').search(
             id='bundle_patient_2'
-        )
+        ).get()
 
     @pytest.mark.asyncio
     async def test_is_valid(self):
