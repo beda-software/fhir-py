@@ -395,8 +395,8 @@ provides:
 * .page(page)
 * .sort(*args)
 * .elements(*args, exclude=False)
-* .include(resource_type, attr)
-* .revinclude(resource_type, attr, recursive=False)
+* .include(resource_type, attr=None, recursive=False, iterate=False)
+* .revinclude(resource_type, attr=None, recursive=False, iterate=False)
 * .has(*args, **kwargs)
 * `async` .fetch() - makes query to the server and returns a list of `Resource` filtered by resource type
 * `async` .fetch_all() - makes query to the server and returns a full list of `Resource` filtered by resource type
