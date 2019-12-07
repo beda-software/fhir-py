@@ -294,20 +294,34 @@ class AbstractSearchSet(ABC):
     def include(
         self,
         resource_type,
-        attr,
+        attr=None,
         target_resource_type=None,
         *,
-        recursive=False
+        recursive=False,
+        iterate=False
     ):
         key_params = ['_include']
+
+        if iterate:
+            # Added in FHIR v3.5
+            key_params.append('iterate')
         if recursive:
+            # Works for FHIR v3.0-3.3
             key_params.append('recursive')
         key = ':'.join(key_params)
 
-        value_params = [resource_type, attr]
-        if target_resource_type:
-            value_params.append(target_resource_type)
-        value = ':'.join(value_params)
+        if resource_type == '*':
+            value = '*'
+        else:
+            if not attr:
+                raise TypeError(
+                    'You should provide attr '
+                    '(search parameter) argument'
+                )
+            value_params = [resource_type, attr]
+            if target_resource_type:
+                value_params.append(target_resource_type)
+            value = ':'.join(value_params)
 
         return self.clone(**{key: value})
 
@@ -330,15 +344,27 @@ class AbstractSearchSet(ABC):
             }
         )
 
-    def revinclude(self, resource_type, attr, recursive=False):
+    def revinclude(self, resource_type, attr=None, recursive=False, iterate=False):
         key_params = ['_revinclude']
 
+        if iterate:
+            # Added in FHIR v3.5
+            key_params.append('iterate')
         if recursive:
+            # Works for FHIR v3.0-3.3
             key_params.append('recursive')
         key = ':'.join(key_params)
 
-        value_params = [resource_type, attr]
-        value = ':'.join(value_params)
+        if resource_type == '*':
+            value = '*'
+        else:
+            if not attr:
+                raise TypeError(
+                    'You should provide attr '
+                    '(search parameter) argument'
+                )
+            value_params = [resource_type, attr]
+            value = ':'.join(value_params)
 
         return self.clone(**{key: value})
 

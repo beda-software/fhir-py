@@ -244,11 +244,39 @@ await client.resources('MedicationRequest') \
     .fetch_raw()
 # /MedicationRequest?_include=MedicationRequest:patient:Patient
 ```
+### Modifier :iterate (or :recurse in some previous versions of FHIR)
+```Python
+# For FHIR version >= 3.5 we can also use modifier :iterate
+await client.resources('MedicationRequest') \
+    .include('MedicationDispense', 'prescription') \
+    .include('MedicationRequest', 'performer', iterate=True) \
+    .fetch_raw()
+# /MedicationRequest?_include=MedicationDispense:prescription
+#    &_include:iterate=MedicationRequest:performer
+
+# For FHIR version 3.0-3.3 use modifier :recurse
+await client.resources('MedicationDispense') \
+    .include('MedicationRequest', 'prescriber', recursive=True) \
+    .fetch_raw()
+# /MedicationDispense?_include:recurse=MedicationRequest:prescriber
+```
+### Wild card (any search parameter of type=reference be included)
+```Python
+await client.resources('Encounter').include('*') \
+    .fetch_raw()
+# /Encounter?_include=*
+```
 
 ## Revinclude
 ```Python
 await practitioners.revinclude('Group', 'member').fetch_raw()
 # /Practitioner?_revinclude=Group:member
+```
+### Wild card (any search parameter of type=reference be included)
+```Python
+await client.resources('EpisodeOfCare').revinclude('*') \
+    .fetch_raw()
+# /EpisodeOfCare?_revinclude=*
 ```
 
 # Resource and helper methods
