@@ -52,6 +52,21 @@ class LibTestCase(TestCase):
         patient = self.client.resources('Patient').search(id='patient').get()
         self.assertEqual(patient['name'], [{'text': 'My patient'}])
 
+    def test_update_patient(self):
+        patient = self.create_resource(
+            'Patient', id='patient', name=[{'text': 'My patient'}]
+        )
+        patient['active'] = True
+        patient.birthDate = '1945-01-12'
+        patient.name[0].text = 'SomeName'
+        patient.save()
+
+        check_patient = self.client.resources('Patient') \
+            .search(id='patient').get()
+        self.assertTrue(check_patient.active)
+        self.assertEqual(check_patient['birthDate'], '1945-01-12')
+        self.assertEqual(check_patient.get_by_path(['name', 0, 'text']), 'SomeName')
+
     def test_count(self):
         search_set = self.get_search_set('Patient')
 

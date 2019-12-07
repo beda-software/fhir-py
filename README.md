@@ -66,12 +66,21 @@ async def main():
     # Create Organization resource
     organization = client.resource(
         'Organization',
-        name='beda.software'
+        name='beda.software',
+        active=False
     )
+    await organization.save()
+
+    # Update organization. Resource support accessing its elements
+    # both as attribute and as a dictionary keys
+    if organization['active'] is False:
+        organization.active = True
     await organization.save()
 
     # Get patient resource by reference and delete
     patient_ref = client.reference('Patient', 'new_patient')
+    # Get resource from this reference
+    # (throw ResourceNotFound if no resource was found)
     patient_res = await patient_ref.to_resource()
     await patient_res.delete()
 

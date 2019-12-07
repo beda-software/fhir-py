@@ -52,6 +52,22 @@ class TestLibAsyncCase(object):
         assert patient['name'] == [{'text': 'My patient'}]
 
     @pytest.mark.asyncio
+    async def test_update_patient(self):
+        patient = await self.create_resource(
+            'Patient', id='patient', name=[{'text': 'My patient'}]
+        )
+        patient['active'] = True
+        patient.birthDate = '1945-01-12'
+        patient.name[0].text = 'SomeName'
+        await patient.save()
+
+        check_patient = await self.client.resources('Patient') \
+            .search(id='patient').get()
+        assert check_patient.active is True
+        assert check_patient['birthDate'] == '1945-01-12'
+        assert check_patient.get_by_path(['name', 0, 'text']) == 'SomeName'
+
+    @pytest.mark.asyncio
     async def test_count(self):
         search_set = self.get_search_set('Patient')
 

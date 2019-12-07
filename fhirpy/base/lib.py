@@ -623,9 +623,10 @@ class AbstractResource(dict):
         except AttributeError:
             return self[key]
 
-    def __setattribute__(self, key, value):
+    def __setattr__(self, key, value):
         try:
-            super().__setattribute__(key, value)
+            super().__getattribute__(key)
+            super().__setattr__(key, value)
         except AttributeError:
             self[key] = value
 
