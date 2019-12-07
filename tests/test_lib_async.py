@@ -1,5 +1,5 @@
 import pytest
-from requests.auth import _basic_auth_str
+from aiohttp import BasicAuth
 
 from fhirpy import AsyncFHIRClient
 from fhirpy.lib import AsyncFHIRReference, AsyncFHIRResource
@@ -28,7 +28,7 @@ class TestLibAsyncCase(object):
     @classmethod
     def setup_class(cls):
         cls.client = AsyncFHIRClient(
-            cls.URL, authorization=_basic_auth_str('root', 'secret')
+            cls.URL, authorization=BasicAuth('root', 'secret').encode()
         )
 
     async def create_resource(self, resource_type, **kwargs):
