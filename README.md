@@ -281,6 +281,12 @@ await client.resources('Encounter').include('*') \
 await practitioners.revinclude('Group', 'member').fetch_raw()
 # /Practitioner?_revinclude=Group:member
 ```
+or
+```Python
+await practitioners.include('Group', 'member', reverse=True).fetch_raw()
+# /Practitioner?_revinclude=Group:member
+```
+
 ### Wild card (any search parameter of type=reference be included)
 ```Python
 await client.resources('EpisodeOfCare').revinclude('*') \

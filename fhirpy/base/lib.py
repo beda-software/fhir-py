@@ -291,16 +291,29 @@ class AbstractSearchSet(ABC):
             override=True
         )
 
-    def include(
-        self,
-        resource_type,
-        attr=None,
-        target_resource_type=None,
-        *,
-        recursive=False,
-        iterate=False
-    ):
-        key_params = ['_include']
+    def has(self, *args, **kwargs):
+        if len(args) % 2 != 0:
+            raise TypeError(
+                'You should pass even size of arguments, for example: '
+                '`.has(\'Observation\', \'patient\', '
+                '\'AuditEvent\', \'entity\', user=\'id\')`'
+            )
+
+        key_part = ':'.join(
+            ['_has:{0}'.format(':'.join(pair)) for pair in chunks(args, 2)]
+        )
+
+        return self.clone(
+            **{
+                ':'.join([key_part, key]): value
+                for key, value in SQ(**kwargs).items()
+            }
+        )
+
+    def include(self, resource_type,
+                attr=None, target_resource_type=None,
+                *, recursive=False, iterate=False, reverse=False):
+        key_params = ['_revinclude' if reverse else '_include']
 
         if iterate:
             # Added in FHIR v3.5
@@ -325,48 +338,13 @@ class AbstractSearchSet(ABC):
 
         return self.clone(**{key: value})
 
-    def has(self, *args, **kwargs):
-        if len(args) % 2 != 0:
-            raise TypeError(
-                'You should pass even size of arguments, for example: '
-                '`.has(\'Observation\', \'patient\', '
-                '\'AuditEvent\', \'entity\', user=\'id\')`'
-            )
-
-        key_part = ':'.join(
-            ['_has:{0}'.format(':'.join(pair)) for pair in chunks(args, 2)]
-        )
-
-        return self.clone(
-            **{
-                ':'.join([key_part, key]): value
-                for key, value in SQ(**kwargs).items()
-            }
-        )
-
-    def revinclude(self, resource_type, attr=None, recursive=False, iterate=False):
-        key_params = ['_revinclude']
-
-        if iterate:
-            # Added in FHIR v3.5
-            key_params.append('iterate')
-        if recursive:
-            # Works for FHIR v3.0-3.3
-            key_params.append('recursive')
-        key = ':'.join(key_params)
-
-        if resource_type == '*':
-            value = '*'
-        else:
-            if not attr:
-                raise TypeError(
-                    'You should provide attr '
-                    '(search parameter) argument'
-                )
-            value_params = [resource_type, attr]
-            value = ':'.join(value_params)
-
-        return self.clone(**{key: value})
+    def revinclude(self, resource_type,
+                   attr=None, target_resource_type=None,
+                   *, recursive=False, iterate=False):
+        return self.include(
+            resource_type, attr=attr,
+            target_resource_type=target_resource_type,
+            recursive=recursive, iterate=iterate, reverse=True)
 
     def search(self, *args, **kwargs):
         return self.clone(**SQ(*args, **kwargs))
