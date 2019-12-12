@@ -92,3 +92,28 @@ class TestSearchSet(object):
         assert search_set.params == {
             '_include:recursive': ['Organization:partof']
         }
+
+    def test_include_iterate(self, client):
+        search_set = client.resources('MedicationDispense') \
+            .include('MedicationDispense', 'prescription') \
+            .include('MedicationRequest', 'performer', iterate=True)
+        assert search_set.params == {
+            '_include': ['MedicationDispense:prescription'],
+            '_include:iterate': ['MedicationRequest:performer']
+        }
+
+    def test_include_wildcard(self, client):
+        search_set = client.resources('MedicationDispense').include('*')
+        assert search_set.params == {
+            '_include': ['*']
+        }
+
+    def test_revinclude_wildcard(self, client):
+        search_set = client.resources('MedicationDispense').revinclude('*')
+        assert search_set.params == {
+            '_revinclude': ['*']
+        }
+
+    def test_include_missing_attr(self, client):
+        with pytest.raises(TypeError):
+            search_set = client.resources('Patient').include('Patient')

@@ -1,3 +1,5 @@
+## Development
+
 ## 1.1.0
 * Remove schemas and resource key validation #33
 * Add support for operation $validate for resource – method is_valid(raise_exception=True) #30
@@ -5,6 +7,8 @@
 * Support search params with method .get() #29
 * Parameter 'id' of method .get() is now deprecated (use .search(id='...').get() instead)
 * Make searchset iterating lazy #35
+* Add :iterate modifier for include and revinclude
+* Support wild card include and revinclude
 
 ## 1.0.0
 This version breaks backward compatibility, but the main class structure and set of methods remain the same.
@@ -23,7 +27,7 @@ This version breaks backward compatibility, but the main class structure and set
 ## 0.2.0
 * Fix requirements
 
-## 0.1.2 
+## 0.1.2
 * Fix page method (use page instead of _page query param)
 
 ## 0.1.1

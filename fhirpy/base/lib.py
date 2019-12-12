@@ -291,26 +291,6 @@ class AbstractSearchSet(ABC):
             override=True
         )
 
-    def include(
-        self,
-        resource_type,
-        attr,
-        target_resource_type=None,
-        *,
-        recursive=False
-    ):
-        key_params = ['_include']
-        if recursive:
-            key_params.append('recursive')
-        key = ':'.join(key_params)
-
-        value_params = [resource_type, attr]
-        if target_resource_type:
-            value_params.append(target_resource_type)
-        value = ':'.join(value_params)
-
-        return self.clone(**{key: value})
-
     def has(self, *args, **kwargs):
         if len(args) % 2 != 0:
             raise TypeError(
@@ -330,17 +310,41 @@ class AbstractSearchSet(ABC):
             }
         )
 
-    def revinclude(self, resource_type, attr, recursive=False):
-        key_params = ['_revinclude']
+    def include(self, resource_type,
+                attr=None, target_resource_type=None,
+                *, recursive=False, iterate=False, reverse=False):
+        key_params = ['_revinclude' if reverse else '_include']
 
+        if iterate:
+            # Added in FHIR v3.5
+            key_params.append('iterate')
         if recursive:
+            # Works for FHIR v3.0-3.3
             key_params.append('recursive')
         key = ':'.join(key_params)
 
-        value_params = [resource_type, attr]
-        value = ':'.join(value_params)
+        if resource_type == '*':
+            value = '*'
+        else:
+            if not attr:
+                raise TypeError(
+                    'You should provide attr '
+                    '(search parameter) argument'
+                )
+            value_params = [resource_type, attr]
+            if target_resource_type:
+                value_params.append(target_resource_type)
+            value = ':'.join(value_params)
 
         return self.clone(**{key: value})
+
+    def revinclude(self, resource_type,
+                   attr=None, target_resource_type=None,
+                   *, recursive=False, iterate=False):
+        return self.include(
+            resource_type, attr=attr,
+            target_resource_type=target_resource_type,
+            recursive=recursive, iterate=iterate, reverse=True)
 
     def search(self, *args, **kwargs):
         return self.clone(**SQ(*args, **kwargs))
@@ -597,9 +601,10 @@ class AbstractResource(dict):
         except AttributeError:
             return self[key]
 
-    def __setattribute__(self, key, value):
+    def __setattr__(self, key, value):
         try:
-            super().__setattribute__(key, value)
+            super().__getattribute__(key)
+            super().__setattr__(key, value)
         except AttributeError:
             self[key] = value
 

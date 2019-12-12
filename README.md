@@ -8,6 +8,42 @@ This package provides an API for CRUD operations over FHIR resources
 
 You can test this library by interactive FHIR course in the repository [Aidbox/jupyter-course](https://github.com/Aidbox/jupyter-course).
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+
+- [Getting started](#getting-started)
+  - [Async example](#async-example)
+  - [Searchset examples](#searchset-examples)
+  - [Get exactly one resource](#get-exactly-one-resource)
+  - [Get first result](#get-first-result)
+  - [Get total count](#get-total-count)
+  - [Fetch one page](#fetch-one-page)
+  - [Fetch all resources on all pages](#fetch-all-resources-on-all-pages)
+  - [Page number (page)](#page-number-page)
+  - [Page count (_count)](#page-count-_count)
+  - [Sort (_sort)](#sort-_sort)
+  - [Elements (_elements)](#elements-_elements)
+  - [Include](#include)
+  - [Revinclude](#revinclude)
+- [Resource and helper methods](#resource-and-helper-methods)
+  - [Validate resource using operation $validate](#validate-resource-using-operation-validate)
+  - [Accessing resource attributes](#accessing-resource-attributes)
+  - [get_by_path(path, default=None)](#get_by_pathpath-defaultnone)
+  - [serialize()](#serialize)
+- [Reference](#reference)
+  - [Main class structure](#main-class-structure)
+  - [Acync client (based on _aiohttp_) – AsyncFHIRClient](#acync-client-based-on-_aiohttp_--asyncfhirclient)
+    - [AsyncFHIRResource](#asyncfhirresource)
+    - [AsyncFHIRReference](#asyncfhirreference)
+    - [AsyncFHIRSearchSet](#asyncfhirsearchset)
+  - [Sync client (based on _requests_) – SyncFHIRClient](#sync-client-based-on-_requests_--syncfhirclient)
+    - [SyncFHIRResource](#syncfhirresource)
+    - [SyncFHIRReference](#syncfhirreference)
+    - [SyncFHIRSearchSet](#syncfhirsearchset)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Getting started
 ## Async example
 ```Python
@@ -30,12 +66,21 @@ async def main():
     # Create Organization resource
     organization = client.resource(
         'Organization',
-        name='beda.software'
+        name='beda.software',
+        active=False
     )
+    await organization.save()
+
+    # Update organization. Resource support accessing its elements
+    # both as attribute and as a dictionary keys
+    if organization['active'] is False:
+        organization.active = True
     await organization.save()
 
     # Get patient resource by reference and delete
     patient_ref = client.reference('Patient', 'new_patient')
+    # Get resource from this reference
+    # (throw ResourceNotFound if no resource was found)
     patient_res = await patient_ref.to_resource()
     await patient_res.delete()
 
@@ -208,14 +253,61 @@ await client.resources('MedicationRequest') \
     .fetch_raw()
 # /MedicationRequest?_include=MedicationRequest:patient:Patient
 ```
+### Modifier :iterate (or :recurse in some previous versions of FHIR)
+```Python
+# For FHIR version >= 3.5 we can also use modifier :iterate
+await client.resources('MedicationRequest') \
+    .include('MedicationDispense', 'prescription') \
+    .include('MedicationRequest', 'performer', iterate=True) \
+    .fetch_raw()
+# /MedicationRequest?_include=MedicationDispense:prescription
+#    &_include:iterate=MedicationRequest:performer
+
+# For FHIR version 3.0-3.3 use modifier :recurse
+await client.resources('MedicationDispense') \
+    .include('MedicationRequest', 'prescriber', recursive=True) \
+    .fetch_raw()
+# /MedicationDispense?_include:recurse=MedicationRequest:prescriber
+```
+### Wild card (any search parameter of type=reference be included)
+```Python
+await client.resources('Encounter').include('*') \
+    .fetch_raw()
+# /Encounter?_include=*
+```
 
 ## Revinclude
 ```Python
 await practitioners.revinclude('Group', 'member').fetch_raw()
 # /Practitioner?_revinclude=Group:member
 ```
+or
+```Python
+await practitioners.include('Group', 'member', reverse=True).fetch_raw()
+# /Practitioner?_revinclude=Group:member
+```
+
+### Wild card (any search parameter of type=reference be included)
+```Python
+await client.resources('EpisodeOfCare').revinclude('*') \
+    .fetch_raw()
+# /EpisodeOfCare?_revinclude=*
+```
 
 # Resource and helper methods
+
+## Validate resource using operation $validate
+```Python
+try:
+    await client.resource('Patient', birthDate='date', custom_prop='123', telecom=True) \
+        .is_valid()
+except OperationOutcome as e:
+    print('Error: {}'.format(e))
+
+patient = client.resource('Patient', birthDate='1998-01-01')
+if (await patient.is_valid(raise_exception=False)):
+    pass
+```
 
 ## Accessing resource attributes
 ```Python
@@ -309,8 +401,8 @@ provides:
 * .page(page)
 * .sort(*args)
 * .elements(*args, exclude=False)
-* .include(resource_type, attr)
-* .revinclude(resource_type, attr, recursive=False)
+* .include(resource_type, attr=None, recursive=False, iterate=False)
+* .revinclude(resource_type, attr=None, recursive=False, iterate=False)
 * .has(*args, **kwargs)
 * `async` .fetch() - makes query to the server and returns a list of `Resource` filtered by resource type
 * `async` .fetch_all() - makes query to the server and returns a full list of `Resource` filtered by resource type

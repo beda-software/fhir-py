@@ -1,5 +1,5 @@
 import pytest
-from requests.auth import _basic_auth_str
+from aiohttp import BasicAuth
 
 from fhirpy import AsyncFHIRClient
 from fhirpy.lib import AsyncFHIRReference, AsyncFHIRResource
@@ -28,7 +28,7 @@ class TestLibAsyncCase(object):
     @classmethod
     def setup_class(cls):
         cls.client = AsyncFHIRClient(
-            cls.URL, authorization=_basic_auth_str('root', 'secret')
+            cls.URL, authorization=BasicAuth('root', 'secret').encode()
         )
 
     async def create_resource(self, resource_type, **kwargs):
@@ -50,6 +50,22 @@ class TestLibAsyncCase(object):
         patient = await self.client.resources('Patient') \
             .search(id='patient').get()
         assert patient['name'] == [{'text': 'My patient'}]
+
+    @pytest.mark.asyncio
+    async def test_update_patient(self):
+        patient = await self.create_resource(
+            'Patient', id='patient', name=[{'text': 'My patient'}]
+        )
+        patient['active'] = True
+        patient.birthDate = '1945-01-12'
+        patient.name[0].text = 'SomeName'
+        await patient.save()
+
+        check_patient = await self.client.resources('Patient') \
+            .search(id='patient').get()
+        assert check_patient.active is True
+        assert check_patient['birthDate'] == '1945-01-12'
+        assert check_patient.get_by_path(['name', 0, 'text']) == 'SomeName'
 
     @pytest.mark.asyncio
     async def test_count(self):
