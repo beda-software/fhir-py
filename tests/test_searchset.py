@@ -104,16 +104,16 @@ class TestSearchSet(object):
 
     def test_include_wildcard(self, client):
         search_set = client.resources('MedicationDispense').include('*')
-        assert search_set.params == {
-            '_include': ['*']
-        }
+        assert search_set.params == {'_include': ['*']}
 
     def test_revinclude_wildcard(self, client):
         search_set = client.resources('MedicationDispense').revinclude('*')
-        assert search_set.params == {
-            '_revinclude': ['*']
-        }
+        assert search_set.params == {'_revinclude': ['*']}
 
     def test_include_missing_attr(self, client):
         with pytest.raises(TypeError):
             search_set = client.resources('Patient').include('Patient')
+
+    def test_handle_args_without_raw_wrapper_failed(self, client):
+        with pytest.raises(ValueError):
+            search_set = client.resources('Patient').search('arg')

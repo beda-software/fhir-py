@@ -54,7 +54,9 @@ class TestLibAsyncCase(object):
     @pytest.mark.asyncio
     async def test_update_patient(self):
         patient = await self.create_resource(
-            'Patient', id='patient', name=[{'text': 'My patient'}]
+            'Patient', id='patient', name=[{
+                'text': 'My patient'
+            }]
         )
         patient['active'] = True
         patient.birthDate = '1945-01-12'
@@ -371,3 +373,59 @@ class TestLibAsyncCase(object):
         with pytest.raises(OperationOutcome):
             await resource('Patient', birthDate='date', custom_prop='123', telecom=True) \
                 .is_valid(raise_exception=True)
+
+    @pytest.mark.asyncio
+    async def test_get_first(self):
+        await self.create_resource(
+            'Patient', id='patient_first', name=[{
+                'text': 'Abc'
+            }]
+        )
+        await self.create_resource(
+            'Patient', id='patient_second', name=[{
+                'text': 'Bbc'
+            }]
+        )
+        patient = await self.client.resources('Patient').sort('name').first()
+        assert isinstance(patient, AsyncFHIRResource)
+        assert patient.id == 'patient_first'
+
+    @pytest.mark.asyncio
+    async def test_fetch_raw(self):
+        await self.create_resource('Patient', name=[{'text': 'RareName'}])
+        await self.create_resource('Patient', name=[{'text': 'RareName'}])
+        bundle = await self.client.resources('Patient').search(name='RareName'
+                                                              ).fetch_raw()
+        assert bundle.resourceType == 'Bundle'
+        for entry in bundle.entry:
+            assert isinstance(entry.resource, AsyncFHIRResource)
+        assert len(bundle.entry) == 2
+
+    @pytest.mark.asyncio
+    async def test_fetch_all(self):
+        bundle = {
+            'type': 'transaction',
+            'entry': [],
+        }
+        for i in range(18):
+            bundle['entry'].append(
+                {
+                    'request': {
+                        'method': 'POST',
+                        'url': '/Patient'
+                    },
+                    'resource':
+                        {
+                            'name': [{
+                                'text': 'NotSoRareName'
+                            }],
+                            'identifier': self.identifier
+                        }
+                }
+            )
+        await self.create_resource('Bundle', **bundle)
+        patients = await self.client.resources('Patient').search(
+            name='NotSoRareName'
+        ).limit(5).fetch_all()
+        assert isinstance(patients, list)
+        assert len(patients) == 18

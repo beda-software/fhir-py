@@ -54,7 +54,9 @@ class LibTestCase(TestCase):
 
     def test_update_patient(self):
         patient = self.create_resource(
-            'Patient', id='patient', name=[{'text': 'My patient'}]
+            'Patient', id='patient', name=[{
+                'text': 'My patient'
+            }]
         )
         patient['active'] = True
         patient.birthDate = '1945-01-12'
@@ -65,7 +67,9 @@ class LibTestCase(TestCase):
             .search(id='patient').get()
         self.assertTrue(check_patient.active)
         self.assertEqual(check_patient['birthDate'], '1945-01-12')
-        self.assertEqual(check_patient.get_by_path(['name', 0, 'text']), 'SomeName')
+        self.assertEqual(
+            check_patient.get_by_path(['name', 0, 'text']), 'SomeName'
+        )
 
     def test_count(self):
         search_set = self.get_search_set('Patient')
@@ -153,6 +157,10 @@ class LibTestCase(TestCase):
                 'id': 'p1',
             }
         )
+
+    def test_reference_is_not_provided_failed(self):
+        with self.assertRaises(TypeError):
+            self.client.reference()
 
     def test_reference_from_local_reference(self):
         reference = self.client.reference(reference='Patient/p1')
@@ -379,3 +387,56 @@ class LibTestCase(TestCase):
         with self.assertRaises(OperationOutcome):
             self.client.resource('Patient', birthDate='date', custom_prop='123', telecom=True) \
                 .is_valid(raise_exception=True)
+
+    def test_get_first(self):
+        self.create_resource(
+            'Patient', id='patient_first', name=[{
+                'text': 'Abc'
+            }]
+        )
+        self.create_resource(
+            'Patient', id='patient_second', name=[{
+                'text': 'Bbc'
+            }]
+        )
+        patient = self.client.resources('Patient').sort('name').first()
+        assert isinstance(patient, SyncFHIRResource)
+        assert patient.id == 'patient_first'
+
+    def test_fetch_raw(self):
+        self.create_resource('Patient', name=[{'text': 'RareName'}])
+        self.create_resource('Patient', name=[{'text': 'RareName'}])
+        bundle = self.client.resources('Patient').search(name='RareName'
+                                                        ).fetch_raw()
+        assert bundle.resourceType == 'Bundle'
+        for entry in bundle.entry:
+            assert isinstance(entry.resource, SyncFHIRResource)
+        assert len(bundle.entry) == 2
+
+    def test_fetch_all(self):
+        bundle = {
+            'type': 'transaction',
+            'entry': [],
+        }
+        for i in range(18):
+            bundle['entry'].append(
+                {
+                    'request': {
+                        'method': 'POST',
+                        'url': '/Patient'
+                    },
+                    'resource':
+                        {
+                            'name': [{
+                                'text': 'NotSoRareName'
+                            }],
+                            'identifier': self.identifier
+                        },
+                }
+            )
+        self.create_resource('Bundle', **bundle)
+        patients = self.client.resources('Patient').search(
+            name='NotSoRareName'
+        ).limit(5).fetch_all()
+        assert isinstance(patients, list)
+        assert len(patients) == 18

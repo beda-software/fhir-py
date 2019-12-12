@@ -31,17 +31,17 @@ class AbstractClient(ABC):
     def __repr__(self):  # pragma: no cover
         return self.__str__()
 
-    @property
+    @property  # pragma: no cover
     @abstractmethod
     def searchset_class(self):
         pass
 
-    @property
+    @property  # pragma: no cover
     @abstractmethod
     def resource_class(self):
         pass
 
-    @abstractmethod
+    @abstractmethod  # pragma: no cover
     def reference(self, resource_type=None, id=None, reference=None, **kwargs):
         pass
 
@@ -54,11 +54,11 @@ class AbstractClient(ABC):
     def resources(self, resource_type):
         return self.searchset_class(self, resource_type=resource_type)
 
-    @abstractmethod
+    @abstractmethod  # pragma: no cover
     def _do_request(self, method, path, data=None, params=None):
         pass
 
-    @abstractmethod
+    @abstractmethod  # pragma: no cover
     def _fetch_resource(self, path, params=None):
         pass
 
@@ -243,27 +243,27 @@ class AbstractSearchSet(ABC):
         resource = self.client.resource(resource_type, **data)
         return resource
 
-    @abstractmethod
+    @abstractmethod  # pragma: no cover
     def fetch(self):
         pass
 
-    @abstractmethod
+    @abstractmethod  # pragma: no cover
     def fetch_raw(self):
         pass
 
-    @abstractmethod
+    @abstractmethod  # pragma: no cover
     def fetch_all(self):
         pass
 
-    @abstractmethod
+    @abstractmethod  # pragma: no cover
     def get(self, id):
         pass
 
-    @abstractmethod
+    @abstractmethod  # pragma: no cover
     def count(self):
         pass
 
-    @abstractmethod
+    @abstractmethod  # pragma: no cover
     def first(self):
         pass
 
@@ -310,9 +310,16 @@ class AbstractSearchSet(ABC):
             }
         )
 
-    def include(self, resource_type,
-                attr=None, target_resource_type=None,
-                *, recursive=False, iterate=False, reverse=False):
+    def include(
+        self,
+        resource_type,
+        attr=None,
+        target_resource_type=None,
+        *,
+        recursive=False,
+        iterate=False,
+        reverse=False
+    ):
         key_params = ['_revinclude' if reverse else '_include']
 
         if iterate:
@@ -338,13 +345,23 @@ class AbstractSearchSet(ABC):
 
         return self.clone(**{key: value})
 
-    def revinclude(self, resource_type,
-                   attr=None, target_resource_type=None,
-                   *, recursive=False, iterate=False):
+    def revinclude(
+        self,
+        resource_type,
+        attr=None,
+        target_resource_type=None,
+        *,
+        recursive=False,
+        iterate=False
+    ):
         return self.include(
-            resource_type, attr=attr,
+            resource_type,
+            attr=attr,
             target_resource_type=target_resource_type,
-            recursive=recursive, iterate=iterate, reverse=True)
+            recursive=recursive,
+            iterate=iterate,
+            reverse=True
+        )
 
     def search(self, *args, **kwargs):
         return self.clone(**SQ(*args, **kwargs))
@@ -681,11 +698,11 @@ class BaseResource(AbstractResource, ABC):
     def __repr__(self):  # pragma: no cover
         return self.__str__()
 
-    @abstractmethod
+    @abstractmethod  # pragma: no cover
     def save(self):
         pass
 
-    @abstractmethod
+    @abstractmethod  # pragma: no cover
     def delete(self):
         pass
 
@@ -706,11 +723,11 @@ class BaseResource(AbstractResource, ABC):
 
         return self.client.reference(reference=self.reference, **kwargs)
 
-    @abstractmethod
+    @abstractmethod  # pragma: no cover
     def is_reference(self, value):
         pass
 
-    @abstractmethod
+    @abstractmethod  # pragma: no cover
     def is_valid(self, raise_exception=False):
         pass
 
@@ -803,7 +820,7 @@ class BaseReference(AbstractResource):
     def __repr__(self):  # pragma: no cover
         return self.__str__()
 
-    @abstractmethod
+    @abstractmethod  # pragma: no cover
     def to_resource(self):
         pass
 
@@ -813,12 +830,12 @@ class BaseReference(AbstractResource):
         """
         return self.client.reference(reference=self.reference, **kwargs)
 
-    @property
+    @property  # pragma: no cover
     @abstractmethod
     def reference(self):
         pass
 
-    @property
+    @property  # pragma: no cover
     @abstractmethod
     def id(self):
         """
@@ -826,7 +843,7 @@ class BaseReference(AbstractResource):
         """
         pass
 
-    @property
+    @property  # pragma: no cover
     @abstractmethod
     def resource_type(self):
         """
@@ -834,7 +851,7 @@ class BaseReference(AbstractResource):
         """
         pass
 
-    @property
+    @property  # pragma: no cover
     @abstractmethod
     def is_local(self):
         pass
