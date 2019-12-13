@@ -1,5 +1,8 @@
 import pytest
+import pytz
+from datetime import datetime, timedelta
 from fhirpy import SyncFHIRClient, AsyncFHIRClient
+from fhirpy.base.lib import format_date, format_date_time
 
 
 @pytest.mark.parametrize(
@@ -117,3 +120,33 @@ class TestSearchSet(object):
     def test_handle_args_without_raw_wrapper_failed(self, client):
         with pytest.raises(ValueError):
             search_set = client.resources('Patient').search('arg')
+
+    def test_search_transform_datetime_value(self, client):
+        dt = datetime.now(pytz.utc)
+        search_set = client.resources('Patient') \
+            .search(deceased__lt=dt)
+        assert dict(search_set.params
+                   )['deceased'][0] == 'lt' + format_date_time(dt)
+
+    def test_search_transform_date_value(self, client):
+        three_years_ago = datetime.now(pytz.utc
+                                      ).date() - timedelta(days=3 * 365)
+        search_set = client.resources('Patient') \
+            .search(birthdate__le=three_years_ago)
+        assert dict(search_set.params
+                   )['birthdate'][0] == 'le' + format_date(three_years_ago)
+
+    def test_search_transform_boolean_value(self, client):
+        search_set = client.resources('Patient') \
+            .search(active=True)
+        assert dict(search_set.params)['active'][0] == 'true'
+        search_set = client.resources('Patient') \
+            .search(active=False)
+        assert dict(search_set.params)['active'][0] == 'false'
+
+    def test_search_transform_reference_value(self, client):
+        practitioner_ref = client.reference('Practitioner', 'some_id')
+        search_set = client.resources('Patient') \
+            .search(generalPractitioner=practitioner_ref)
+        assert dict(search_set.params
+                   )['generalPractitioner'][0] == 'Practitioner/some_id'

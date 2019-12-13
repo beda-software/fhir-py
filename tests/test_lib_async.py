@@ -3,7 +3,9 @@ from aiohttp import BasicAuth
 
 from fhirpy import AsyncFHIRClient
 from fhirpy.lib import AsyncFHIRReference, AsyncFHIRResource
-from fhirpy.base.exceptions import ResourceNotFound, OperationOutcome, MultipleResourcesFound
+from fhirpy.base.exceptions import (
+    ResourceNotFound, OperationOutcome, MultipleResourcesFound, InvalidResponse
+)
 
 
 class TestLibAsyncCase(object):
@@ -146,52 +148,6 @@ class TestLibAsyncCase(object):
             .search(gender='female', birthdate='1905-05-25').get()
         assert patient_2.id == 'patient2'
 
-    def test_resource_without_resource_type_failed(self):
-        with pytest.raises(TypeError):
-            self.client.resource()
-
-    def test_resource_success(self):
-        resource = self.client.resource('Patient', id='p1')
-        assert resource.resource_type == 'Patient'
-        assert resource['resourceType'] == 'Patient'
-        assert resource.id == 'p1'
-        assert resource['id'] == 'p1'
-        assert resource.reference == 'Patient/p1'
-        assert resource.serialize() == {
-            'resourceType': 'Patient',
-            'id': 'p1',
-        }
-
-    def test_reference_from_local_reference(self):
-        reference = self.client.reference(reference='Patient/p1')
-        assert reference.is_local is True
-        assert reference.resource_type == 'Patient'
-        assert reference.id == 'p1'
-        assert reference.reference == 'Patient/p1'
-        assert reference['reference'] == 'Patient/p1'
-        reference.serialize() == {'reference': 'Patient/p1'}
-
-    def test_reference_from_external_reference(self):
-        reference = self.client.reference(
-            reference='http://external.com/Patient/p1'
-        )
-        assert reference.is_local == False
-        assert reference.resource_type is None
-        assert reference.id is None
-        assert reference.reference == 'http://external.com/Patient/p1'
-        assert reference['reference'] == 'http://external.com/Patient/p1'
-        assert reference.serialize() == {
-            'reference': 'http://external.com/Patient/p1'
-        }
-
-    def test_reference_from_resource_type_and_id(self):
-        reference = self.client.reference('Patient', 'p1')
-        assert reference.resource_type == 'Patient'
-        assert reference.id == 'p1'
-        assert reference.reference == 'Patient/p1'
-        assert reference['reference'] == 'Patient/p1'
-        assert reference.serialize() == {'reference': 'Patient/p1'}
-
     @pytest.mark.asyncio
     async def test_not_found_error(self):
         with pytest.raises(ResourceNotFound):
@@ -261,53 +217,6 @@ class TestLibAsyncCase(object):
             'reference': 'Patient/p1',
             'display': 'patient',
         }
-
-    def test_to_reference_for_reference(self):
-        reference = self.client.reference('Patient', 'p1')
-        reference_copy = reference.to_reference(display='patient')
-        assert isinstance(reference_copy, AsyncFHIRReference)
-        assert reference_copy.serialize() == {
-            'reference': 'Patient/p1',
-            'display': 'patient',
-        }
-
-    def test_serialize(self):
-        practitioner1 = self.client.resource('Practitioner', id='pr1')
-        practitioner2 = self.client.resource('Practitioner', id='pr2')
-        patient = self.client.resource(
-            'Patient',
-            id='patient',
-            generalPractitioner=[
-                practitioner1.to_reference(display='practitioner'),
-                practitioner2
-            ]
-        )
-
-        assert patient.serialize() == {
-            'resourceType':
-                'Patient',
-            'id':
-                'patient',
-            'generalPractitioner':
-                [
-                    {
-                        'reference': 'Practitioner/pr1',
-                        'display': 'practitioner',
-                    },
-                    {
-                        'reference': 'Practitioner/pr2',
-                    },
-                ],
-        }
-
-    def test_equality(self):
-        resource = self.client.resource('Patient', id='p1')
-        reference = self.client.reference('Patient', 'p1')
-        assert resource == reference
-
-    def test_bundle_path(self):
-        bundle_resource = self.client.resource('Bundle')
-        assert bundle_resource._get_path() == ''
 
     @pytest.mark.asyncio
     async def test_create_bundle(self):

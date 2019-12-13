@@ -1,5 +1,6 @@
 import pytest
 from fhirpy import SyncFHIRClient, AsyncFHIRClient
+from fhirpy.lib import BaseFHIRReference
 from fhirpy.base.utils import AttrDict, SearchList
 
 
@@ -8,9 +9,100 @@ from fhirpy.base.utils import AttrDict, SearchList
     [SyncFHIRClient('mock'), AsyncFHIRClient('mock')]
 )
 class TestLibBase(object):
+    def test_to_reference_for_reference(self, client):
+        reference = client.reference('Patient', 'p1')
+        reference_copy = reference.to_reference(display='patient')
+        assert isinstance(reference_copy, BaseFHIRReference)
+        assert reference_copy.serialize() == {
+            'reference': 'Patient/p1',
+            'display': 'patient',
+        }
+
+    def test_serialize(self, client):
+        practitioner1 = client.resource('Practitioner', id='pr1')
+        practitioner2 = client.resource('Practitioner', id='pr2')
+        patient = client.resource(
+            'Patient',
+            id='patient',
+            generalPractitioner=[
+                practitioner1.to_reference(display='practitioner'),
+                practitioner2
+            ]
+        )
+
+        assert patient.serialize() == {
+            'resourceType':
+                'Patient',
+            'id':
+                'patient',
+            'generalPractitioner':
+                [
+                    {
+                        'reference': 'Practitioner/pr1',
+                        'display': 'practitioner',
+                    },
+                    {
+                        'reference': 'Practitioner/pr2',
+                    },
+                ],
+        }
+
+    def test_equality(self, client):
+        resource = client.resource('Patient', id='p1')
+        reference = client.reference('Patient', 'p1')
+        assert resource == reference
+
+    def test_bundle_path(self, client):
+        bundle_resource = client.resource('Bundle')
+        assert bundle_resource._get_path() == ''
+
+    def test_resource_without_resource_type_failed(self, client):
+        with pytest.raises(TypeError):
+            client.resource()
+
+    def test_resource_success(self, client):
+        resource = client.resource('Patient', id='p1')
+        assert resource.resource_type == 'Patient'
+        assert resource['resourceType'] == 'Patient'
+        assert resource.id == 'p1'
+        assert resource['id'] == 'p1'
+        assert resource.reference == 'Patient/p1'
+        assert resource.serialize() == {
+            'resourceType': 'Patient',
+            'id': 'p1',
+        }
+
     def test_reference_is_not_provided_failed(self, client):
         with pytest.raises(TypeError):
             client.reference()
+
+    def test_reference_from_local_reference(self, client):
+        reference = client.reference(reference='Patient/p1')
+        assert reference.is_local is True
+        assert reference.resource_type == 'Patient'
+        assert reference.id == 'p1'
+        assert reference.reference == 'Patient/p1'
+        assert reference['reference'] == 'Patient/p1'
+        reference.serialize() == {'reference': 'Patient/p1'}
+
+    def test_reference_from_external_reference(self, client):
+        reference = client.reference(reference='http://external.com/Patient/p1')
+        assert reference.is_local == False
+        assert reference.resource_type is None
+        assert reference.id is None
+        assert reference.reference == 'http://external.com/Patient/p1'
+        assert reference['reference'] == 'http://external.com/Patient/p1'
+        assert reference.serialize() == {
+            'reference': 'http://external.com/Patient/p1'
+        }
+
+    def test_reference_from_resource_type_and_id(self, client):
+        reference = client.reference('Patient', 'p1')
+        assert reference.resource_type == 'Patient'
+        assert reference.id == 'p1'
+        assert reference.reference == 'Patient/p1'
+        assert reference['reference'] == 'Patient/p1'
+        assert reference.serialize() == {'reference': 'Patient/p1'}
 
     def test_get_by_path(self, client):
         resource = client.resource(
@@ -72,7 +164,12 @@ class TestLibBase(object):
         resource.setdefault('active', True)
         assert resource.active is True
 
-    # def test_set_resource_type_failed(self, client):
-    #     resource = client.resource('Patient')
-    #     with pytest.raises(KeyError):
-    #         resource['resourceType'] = 'Practitioner'
+    def test_set_resource_type_failed(self, client):
+        resource = client.resource('Patient')
+        with pytest.raises(KeyError):
+            resource['resourceType'] = 'Practitioner'
+
+    def test_reference_for_local_resource(self, client):
+        resource = client.resource('Patient')
+        resource.id = 'id'
+        assert resource.reference == 'Patient/id'
