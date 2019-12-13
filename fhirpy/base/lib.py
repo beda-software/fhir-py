@@ -452,13 +452,6 @@ class SyncSearchSet(AbstractSearchSet):
         elif len(res_data) > 1:
             raise MultipleResourcesFound('More than one resource found')
         resource = res_data[0]
-        if resource['resourceType'] != self.resource_type:
-            raise InvalidResponse(
-                'Expected to receive {0} '
-                'but {1} received'.format(
-                    self.resource_type, resource['resourceType']
-                )
-            )
         return self._perform_resource(resource)
 
     def count(self):
@@ -556,13 +549,6 @@ class AsyncSearchSet(AbstractSearchSet):
         elif len(res_data) > 1:
             raise MultipleResourcesFound('More than one resource found')
         resource = res_data[0]
-        if resource['resourceType'] != self.resource_type:
-            raise InvalidResponse(
-                'Expected to receive {0} '
-                'but {1} received'.format(
-                    self.resource_type, resource['resourceType']
-                )
-            )
         return self._perform_resource(resource)
 
     async def count(self):
@@ -683,7 +669,7 @@ class BaseResource(AbstractResource, ABC):
         super(BaseResource, self).__init__(client, **converted_kwargs)
 
     def __setitem__(self, key, value):
-        if key == 'resourceType' and 'resourceType' not in self:
+        if key == 'resourceType':
             raise KeyError(
                 'Can not change `resourceType` after instantiating resource. '
                 'You must re-instantiate resource using '
