@@ -7,10 +7,11 @@ import pytz
 import warnings
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from .utils import (
+
+from fhirpy.base.utils import (
     AttrDict, encode_params, convert_values, get_by_path, parse_path, chunks
 )
-from .exceptions import (
+from fhirpy.base.exceptions import (
     ResourceNotFound, OperationOutcome, InvalidResponse, MultipleResourcesFound
 )
 
@@ -177,6 +178,15 @@ def SQ(*args, **kwargs):
     >>> dict(SQ(general_practitioner='prid'))
     {'general-practitioner': ['prid']}
 
+    >>> dict(SQ(patient__Patient__name='John'))
+    {'patient:Patient.name': ['John']}
+
+    >>> dict(SQ(patient__Patient__birth_date__ge='2000'))
+    {'patient:Patient.birth-date': ['ge2000']}
+
+    >>> dict(SQ(patient__Patient__general_practitioner__Organization__name='Name'))
+    {'patient:Patient.general-practitioner:Organization.name': ['Name']}
+
     >>> dict(SQ(period__ge='2018', period__lt='2019'))
     {'period': ['ge2018', 'lt2019']}
 
@@ -204,18 +214,29 @@ def SQ(*args, **kwargs):
         value = value if isinstance(value, list) else [value]
         value = [transform_value(sub_value) for sub_value in value]
 
-        if '__' in key:
-            param, op = key.split('__')
-            if op in [
-                'contains', 'exact', 'missing', 'not', 'below', 'above', 'in',
-                'not_in', 'text', 'of_type'
-            ]:
+        key_parts = key.split('__')
+
+        op = None
+        if len(key_parts) % 2 == 0:
+            # The operator is always the last part,
+            # e.g., birth_date__ge or patient__Patient__birth_date__ge
+            op = key_parts[-1]
+            key_parts = key_parts[:-1]
+
+        base_param, *chained_params = key_parts
+        param_parts = [base_param]
+        if chained_params:
+            param_parts.extend([
+                '.'.join(pair) for pair in chunks(chained_params, 2)])
+        param = ':'.join(param_parts)
+
+        if op:
+            if op in ['contains', 'exact', 'missing', 'not',
+                      'below', 'above', 'in', 'not_in', 'text', 'of_type']:
                 param = '{0}:{1}'.format(param, transform_param(op))
             elif op in ['eq', 'ne', 'gt', 'ge', 'lt', 'le', 'sa', 'eb', 'ap']:
                 value = ['{0}{1}'.format(op, sub_value) for sub_value in value]
-            res[transform_param(param)].extend(value)
-        else:
-            res[transform_param(key)].extend(value)
+        res[transform_param(param)].extend(value)
 
     for arg in args:
         if isinstance(arg, Raw):

@@ -147,6 +147,27 @@ class TestSearchSet(object):
     def test_search_transform_reference_value(self, client):
         practitioner_ref = client.reference('Practitioner', 'some_id')
         search_set = client.resources('Patient') \
-            .search(generalPractitioner=practitioner_ref)
+            .search(general_practitioner=practitioner_ref)
         assert dict(search_set.params
-                   )['generalPractitioner'][0] == 'Practitioner/some_id'
+                   )['general-practitioner'][0] == 'Practitioner/some_id'
+
+    def test_search_chained_params_simple(self, client):
+        search_set = client.resources('EpisodeOfCare') \
+            .search(patient__Patient__name='John')
+
+        assert dict(search_set.params
+            )['patient:Patient.name'][0] == 'John'
+
+    def test_search_chained_params_with_qualifier(self, client):
+        search_set = client.resources('EpisodeOfCare') \
+            .search(patient__Patient__birth_date__ge='2019')
+
+        assert dict(search_set.params
+            )['patient:Patient.birth-date'][0] == 'ge2019'
+
+    def test_search_chained_params_complex(self, client):
+        search_set = client.resources('EpisodeOfCare') \
+            .search(patient__Patient__general_practitioner__Organization__name='Hospital')
+
+        assert dict(search_set.params
+            )['patient:Patient.general-practitioner:Organization.name'][0] == 'Hospital'
