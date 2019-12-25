@@ -9,6 +9,7 @@
 * Make searchset iterating lazy #35
 * Add :iterate modifier for include and revinclude
 * Support wild card include and revinclude
+* Support chained params #43
 
 ## 1.0.0
 This version breaks backward compatibility, but the main class structure and set of methods remain the same.
