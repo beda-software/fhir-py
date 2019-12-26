@@ -1,8 +1,9 @@
 import pytest
 import pytz
-from datetime import datetime, timedelta
-from fhirpy import SyncFHIRClient, AsyncFHIRClient, Raw
-from fhirpy.base.searchset import format_date, format_date_time
+from datetime import datetime
+from fhirpy import SyncFHIRClient, AsyncFHIRClient
+from fhirpy.base.searchset import format_date, format_date_time, Raw
+
 
 @pytest.mark.parametrize(
     'client',
@@ -162,9 +163,15 @@ class TestSearchSet(object):
 
     def test_search_chained_params_complex(self, client):
         search_set = client.resources('EpisodeOfCare').search(
-            patient__Patient__general_practitioner__Organization__name=
-            'Hospital')
+            patient__Patient__general_practitioner__Organization__name='H')
 
         assert search_set.params == {
             'patient:Patient.general-practitioner:Organization.name': [
-                'Hospital']}
+                'H']}
+
+    def test_search_raw(self, client):
+        search_set = client.resources('EpisodeOfCare').search(
+            Raw(**{'inconsistent_search_param': 'ok'}))
+
+        assert search_set.params == {
+            'inconsistent_search_param': ['ok']}
