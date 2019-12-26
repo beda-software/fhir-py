@@ -8,3 +8,7 @@ from .lib import (
     SyncReference,
     AsyncReference,
 )
+
+# TODO: Remove in 1.2.0
+SyncAbstractClient = SyncClient
+AsyncAbstractClient = AsyncClient
