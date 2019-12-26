@@ -135,8 +135,8 @@ def transform_param(param: str):
     >>> transform_param('general_practitioner')
     'general-practitioner'
     """
-    if param[0] == '_':
-        # Don't correct _id, _has, _include, etc.
+    if param[0] == '_' or param[0] == '.':
+        # Don't correct _id, _has, _include, .effectiveDate and etc.
         return param
 
     return param.replace('_', '-')
@@ -193,8 +193,8 @@ def SQ(*args, **kwargs):
     >>> dict(SQ(text__contains='test'))
     {'text:contains': ['test']}
 
-    >>> dict(SQ(status__not_in='success'))
-    {'status:not-in': ['success']}
+    >>> dict(SQ(url__not_in='http://loinc.org'))
+    {'url:not-in': ['http://loinc.org']}
 
     >>> dict(SQ(name='family1,family2'))
     {'name': ['family1,family2']}
@@ -204,6 +204,12 @@ def SQ(*args, **kwargs):
 
     >>> dict(SQ(active=True))
     {'active': ['true']}
+
+    >>> dict(SQ(**{'_has:Person:link:id': 'id'}))
+    {'_has:Person:link:id': ['id']}
+
+    >>> dict(SQ(**{'.effectiveDate.start$gt': '2019'}))
+    {'.effectiveDate.start$gt': ['2019']}
 
     >>> dict(SQ(Raw(**{'_has:Person:link:id': 'id'})))
     {'_has:Person:link:id': ['id']}

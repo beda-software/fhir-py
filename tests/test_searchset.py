@@ -115,59 +115,57 @@ class TestSearchSet(object):
 
     def test_include_missing_attr(self, client):
         with pytest.raises(TypeError):
-            search_set = client.resources('Patient').include('Patient')
+            client.resources('Patient').include('Patient')
 
     def test_handle_args_without_raw_wrapper_failed(self, client):
         with pytest.raises(ValueError):
-            search_set = client.resources('Patient').search('arg')
+            client.resources('Patient').search('arg')
 
     def test_search_transform_datetime_value(self, client):
         dt = datetime.now(pytz.utc)
         search_set = client.resources('Patient') \
             .search(deceased__lt=dt)
-        assert dict(search_set.params
-                   )['deceased'][0] == 'lt' + format_date_time(dt)
+        assert search_set.params == {
+            'deceased': ['lt' + format_date_time(dt)]}
 
     def test_search_transform_date_value(self, client):
-        three_years_ago = datetime.now(pytz.utc
-                                      ).date() - timedelta(days=3 * 365)
+        dt = datetime.now(pytz.utc).date()
         search_set = client.resources('Patient') \
-            .search(birthdate__le=three_years_ago)
-        assert dict(search_set.params
-                   )['birthdate'][0] == 'le' + format_date(three_years_ago)
+            .search(birthdate__le=dt)
+        assert search_set.params == {'birthdate': ['le' + format_date(dt)]}
 
     def test_search_transform_boolean_value(self, client):
         search_set = client.resources('Patient') \
             .search(active=True)
-        assert dict(search_set.params)['active'][0] == 'true'
+        assert search_set.params == {'active': ['true']}
         search_set = client.resources('Patient') \
             .search(active=False)
-        assert dict(search_set.params)['active'][0] == 'false'
+        assert search_set.params == {'active': ['false']}
 
     def test_search_transform_reference_value(self, client):
         practitioner_ref = client.reference('Practitioner', 'some_id')
         search_set = client.resources('Patient') \
             .search(general_practitioner=practitioner_ref)
-        assert dict(search_set.params
-                   )['general-practitioner'][0] == 'Practitioner/some_id'
+        assert search_set.params == {
+            'general-practitioner': ['Practitioner/some_id']}
 
     def test_search_chained_params_simple(self, client):
         search_set = client.resources('EpisodeOfCare') \
             .search(patient__Patient__name='John')
 
-        assert dict(search_set.params
-            )['patient:Patient.name'][0] == 'John'
+        assert search_set.params == {'patient:Patient.name': ['John']}
 
     def test_search_chained_params_with_qualifier(self, client):
         search_set = client.resources('EpisodeOfCare') \
             .search(patient__Patient__birth_date__ge='2019')
 
-        assert dict(search_set.params
-            )['patient:Patient.birth-date'][0] == 'ge2019'
+        assert search_set.params == {'patient:Patient.birth-date': ['ge2019']}
 
     def test_search_chained_params_complex(self, client):
-        search_set = client.resources('EpisodeOfCare') \
-            .search(patient__Patient__general_practitioner__Organization__name='Hospital')
+        search_set = client.resources('EpisodeOfCare').search(
+            patient__Patient__general_practitioner__Organization__name=
+            'Hospital')
 
-        assert dict(search_set.params
-            )['patient:Patient.general-practitioner:Organization.name'][0] == 'Hospital'
+        assert search_set.params == {
+            'patient:Patient.general-practitioner:Organization.name': [
+                'Hospital']}
