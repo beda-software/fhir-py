@@ -251,11 +251,11 @@ class TestLibAsyncCase(object):
                     },
                 ],
         }
-        bundle_resource = await self.create_resource('Bundle', **bundle)
-        patient_1 = await self.client.resources('Patient').search(
+        await self.create_resource('Bundle', **bundle)
+        await self.client.resources('Patient').search(
             id='bundle_patient_1'
         ).get()
-        patient_2 = await self.client.resources('Patient').search(
+        await self.client.resources('Patient').search(
             id='bundle_patient_2'
         ).get()
 
@@ -303,8 +303,8 @@ class TestLibAsyncCase(object):
     async def test_fetch_raw(self):
         await self.create_resource('Patient', name=[{'text': 'RareName'}])
         await self.create_resource('Patient', name=[{'text': 'RareName'}])
-        bundle = await self.client.resources('Patient').search(name='RareName'
-                                                              ).fetch_raw()
+        bundle = await self.client.resources('Patient').search(
+            name='RareName').fetch_raw()
         assert bundle.resourceType == 'Bundle'
         for entry in bundle.entry:
             assert isinstance(entry.resource, AsyncFHIRResource)

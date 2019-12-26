@@ -1,9 +1,8 @@
 import pytest
 import pytz
 from datetime import datetime, timedelta
-from fhirpy import SyncFHIRClient, AsyncFHIRClient
-from fhirpy.base.lib import format_date, format_date_time
-
+from fhirpy import SyncFHIRClient, AsyncFHIRClient, Raw
+from fhirpy.base.searchset import format_date, format_date_time
 
 @pytest.mark.parametrize(
     'client',

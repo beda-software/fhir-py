@@ -83,7 +83,7 @@ class TestLibBase(object):
         assert reference.id == 'p1'
         assert reference.reference == 'Patient/p1'
         assert reference['reference'] == 'Patient/p1'
-        reference.serialize() == {'reference': 'Patient/p1'}
+        assert reference.serialize() == {'reference': 'Patient/p1'}
 
     def test_reference_from_external_reference(self, client):
         reference = client.reference(reference='http://external.com/Patient/p1')

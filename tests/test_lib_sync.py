@@ -3,13 +3,13 @@ import responses
 from requests.auth import _basic_auth_str
 
 from fhirpy import SyncFHIRClient
-from fhirpy.lib import SyncFHIRReference, SyncFHIRResource
+from fhirpy.lib import SyncFHIRResource
 from fhirpy.base.exceptions import (
     ResourceNotFound, OperationOutcome, MultipleResourcesFound, InvalidResponse
 )
 
 
-class TestLibCase(object):
+class TestLibSyncCase(object):
     URL = 'http://localhost:8080/fhir'
     client = None
     identifier = [{'system': 'http://example.com/env', 'value': 'fhirpy'}]
@@ -236,11 +236,11 @@ class TestLibCase(object):
                     },
                 ],
         }
-        bundle_resource = self.create_resource('Bundle', **bundle)
-        patient_1 = self.client.resources('Patient').search(
+        self.create_resource('Bundle', **bundle)
+        self.client.resources('Patient').search(
             id='bundle_patient_1'
         ).get()
-        patient_2 = self.client.resources('Patient').search(
+        self.client.resources('Patient').search(
             id='bundle_patient_2'
         ).get()
 
@@ -282,8 +282,8 @@ class TestLibCase(object):
     def test_fetch_raw(self):
         self.create_resource('Patient', name=[{'text': 'RareName'}])
         self.create_resource('Patient', name=[{'text': 'RareName'}])
-        bundle = self.client.resources('Patient').search(name='RareName'
-                                                        ).fetch_raw()
+        bundle = self.client.resources('Patient').search(
+            name='RareName').fetch_raw()
         assert bundle.resourceType == 'Bundle'
         for entry in bundle.entry:
             assert isinstance(entry.resource, SyncFHIRResource)

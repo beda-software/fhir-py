@@ -125,12 +125,33 @@ patients.search(gender__not=['male', 'female'])
 # /Patient?gender:not=male&gender:not=female
 ```
 
+### Chained parameters
+```Python
+patients.search(general_practitioner__Organization__name='Hospital')
+# /Patient?general-practitioner:Organization.name=Hospital
+```
+
+### Reference
 ```Python
 practitioner = client.resources('Practitioner').search(id='john-smith').first()
 patients.search(general_practitioner=practitioner)
 # /Patient?general-practitioner=Practitioner/john-smith
 ```
 
+### Date
+```Python
+import pytz
+import datetime
+
+
+patients.search(birthdate__lt=datetime.datetime.now(pytz.utc))
+# /Patient?birthdate=lt2019-11-19T20:16:08Z
+
+patients.search(birthdate__gt=datetime.datetime(2013, 10, 27, tzinfo=pytz.utc))
+# /Patient?birthdate=gt2013-10-27T00:00:00Z
+```
+
+### Modifiers
 ```Python
 conditions = client.resources('Condition')
 
@@ -150,16 +171,16 @@ conditions.search(code__above='126851005')
 # /Condition?code:above=126851005
 ```
 
+### Raw parameters
+Sometimes you can find that fhir-py does not implement some search parameters from the FHIR specification. 
+In this case, you can use `Raw()` wrapper without any transformations
+
 ```Python
-import pytz
-import datetime
+from fhirpy.base.searchset import Raw
 
-
-patients.search(birthdate__lt=datetime.datetime.now(pytz.utc))
-# /Patient?birthdate=lt2019-11-19T20:16:08Z
-
-patients.search(birthdate__gt=datetime.datetime(2013, 10, 27, tzinfo=pytz.utc))
-# /Patient?birthdate=gt2013-10-27T00:00:00Z
+patients = client.resources('Patient')
+patients.search(Raw('general-practitioner.name=Hospital'))
+# /Patient?general-practitioner.name=Hospital
 ```
 
 ## Get exactly one resource

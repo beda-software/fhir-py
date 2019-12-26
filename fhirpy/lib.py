@@ -1,8 +1,8 @@
-import pickle
-from os.path import dirname
+from abc import ABC
 
+from fhirpy.base.resource import BaseResource, BaseReference
 from .base import (
-    SyncAbstractClient, AsyncAbstractClient, SyncSearchSet, AsyncSearchSet,
+    SyncClient, AsyncClient, SyncSearchSet, AsyncSearchSet,
     SyncResource, AsyncResource, SyncReference, AsyncReference
 )
 
@@ -15,7 +15,7 @@ class AsyncFHIRSearchSet(AsyncSearchSet):
     pass
 
 
-class BaseFHIRResource:
+class BaseFHIRResource(BaseResource, ABC):
     def is_reference(self, value):
         if not isinstance(value, dict):
             return False
@@ -40,7 +40,7 @@ class AsyncFHIRResource(BaseFHIRResource, AsyncResource):
     pass
 
 
-class BaseFHIRReference:
+class BaseFHIRReference(BaseReference, ABC):
     @property
     def reference(self):
         return self['reference']
@@ -74,7 +74,7 @@ class AsyncFHIRReference(BaseFHIRReference, AsyncReference):
     pass
 
 
-class SyncFHIRClient(SyncAbstractClient):
+class SyncFHIRClient(SyncClient):
     searchset_class = SyncFHIRSearchSet
     resource_class = SyncFHIRResource
 
@@ -93,7 +93,7 @@ class SyncFHIRClient(SyncAbstractClient):
         return SyncFHIRReference(self, reference=reference, **kwargs)
 
 
-class AsyncFHIRClient(AsyncAbstractClient):
+class AsyncFHIRClient(AsyncClient):
     searchset_class = AsyncFHIRSearchSet
     resource_class = AsyncFHIRResource
 
