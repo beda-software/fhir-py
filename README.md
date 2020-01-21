@@ -6,6 +6,8 @@
 async/sync FHIR client for python.
 This package provides an API for CRUD operations over FHIR resources
 
+`pip install fhirpy`
+
 You can test this library by interactive FHIR course in the repository [Aidbox/jupyter-course](https://github.com/Aidbox/jupyter-course).
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
@@ -349,7 +351,7 @@ patient_postal = patient.get_by_path(['resource', 'address', 0, 'postalCode'])
 patient_name = patient.name[0]
 patient_fullname = '{} {}'.format(
     patient_name.get_by_path(['given', 0]),
-    patient_name.get_by_path(['given', 0])
+    patient_name.get_by_path(['family'])
 )
 
 # Get identifier value by specified system or empty string
