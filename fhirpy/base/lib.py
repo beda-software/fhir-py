@@ -8,8 +8,8 @@ from abc import ABC, abstractmethod
 from fhirpy.base.searchset import AbstractSearchSet
 from fhirpy.base.resource import BaseResource, BaseReference
 from fhirpy.base.utils import (
-    AttrDict, encode_params
-)
+    AttrDict, encode_params,
+    get_by_path)
 from fhirpy.base.exceptions import (
     ResourceNotFound, OperationOutcome, InvalidResponse, MultipleResourcesFound
 )
@@ -66,8 +66,11 @@ class AbstractClient(ABC):
 class AsyncClient(AbstractClient, ABC):
     async def _do_request(self, method, path, data=None, params=None):
         params = params or {}
-        params.update({'_format': 'json'})
-        url = '{0}/{1}?{2}'.format(self.url, path, encode_params(params))
+        if '_format=json' not in path:
+            params.update({'_format': 'json'})
+        url = f'{self.url}/{path}'
+        if params:
+            url = f'{url}?{encode_params(params)}'
 
         headers = {'Authorization': self.authorization}
 
@@ -93,8 +96,11 @@ class AsyncClient(AbstractClient, ABC):
 class SyncClient(AbstractClient, ABC):
     def _do_request(self, method, path, data=None, params=None):
         params = params or {}
-        params.update({'_format': 'json'})
-        url = '{0}/{1}?{2}'.format(self.url, path, encode_params(params))
+        if '_format=json' not in path:
+            params.update({'_format': 'json'})
+        url = f'{self.url}/{path}'
+        if params:
+            url = f'{url}?{encode_params(params)}'
 
         headers = {'Authorization': self.authorization}
 
@@ -122,24 +128,7 @@ class SyncSearchSet(AbstractSearchSet, ABC):
         bundle_data = self.client._fetch_resource(
             self.resource_type, self.params
         )
-        bundle_resource_type = bundle_data.get('resourceType', None)
-
-        if bundle_resource_type != 'Bundle':
-            raise InvalidResponse(
-                'Expected to receive Bundle '
-                'but {0} received'.format(bundle_resource_type)
-            )
-
-        resources_data = [
-            res['resource'] for res in bundle_data.get('entry', [])
-        ]
-
-        resources = []
-        for data in resources_data:
-            resource = self._perform_resource(data)
-            if resource.resource_type == self.resource_type:
-                resources.append(resource)
-
+        resources = self._get_bundle_resources(bundle_data)
         return resources
 
     def fetch_raw(self):
@@ -153,16 +142,22 @@ class SyncSearchSet(AbstractSearchSet, ABC):
         return data
 
     def fetch_all(self):
-        page = 1
+        next_link = None
         resources = []
 
         while True:
-            new_resources = self.page(page).fetch()
-            if not new_resources:
-                break
-
+            if next_link:
+                bundle_data = self.client._fetch_resource(next_link, {})
+            else:
+                bundle_data = self.client._fetch_resource(
+                    self.resource_type, self.params
+                )
+            new_resources = self._get_bundle_resources(bundle_data)
+            next_link = get_by_path(bundle_data, ['link', {'relation': 'next'}, 'url'])
             resources.extend(new_resources)
-            page += 1
+
+            if not next_link:
+                break
 
         return resources
 
@@ -217,24 +212,7 @@ class AsyncSearchSet(AbstractSearchSet, ABC):
         bundle_data = await self.client._fetch_resource(
             self.resource_type, self.params
         )
-        bundle_resource_type = bundle_data.get('resourceType', None)
-
-        if bundle_resource_type != 'Bundle':
-            raise InvalidResponse(
-                'Expected to receive Bundle '
-                'but {0} received'.format(bundle_resource_type)
-            )
-
-        resources_data = [
-            res['resource'] for res in bundle_data.get('entry', [])
-        ]
-
-        resources = []
-        for data in resources_data:
-            resource = self._perform_resource(data)
-            if resource.resource_type == self.resource_type:
-                resources.append(resource)
-
+        resources = self._get_bundle_resources(bundle_data)
         return resources
 
     async def fetch_raw(self):
@@ -250,16 +228,22 @@ class AsyncSearchSet(AbstractSearchSet, ABC):
         return data
 
     async def fetch_all(self):
-        page = 1
+        next_link = None
         resources = []
 
         while True:
-            new_resources = await self.page(page).fetch()
-            if not new_resources:
-                break
-
+            if next_link:
+                bundle_data = await self.client._fetch_resource(next_link)
+            else:
+                bundle_data = await self.client._fetch_resource(
+                    self.resource_type, self.params
+                )
+            new_resources = self._get_bundle_resources(bundle_data)
+            next_link = get_by_path(bundle_data, ['link', {'relation': 'next'}, 'url'])
             resources.extend(new_resources)
-            page += 1
+
+            if not next_link:
+                break
 
         return resources
 
