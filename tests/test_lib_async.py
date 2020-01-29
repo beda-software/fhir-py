@@ -338,3 +338,37 @@ class TestLibAsyncCase(object):
         ).limit(5).fetch_all()
         assert isinstance(patients, list)
         assert len(patients) == 18
+
+    @pytest.mark.asyncio
+    async def test_async_for(self):
+        bundle = {
+            'type': 'transaction',
+            'entry': [],
+        }
+        for i in range(18):
+            bundle['entry'].append(
+                {
+                    'request': {
+                        'method': 'POST',
+                        'url': '/Patient'
+                    },
+                    'resource':
+                        {
+                            'name': [{
+                                'text': 'NotSoRareName'
+                            }],
+                            'identifier': self.identifier
+                        }
+                }
+            )
+        await self.create_resource('Bundle', **bundle)
+        patient_set = self.client.resources('Patient').search(
+            name='NotSoRareName'
+        ).limit(5)
+
+        patients = []
+        # TODO: check how many times aiohttp request was called
+        async for patient in patient_set:
+            patients.append(patient)
+
+        assert len(patients) == 18

@@ -195,16 +195,23 @@ class SyncSearchSet(AbstractSearchSet, ABC):
         return result[0] if result else None
 
     def __iter__(self):
-        page = 1
+        # TODO: Add test
+        next_link = None
         while True:
-            new_resources = self.page(page).fetch()
-            if not new_resources:
-                break
+            if next_link:
+                bundle_data = self.client._fetch_resource(next_link, {})
+            else:
+                bundle_data = self.client._fetch_resource(
+                    self.resource_type, self.params
+                )
+            new_resources = self._get_bundle_resources(bundle_data)
+            next_link = get_by_path(bundle_data, ['link', {'relation': 'next'}, 'url'])
 
             for item in new_resources:
                 yield item
 
-            page += 1
+            if not next_link:
+                break
 
 
 class AsyncSearchSet(AbstractSearchSet, ABC):
@@ -282,17 +289,22 @@ class AsyncSearchSet(AbstractSearchSet, ABC):
         return result[0] if result else None
 
     async def __aiter__(self):
-        # TODO: Add tests
-        page = 1
+        next_link = None
         while True:
-            new_resources = await self.page(page).fetch()
-            if not new_resources:
-                break
+            if next_link:
+                bundle_data = await self.client._fetch_resource(next_link, {})
+            else:
+                bundle_data = await self.client._fetch_resource(
+                    self.resource_type, self.params
+                )
+            new_resources = self._get_bundle_resources(bundle_data)
+            next_link = get_by_path(bundle_data, ['link', {'relation': 'next'}, 'url'])
 
             for item in new_resources:
                 yield item
 
-            page += 1
+            if not next_link:
+                break
 
 
 class SyncResource(BaseResource, ABC):
