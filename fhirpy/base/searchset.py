@@ -102,6 +102,9 @@ def SQ(*args, **kwargs):
     >>> dict(SQ(**{'.effectiveDate.start$gt': '2019'}))
     {'.effectiveDate.start$gt': ['2019']}
 
+    >>> dict(SQ(_lastUpdated__gt=2019))
+    {'_lastUpdated': ['gt2019']}
+
     >>> dict(SQ(Raw(**{'_has:Person:link:id': 'id'})))
     {'_has:Person:link:id': ['id']}
 
