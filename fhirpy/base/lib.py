@@ -142,24 +142,7 @@ class SyncSearchSet(AbstractSearchSet, ABC):
         return data
 
     def fetch_all(self):
-        next_link = None
-        resources = []
-
-        while True:
-            if next_link:
-                bundle_data = self.client._fetch_resource(next_link, {})
-            else:
-                bundle_data = self.client._fetch_resource(
-                    self.resource_type, self.params
-                )
-            new_resources = self._get_bundle_resources(bundle_data)
-            next_link = get_by_path(bundle_data, ['link', {'relation': 'next'}, 'url'])
-            resources.extend(new_resources)
-
-            if not next_link:
-                break
-
-        return resources
+        return list(x for x in self)
 
     def get(self, id=None):
         searchset = self.limit(2)
@@ -235,24 +218,7 @@ class AsyncSearchSet(AbstractSearchSet, ABC):
         return data
 
     async def fetch_all(self):
-        next_link = None
-        resources = []
-
-        while True:
-            if next_link:
-                bundle_data = await self.client._fetch_resource(next_link)
-            else:
-                bundle_data = await self.client._fetch_resource(
-                    self.resource_type, self.params
-                )
-            new_resources = self._get_bundle_resources(bundle_data)
-            next_link = get_by_path(bundle_data, ['link', {'relation': 'next'}, 'url'])
-            resources.extend(new_resources)
-
-            if not next_link:
-                break
-
-        return resources
+        return list(x async for x in self)
 
     async def get(self, id=None):
         searchset = self.limit(2)
