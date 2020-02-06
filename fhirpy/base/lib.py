@@ -1,9 +1,11 @@
 import json
 import copy
-import aiohttp
-import requests
 import warnings
 from abc import ABC, abstractmethod
+
+import yarl
+import aiohttp
+import requests
 
 from fhirpy.base.searchset import AbstractSearchSet
 from fhirpy.base.resource import BaseResource, BaseReference
@@ -62,9 +64,15 @@ class AbstractClient(ABC):
     def _fetch_resource(self, path, params=None):
         pass
 
+    def _build_request_headers(self):
+        headers = {'Authorization': self.authorization}
 
-class AsyncClient(AbstractClient, ABC):
-    async def _do_request(self, method, path, data=None, params=None):
+        if self.extra_headers is not None:
+            headers = {**headers, **self.extra_headers}
+
+        return headers
+
+    def _build_request_url(self, path, params):
         params = params or {}
         if '_format=json' not in path:
             params.update({'_format': 'json'})
@@ -72,10 +80,13 @@ class AsyncClient(AbstractClient, ABC):
         if params:
             url = f'{url}?{encode_params(params)}'
 
-        headers = {'Authorization': self.authorization}
+        return url
 
-        if self.extra_headers is not None:
-            headers = {**headers, **self.extra_headers}
+
+class AsyncClient(AbstractClient, ABC):
+    async def _do_request(self, method, path, data=None, params=None):
+        headers = self._build_request_headers()
+        url = self._build_request_url(path, params)
 
         async with aiohttp.request(
             method, url, json=data, headers=headers
@@ -95,17 +106,8 @@ class AsyncClient(AbstractClient, ABC):
 
 class SyncClient(AbstractClient, ABC):
     def _do_request(self, method, path, data=None, params=None):
-        params = params or {}
-        if '_format=json' not in path:
-            params.update({'_format': 'json'})
-        url = f'{self.url}/{path}'
-        if params:
-            url = f'{url}?{encode_params(params)}'
-
-        headers = {'Authorization': self.authorization}
-
-        if self.extra_headers is not None:
-            headers = {**headers, **self.extra_headers}
+        headers = self._build_request_headers()
+        url = self._build_request_url(path, params)
 
         r = requests.request(method, url, json=data, headers=headers)
 
@@ -142,7 +144,7 @@ class SyncSearchSet(AbstractSearchSet, ABC):
         return data
 
     def fetch_all(self):
-        return list(x for x in self)
+        return list([x for x in self])
 
     def get(self, id=None):
         searchset = self.limit(2)
@@ -218,7 +220,7 @@ class AsyncSearchSet(AbstractSearchSet, ABC):
         return data
 
     async def fetch_all(self):
-        return list(x async for x in self)
+        return list([x async for x in self])
 
     async def get(self, id=None):
         searchset = self.limit(2)
