@@ -1,5 +1,5 @@
 import reprlib
-from urllib.parse import urlencode, quote
+from urllib.parse import urlencode, quote, parse_qs, urlparse
 
 
 class AttrDict(dict):
@@ -29,8 +29,57 @@ def chunks(l, n):
         yield l[i:i + n]
 
 
+def unique_everseen(seq):
+    """
+    >>> unique_everseen(['1', '2', '3', '1', '2'])
+    ['1', '2', '3']
+    """
+    seen = set()
+    seen_add = seen.add
+    return [x for x in seq if not (x in seen or seen_add(x))]
+
+
 def encode_params(params):
-    return urlencode(params or {}, doseq=True, safe=':,', quote_via=quote)
+    """
+    >>> encode_params({'status:not': ['active', 'entered-in-error']})
+    'status:not=active&status:not=entered-in-error'
+
+    >>> encode_params({'status': ['active,waitlist']})
+    'status=active,waitlist'
+
+    >>> encode_params({'status': 'active,waitlist'})
+    'status=active,waitlist'
+
+    >>> encode_params({'_format': ['json', 'json']})
+    '_format=json'
+
+    >>> encode_params(None)
+    ''
+    """
+    params = params or {}
+    return urlencode(
+        {
+            k: unique_everseen(v) if isinstance(v, list) else [v]
+            for k, v in params.items()
+        },
+        doseq=True,
+        safe=':,',
+        quote_via=quote
+    )
+
+
+def parse_pagination_url(url):
+    """
+    Parses Bundle.link pagination url and returns path and params
+
+    >>> parse_pagination_url('/Patient?_count=100&name=ivan&name=petrov')
+    ('/Patient', {'_count': ['100'], 'name': ['ivan', 'petrov']})
+    """
+    parsed = urlparse(url)
+    params = parse_qs(parsed.query)
+    path = parsed.path
+
+    return path, params
 
 
 def convert_values(data, fn):

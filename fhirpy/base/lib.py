@@ -11,7 +11,7 @@ from fhirpy.base.searchset import AbstractSearchSet
 from fhirpy.base.resource import BaseResource, BaseReference
 from fhirpy.base.utils import (
     AttrDict, encode_params,
-    get_by_path)
+    get_by_path, parse_pagination_url)
 from fhirpy.base.exceptions import (
     ResourceNotFound, OperationOutcome, InvalidResponse, MultipleResourcesFound
 )
@@ -74,13 +74,9 @@ class AbstractClient(ABC):
 
     def _build_request_url(self, path, params):
         params = params or {}
-        if '_format=json' not in path:
-            params.update({'_format': 'json'})
-        url = f'{self.url}/{path}'
-        if params:
-            url = f'{url}?{encode_params(params)}'
+        params['_format'] = 'json'
 
-        return url
+        return f'{self.url}/{path}?{encode_params(params)}'
 
 
 class AsyncClient(AbstractClient, ABC):
@@ -184,7 +180,8 @@ class SyncSearchSet(AbstractSearchSet, ABC):
         next_link = None
         while True:
             if next_link:
-                bundle_data = self.client._fetch_resource(next_link, {})
+                bundle_data = self.client._fetch_resource(*parse_pagination_url(
+                    next_link))
             else:
                 bundle_data = self.client._fetch_resource(
                     self.resource_type, self.params
@@ -260,7 +257,7 @@ class AsyncSearchSet(AbstractSearchSet, ABC):
         next_link = None
         while True:
             if next_link:
-                bundle_data = await self.client._fetch_resource(next_link, {})
+                bundle_data = await self.client._fetch_resource(*parse_pagination_url(next_link))
             else:
                 bundle_data = await self.client._fetch_resource(
                     self.resource_type, self.params
