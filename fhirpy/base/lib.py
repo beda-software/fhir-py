@@ -76,14 +76,13 @@ class AbstractClient(ABC):
         params = params or {}
         params['_format'] = 'json'
 
-        return f'{self.url}/{path}?{encode_params(params)}'
+        return f'{self.url}/{path.lstrip("/")}?{encode_params(params)}'
 
 
 class AsyncClient(AbstractClient, ABC):
     async def _do_request(self, method, path, data=None, params=None):
         headers = self._build_request_headers()
         url = self._build_request_url(path, params)
-
         async with aiohttp.request(
             method, url, json=data, headers=headers
         ) as r:
@@ -176,7 +175,6 @@ class SyncSearchSet(AbstractSearchSet, ABC):
         return result[0] if result else None
 
     def __iter__(self):
-        # TODO: Add test
         next_link = None
         while True:
             if next_link:

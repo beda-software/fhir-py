@@ -289,12 +289,15 @@ class TestLibSyncCase(object):
             assert isinstance(entry.resource, SyncFHIRResource)
         assert len(bundle.entry) == 2
 
-    def test_fetch_all(self):
+    def create_test_patients(self, count=10, name='Not Rare Name'):
         bundle = {
             'type': 'transaction',
             'entry': [],
         }
-        for i in range(18):
+        patient_ids = set()
+        for i in range(count):
+            p_id = f'patient-{i}'
+            patient_ids.add(p_id)
             bundle['entry'].append(
                 {
                     'request': {
@@ -303,19 +306,46 @@ class TestLibSyncCase(object):
                     },
                     'resource':
                         {
+                            'id': p_id,
                             'name': [{
-                                'text': 'NotSoRareName'
+                                'text': f'{name}{i}'
                             }],
                             'identifier': self.identifier
-                        },
+                        }
                 }
             )
         self.create_resource('Bundle', **bundle)
-        patients = self.client.resources('Patient').search(
-            name='NotSoRareName'
-        ).limit(5).fetch_all()
-        assert isinstance(patients, list)
-        assert len(patients) == 18
+        return patient_ids
+
+    def test_fetch_all(self):
+        patients_count = 18
+        name = 'Jack Johnson J'
+        patient_ids = self.create_test_patients(patients_count, name)
+        patient_set = self.client.resources('Patient') \
+            .search(name=name) \
+            .limit(5)
+
+        patients = patient_set.fetch_all()
+
+        received_ids = set(p.id for p in patients)
+
+        assert len(received_ids) == patients_count
+        assert patient_ids == received_ids
+
+    def test_for_iterator(self):
+        patients_count = 22
+        name = 'Rob Robinson R'
+        patient_ids = self.create_test_patients(patients_count, name)
+        patient_set = self.client.resources('Patient') \
+            .search(name=name) \
+            .limit(3)
+
+        received_ids = set()
+        for patient in patient_set:
+            received_ids.add(patient.id)
+
+        assert len(received_ids) == patients_count
+        assert patient_ids == received_ids
 
     @responses.activate
     def test_fetch_bundle_invalid_response_resource_type(self):
