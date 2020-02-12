@@ -25,11 +25,6 @@ class TestSearchSet(object):
             .sort('id').sort('deceased')
         assert search_set.params == {'_sort': ['deceased']}
 
-    def test_page(self, client):
-        search_set = client.resources('Patient') \
-            .page(1).page(2)
-        assert search_set.params == {'page': [2]}
-
     def test_limit(self, client):
         search_set = client.resources('Patient') \
             .limit(1).limit(2)

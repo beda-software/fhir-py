@@ -287,9 +287,6 @@ class AbstractSearchSet(ABC):
     def limit(self, limit):
         return self.clone(_count=limit, override=True)
 
-    def page(self, page):
-        return self.clone(page=page, override=True)
-
     def sort(self, *keys):
         sort_keys = ','.join(keys)
         return self.clone(_sort=sort_keys, override=True)

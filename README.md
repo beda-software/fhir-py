@@ -23,7 +23,6 @@ You can test this library by interactive FHIR course in the repository [Aidbox/j
   - [Get total count](#get-total-count)
   - [Fetch one page](#fetch-one-page)
   - [Fetch all resources on all pages](#fetch-all-resources-on-all-pages)
-  - [Page number (page)](#page-number-page)
   - [Page count (_count)](#page-count-_count)
   - [Sort (_sort)](#sort-_sort)
   - [Elements (_elements)](#elements-_elements)
@@ -63,7 +62,7 @@ async def main():
 
     # Search for patients
     resources = client.resources('Patient')  # Return lazy search set
-    resources = resources.search(name='John').limit(10).page(2).sort('name')
+    resources = resources.search(name='John').limit(10).sort('name')
     patients = await resources.fetch()  # Returns list of AsyncFHIRResource
 
     # Create Organization resource
@@ -231,13 +230,6 @@ Keep in mind that this method as well as .fetch() doesn't return any included re
 await practitioners.search(address_city='Krasnoyarsk').fetch_all()
 
 await patients.fetch_all()
-```
-
-## Page number (page)
-```Python
-# Get third page
-await practitioners.limit(10).page(3).fetch()
-# /Practitioner?_count=10&page=3
 ```
 
 ## Page count (_count)
@@ -422,7 +414,6 @@ provides:
 provides:
 * .search(param=value)
 * .limit(count)
-* .page(page)
 * .sort(*args)
 * .elements(*args, exclude=False)
 * .include(resource_type, attr=None, recursive=False, iterate=False)
