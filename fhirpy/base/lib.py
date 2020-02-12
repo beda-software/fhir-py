@@ -175,24 +175,18 @@ class SyncSearchSet(AbstractSearchSet, ABC):
         return result[0] if result else None
 
     def __iter__(self):
-        next_link = None
-        while True:
-            if next_link:
-                bundle_data = self.client._fetch_resource(*parse_pagination_url(
-                    next_link))
-            else:
-                bundle_data = self.client._fetch_resource(
-                    self.resource_type, self.params
-                )
+        next_link = self.client._fetch_resource(
+                        self.resource_type, self.params
+                    )
+        while next_link:
+            bundle_data = self.client._fetch_resource(*parse_pagination_url(
+                next_link))
+                
             new_resources = self._get_bundle_resources(bundle_data)
             next_link = get_by_path(bundle_data, ['link', {'relation': 'next'}, 'url'])
 
             for item in new_resources:
                 yield item
-
-            if not next_link:
-                break
-
 
 class AsyncSearchSet(AbstractSearchSet, ABC):
     async def fetch(self):
@@ -252,23 +246,17 @@ class AsyncSearchSet(AbstractSearchSet, ABC):
         return result[0] if result else None
 
     async def __aiter__(self):
-        next_link = None
-        while True:
-            if next_link:
-                bundle_data = await self.client._fetch_resource(*parse_pagination_url(next_link))
-            else:
-                bundle_data = await self.client._fetch_resource(
-                    self.resource_type, self.params
-                )
+        next_link = await self.client._fetch_resource(
+                        self.resource_type, self.params
+                    )
+        while next_link:
+            bundle_data = await self.client._fetch_resource(*parse_pagination_url(next_link))
+            
             new_resources = self._get_bundle_resources(bundle_data)
             next_link = get_by_path(bundle_data, ['link', {'relation': 'next'}, 'url'])
 
             for item in new_resources:
                 yield item
-
-            if not next_link:
-                break
-
 
 class SyncResource(BaseResource, ABC):
     def save(self):
