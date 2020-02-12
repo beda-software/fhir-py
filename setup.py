@@ -35,7 +35,7 @@ setup(
     include_package_data=True,
     install_requires=['requests>=2.19.0', 'aiohttp>=3.5.1', 'pytz'],
     tests_require=[
-        'pytest>=3.6.1', 'pytest-asyncio>=0.10.0', 'unittest2>=1.1.0'
+        'pytest>=3.6.1', 'pytest-asyncio>=0.10.0', 'responses>=0.10.8'
     ],
     zip_safe=False,
     project_urls={

@@ -1,4 +1,6 @@
 ## Development
+* Add more tests
+* Fix fetch_all() – use "next" value #47
 
 ## 1.1.0
 * Remove schemas and resource key validation #33

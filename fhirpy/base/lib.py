@@ -1,15 +1,17 @@
 import json
 import copy
-import aiohttp
-import requests
 import warnings
 from abc import ABC, abstractmethod
+
+import yarl
+import aiohttp
+import requests
 
 from fhirpy.base.searchset import AbstractSearchSet
 from fhirpy.base.resource import BaseResource, BaseReference
 from fhirpy.base.utils import (
-    AttrDict, encode_params
-)
+    AttrDict, encode_params,
+    get_by_path, parse_pagination_url)
 from fhirpy.base.exceptions import (
     ResourceNotFound, OperationOutcome, InvalidResponse, MultipleResourcesFound
 )
@@ -62,18 +64,25 @@ class AbstractClient(ABC):
     def _fetch_resource(self, path, params=None):
         pass
 
-
-class AsyncClient(AbstractClient, ABC):
-    async def _do_request(self, method, path, data=None, params=None):
-        params = params or {}
-        params.update({'_format': 'json'})
-        url = '{0}/{1}?{2}'.format(self.url, path, encode_params(params))
-
+    def _build_request_headers(self):
         headers = {'Authorization': self.authorization}
 
         if self.extra_headers is not None:
             headers = {**headers, **self.extra_headers}
 
+        return headers
+
+    def _build_request_url(self, path, params):
+        params = params or {}
+        params['_format'] = 'json'
+
+        return f'{self.url}/{path.lstrip("/")}?{encode_params(params)}'
+
+
+class AsyncClient(AbstractClient, ABC):
+    async def _do_request(self, method, path, data=None, params=None):
+        headers = self._build_request_headers()
+        url = self._build_request_url(path, params)
         async with aiohttp.request(
             method, url, json=data, headers=headers
         ) as r:
@@ -92,14 +101,8 @@ class AsyncClient(AbstractClient, ABC):
 
 class SyncClient(AbstractClient, ABC):
     def _do_request(self, method, path, data=None, params=None):
-        params = params or {}
-        params.update({'_format': 'json'})
-        url = '{0}/{1}?{2}'.format(self.url, path, encode_params(params))
-
-        headers = {'Authorization': self.authorization}
-
-        if self.extra_headers is not None:
-            headers = {**headers, **self.extra_headers}
+        headers = self._build_request_headers()
+        url = self._build_request_url(path, params)
 
         r = requests.request(method, url, json=data, headers=headers)
 
@@ -122,24 +125,7 @@ class SyncSearchSet(AbstractSearchSet, ABC):
         bundle_data = self.client._fetch_resource(
             self.resource_type, self.params
         )
-        bundle_resource_type = bundle_data.get('resourceType', None)
-
-        if bundle_resource_type != 'Bundle':
-            raise InvalidResponse(
-                'Expected to receive Bundle '
-                'but {0} received'.format(bundle_resource_type)
-            )
-
-        resources_data = [
-            res['resource'] for res in bundle_data.get('entry', [])
-        ]
-
-        resources = []
-        for data in resources_data:
-            resource = self._perform_resource(data)
-            if resource.resource_type == self.resource_type:
-                resources.append(resource)
-
+        resources = self._get_bundle_resources(bundle_data)
         return resources
 
     def fetch_raw(self):
@@ -153,18 +139,7 @@ class SyncSearchSet(AbstractSearchSet, ABC):
         return data
 
     def fetch_all(self):
-        page = 1
-        resources = []
-
-        while True:
-            new_resources = self.page(page).fetch()
-            if not new_resources:
-                break
-
-            resources.extend(new_resources)
-            page += 1
-
-        return resources
+        return list([x for x in self])
 
     def get(self, id=None):
         searchset = self.limit(2)
@@ -200,16 +175,23 @@ class SyncSearchSet(AbstractSearchSet, ABC):
         return result[0] if result else None
 
     def __iter__(self):
-        page = 1
+        next_link = None
         while True:
-            new_resources = self.page(page).fetch()
-            if not new_resources:
-                break
+            if next_link:
+                bundle_data = self.client._fetch_resource(*parse_pagination_url(
+                    next_link))
+            else:
+                bundle_data = self.client._fetch_resource(
+                    self.resource_type, self.params
+                )
+            new_resources = self._get_bundle_resources(bundle_data)
+            next_link = get_by_path(bundle_data, ['link', {'relation': 'next'}, 'url'])
 
             for item in new_resources:
                 yield item
 
-            page += 1
+            if not next_link:
+                break
 
 
 class AsyncSearchSet(AbstractSearchSet, ABC):
@@ -217,24 +199,7 @@ class AsyncSearchSet(AbstractSearchSet, ABC):
         bundle_data = await self.client._fetch_resource(
             self.resource_type, self.params
         )
-        bundle_resource_type = bundle_data.get('resourceType', None)
-
-        if bundle_resource_type != 'Bundle':
-            raise InvalidResponse(
-                'Expected to receive Bundle '
-                'but {0} received'.format(bundle_resource_type)
-            )
-
-        resources_data = [
-            res['resource'] for res in bundle_data.get('entry', [])
-        ]
-
-        resources = []
-        for data in resources_data:
-            resource = self._perform_resource(data)
-            if resource.resource_type == self.resource_type:
-                resources.append(resource)
-
+        resources = self._get_bundle_resources(bundle_data)
         return resources
 
     async def fetch_raw(self):
@@ -250,18 +215,7 @@ class AsyncSearchSet(AbstractSearchSet, ABC):
         return data
 
     async def fetch_all(self):
-        page = 1
-        resources = []
-
-        while True:
-            new_resources = await self.page(page).fetch()
-            if not new_resources:
-                break
-
-            resources.extend(new_resources)
-            page += 1
-
-        return resources
+        return list([x async for x in self])
 
     async def get(self, id=None):
         searchset = self.limit(2)
@@ -298,17 +252,22 @@ class AsyncSearchSet(AbstractSearchSet, ABC):
         return result[0] if result else None
 
     async def __aiter__(self):
-        # TODO: Add tests
-        page = 1
+        next_link = None
         while True:
-            new_resources = await self.page(page).fetch()
-            if not new_resources:
-                break
+            if next_link:
+                bundle_data = await self.client._fetch_resource(*parse_pagination_url(next_link))
+            else:
+                bundle_data = await self.client._fetch_resource(
+                    self.resource_type, self.params
+                )
+            new_resources = self._get_bundle_resources(bundle_data)
+            next_link = get_by_path(bundle_data, ['link', {'relation': 'next'}, 'url'])
 
             for item in new_resources:
                 yield item
 
-            page += 1
+            if not next_link:
+                break
 
 
 class SyncResource(BaseResource, ABC):

@@ -1,10 +1,13 @@
 import pytest
-from aiohttp import BasicAuth
+from math import ceil
+from aiohttp import BasicAuth, request
+from unittest.mock import Mock, patch
 
+from fhirpy.base.utils import parse_pagination_url
 from fhirpy import AsyncFHIRClient
-from fhirpy.lib import AsyncFHIRReference, AsyncFHIRResource
+from fhirpy.lib import AsyncFHIRResource
 from fhirpy.base.exceptions import (
-    ResourceNotFound, OperationOutcome, MultipleResourcesFound, InvalidResponse
+    ResourceNotFound, OperationOutcome, MultipleResourcesFound
 )
 
 
@@ -310,13 +313,15 @@ class TestLibAsyncCase(object):
             assert isinstance(entry.resource, AsyncFHIRResource)
         assert len(bundle.entry) == 2
 
-    @pytest.mark.asyncio
-    async def test_fetch_all(self):
+    async def create_test_patients(self, count=10, name='Not Rare Name'):
         bundle = {
             'type': 'transaction',
             'entry': [],
         }
-        for i in range(18):
+        patient_ids = set()
+        for i in range(count):
+            p_id = f'patient-{i}'
+            patient_ids.add(p_id)
             bundle['entry'].append(
                 {
                     'request': {
@@ -325,16 +330,63 @@ class TestLibAsyncCase(object):
                     },
                     'resource':
                         {
+                            'id': p_id,
                             'name': [{
-                                'text': 'NotSoRareName'
+                                'text': f'{name}{i}'
                             }],
                             'identifier': self.identifier
                         }
                 }
             )
         await self.create_resource('Bundle', **bundle)
-        patients = await self.client.resources('Patient').search(
-            name='NotSoRareName'
-        ).limit(5).fetch_all()
-        assert isinstance(patients, list)
-        assert len(patients) == 18
+        return patient_ids
+
+    @pytest.mark.asyncio
+    async def test_fetch_all(self):
+        patients_count = 18
+        name = 'Jack Johnson J'
+        patient_ids = await self.create_test_patients(patients_count, name)
+        patient_set = self.client.resources('Patient') \
+            .search(name=name) \
+            .limit(5)
+
+        mocked_request = Mock(wraps=request)
+        with patch('aiohttp.request', mocked_request):
+            patients = await patient_set.fetch_all()
+
+        received_ids = set(p.id for p in patients)
+
+        assert len(received_ids) == patients_count
+        assert patient_ids == received_ids
+
+        assert mocked_request.call_count == ceil(patients_count / 5)
+
+        first_call_args = mocked_request.call_args_list[0][0]
+        first_call_url = list(first_call_args)[1]
+        path, params = parse_pagination_url(first_call_url)
+        assert '/Patient' in path
+        assert params == {
+            'name': [name],
+            '_format': ['json'],
+            '_count': ['5']
+        }
+
+    @pytest.mark.asyncio
+    async def test_async_for_iterator(self):
+        patients_count = 22
+        name = 'Rob Robinson R'
+        patient_ids = await self.create_test_patients(patients_count, name)
+        patient_set = self.client.resources('Patient') \
+            .search(name=name) \
+            .limit(3)
+
+        received_ids = set()
+        mocked_request = Mock(wraps=request)
+        with patch('aiohttp.request', mocked_request):
+            async for patient in patient_set:
+                received_ids.add(patient.id)
+
+        assert mocked_request.call_count == ceil(patients_count / 3)
+
+        assert len(received_ids) == patients_count
+        assert patient_ids == received_ids

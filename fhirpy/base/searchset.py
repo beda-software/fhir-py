@@ -7,6 +7,7 @@ import pytz
 
 from fhirpy.base.resource import BaseResource, BaseReference
 from fhirpy.base.utils import chunks, encode_params
+from fhirpy.base.exceptions import InvalidResponse
 
 FHIR_DATE_TIME_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 FHIR_DATE_FORMAT = '%Y-%m-%d'
@@ -286,9 +287,6 @@ class AbstractSearchSet(ABC):
     def limit(self, limit):
         return self.clone(_count=limit, override=True)
 
-    def page(self, page):
-        return self.clone(page=page, override=True)
-
     def sort(self, *keys):
         sort_keys = ','.join(keys)
         return self.clone(_sort=sort_keys, override=True)
@@ -301,3 +299,23 @@ class AbstractSearchSet(ABC):
 
     def __repr__(self):  # pragma: no cover
         return self.__str__()
+
+    def _get_bundle_resources(self, bundle_data):
+        bundle_resource_type = bundle_data.get('resourceType', None)
+
+        if bundle_resource_type != 'Bundle':
+            raise InvalidResponse(
+                'Expected to receive Bundle '
+                'but {0} received'.format(bundle_resource_type)
+            )
+
+        resources_data = [
+            res['resource'] for res in bundle_data.get('entry', [])
+        ]
+
+        resources = []
+        for data in resources_data:
+            resource = self._perform_resource(data)
+            if resource.resource_type == self.resource_type:
+                resources.append(resource)
+        return resources
