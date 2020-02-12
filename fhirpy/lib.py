@@ -21,15 +21,8 @@ class BaseFHIRResource(BaseResource, ABC):
             return False
 
         return 'reference' in value and \
-               not (set(value.keys()) - {'reference', 'display'})
-
-    @property
-    def reference(self):
-        """
-        Returns reference if local resource is saved
-        """
-        if self.id:
-            return '{0}/{1}'.format(self.resource_type, self.id)
+               not (set(value.keys()) - {
+                   'reference', 'display', 'type', 'identifier', 'extension'})
 
 
 class SyncFHIRResource(BaseFHIRResource, SyncResource):
