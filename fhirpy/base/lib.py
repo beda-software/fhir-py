@@ -178,8 +178,9 @@ class SyncSearchSet(AbstractSearchSet, ABC):
         next_link = None
         while True:
             if next_link:
-                bundle_data = self.client._fetch_resource(*parse_pagination_url(
-                    next_link))
+                bundle_data = self.client._fetch_resource(
+                    self.resource_type, parse_pagination_url(next_link)
+                )
             else:
                 bundle_data = self.client._fetch_resource(
                     self.resource_type, self.params
@@ -256,7 +257,8 @@ class AsyncSearchSet(AbstractSearchSet, ABC):
         while True:
             if next_link:
                 bundle_data = await self.client._fetch_resource(
-                    self.resource_type, parse_pagination_url(next_link))
+                    self.resource_type, parse_pagination_url(next_link)
+                )
             else:
                 bundle_data = await self.client._fetch_resource(
                     self.resource_type, self.params
