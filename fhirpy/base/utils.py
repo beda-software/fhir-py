@@ -77,9 +77,8 @@ def parse_pagination_url(url):
     """
     parsed = urlparse(url)
     params = parse_qs(parsed.query)
-    path = parsed.path
 
-    return path, params
+    return params
 
 
 def convert_values(data, fn):
