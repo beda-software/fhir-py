@@ -2,6 +2,7 @@ import json
 import copy
 import warnings
 from abc import ABC, abstractmethod
+from difflib import SequenceMatcher
 
 import yarl
 import aiohttp
@@ -76,6 +77,13 @@ class AbstractClient(ABC):
         params = params or {}
         params['_format'] = 'json'
 
+        seq_matcher = SequenceMatcher(None, path, self.url)
+        match = seq_matcher.find_longest_match(0, len(path), 0, len(self.url))
+
+        if match.size > 0:
+            match_word = path[match.a:match.size]
+            path = path.replace(match_word, '')
+        
         return f'{self.url}/{path.lstrip("/")}?{encode_params(params)}'
 
 
@@ -178,9 +186,7 @@ class SyncSearchSet(AbstractSearchSet, ABC):
         next_link = None
         while True:
             if next_link:
-                bundle_data = self.client._fetch_resource(
-                    self.resource_type, parse_pagination_url(next_link)
-                )
+                bundle_data = self.client._fetch_resource(*parse_pagination_url(next_link))
             else:
                 bundle_data = self.client._fetch_resource(
                     self.resource_type, self.params
@@ -256,9 +262,7 @@ class AsyncSearchSet(AbstractSearchSet, ABC):
         next_link = None
         while True:
             if next_link:
-                bundle_data = await self.client._fetch_resource(
-                    self.resource_type, parse_pagination_url(next_link)
-                )
+                bundle_data = await self.client._fetch_resource(*parse_pagination_url(next_link))
             else:
                 bundle_data = await self.client._fetch_resource(
                     self.resource_type, self.params
