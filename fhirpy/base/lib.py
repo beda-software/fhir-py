@@ -77,12 +77,11 @@ class AbstractClient(ABC):
         params = params or {}
         params['_format'] = 'json'
 
-        seq_matcher = SequenceMatcher(None, path, self.url)
-        match = seq_matcher.find_longest_match(0, len(path), 0, len(self.url))
-
-        if match.size > 0:
-            match_word = path[match.a:match.size]
-            path = path.replace(match_word, '')
+        split_path = path.split('/')
+        if len(split_path) > 1:
+            split_url = self.url.split('/')
+            unique_parts = [item for item in split_path if item not in split_url]
+            path = '/'.join(unique_parts)
         
         return f'{self.url}/{path.lstrip("/")}?{encode_params(params)}'
 
