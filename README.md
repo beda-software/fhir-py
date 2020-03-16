@@ -7,7 +7,11 @@
 async/sync FHIR client for python3.
 This package provides an API for CRUD operations over FHIR resources
 
-`pip install fhirpy`
+```pip install fhirpy```
+
+or to install the latest dev version:
+
+```pip install git+https://github.com/beda-software/fhir-py.git```
 
 You can test this library by interactive FHIR course in the repository [Aidbox/jupyter-course](https://github.com/Aidbox/jupyter-course).
 
@@ -16,6 +20,7 @@ You can test this library by interactive FHIR course in the repository [Aidbox/j
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
 
+- [fhir-py](#fhir-py)
 - [Getting started](#getting-started)
   - [Async example](#async-example)
   - [Searchset examples](#searchset-examples)
@@ -29,9 +34,9 @@ You can test this library by interactive FHIR course in the repository [Aidbox/j
   - [Get total count](#get-total-count)
   - [Fetch one page](#fetch-one-page)
   - [Fetch all resources on all pages](#fetch-all-resources-on-all-pages)
-  - [Page count (_count)](#page-count-_count)
-  - [Sort (_sort)](#sort-_sort)
-  - [Elements (_elements)](#elements-_elements)
+  - [Page count (_count)](#page-count-count)
+  - [Sort (_sort)](#sort-sort)
+  - [Elements (_elements)](#elements-elements)
   - [Include](#include)
     - [Modifier :iterate (or :recurse in some previous versions of FHIR)](#modifier-iterate-or-recurse-in-some-previous-versions-of-fhir)
     - [Wild card (any search parameter of type=reference be included)](#wild-card-any-search-parameter-of-typereference-be-included)
@@ -40,18 +45,19 @@ You can test this library by interactive FHIR course in the repository [Aidbox/j
 - [Resource and helper methods](#resource-and-helper-methods)
   - [Validate resource using operation $validate](#validate-resource-using-operation-validate)
   - [Accessing resource attributes](#accessing-resource-attributes)
-  - [get_by_path(path, default=None)](#get_by_pathpath-defaultnone)
+  - [get_by_path(path, default=None)](#getbypathpath-defaultnone)
   - [serialize()](#serialize)
 - [Reference](#reference-1)
   - [Main class structure](#main-class-structure)
-  - [Acync client (based on _aiohttp_) – AsyncFHIRClient](#acync-client-based-on-_aiohttp_--asyncfhirclient)
+  - [Acync client (based on _aiohttp_) – AsyncFHIRClient](#acync-client-based-on-aiohttp-%e2%80%93-asyncfhirclient)
     - [AsyncFHIRResource](#asyncfhirresource)
     - [AsyncFHIRReference](#asyncfhirreference)
     - [AsyncFHIRSearchSet](#asyncfhirsearchset)
-  - [Sync client (based on _requests_) – SyncFHIRClient](#sync-client-based-on-_requests_--syncfhirclient)
+  - [Sync client (based on _requests_) – SyncFHIRClient](#sync-client-based-on-requests-%e2%80%93-syncfhirclient)
     - [SyncFHIRResource](#syncfhirresource)
     - [SyncFHIRReference](#syncfhirreference)
     - [SyncFHIRSearchSet](#syncfhirsearchset)
+- [Run tests](#run-tests)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -463,3 +469,23 @@ The same as AsyncFHIRReference but with sync methods
 ### SyncFHIRSearchSet
 
 The same as AsyncFHIRSearchSet but with sync methods
+
+
+# Run tests
+1. Clone this repository:
+`https://github.com/beda-software/fhir-py.git`
+
+2. Go to fhir-py folder and install dev dependencies:
+```
+cd fhir-py
+pip install -r requirements.txt
+```
+
+If you've already installed fhir-py library and want to test the last changes, reinstall it by running `python setup.py install` (or uninstall `pip uninstall fhirpy`)
+
+3. Provide ENV variables `FHIR_SERVER_URL` and `FHIR_SERVER_AUTHORIZATION`, or edit tests/config.py
+
+4. Run `pytest`
+
+
+If you've found any bugs or think that some part of fhir-py is not compatible with FHIR spec, feel free to create an issues/pull request.

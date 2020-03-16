@@ -7,10 +7,11 @@ from fhirpy.lib import SyncFHIRResource
 from fhirpy.base.exceptions import (
     ResourceNotFound, OperationOutcome, MultipleResourcesFound, InvalidResponse
 )
+from .config import FHIR_SERVER_URL, FHIR_SERVER_AUTHORIZATION
 
 
 class TestLibSyncCase(object):
-    URL = 'http://localhost:8080/fhir'
+    URL = FHIR_SERVER_URL
     client = None
     identifier = [{'system': 'http://example.com/env', 'value': 'fhirpy'}]
 
@@ -32,7 +33,7 @@ class TestLibSyncCase(object):
     def setup_class(cls):
         cls.client = SyncFHIRClient(
             cls.URL,
-            authorization=_basic_auth_str('root', 'secret'),
+            authorization=FHIR_SERVER_AUTHORIZATION,
             extra_headers={'Access-Control-Allow-Origin': '*'}
         )
 

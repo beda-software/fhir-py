@@ -9,10 +9,11 @@ from fhirpy.lib import AsyncFHIRResource
 from fhirpy.base.exceptions import (
     ResourceNotFound, OperationOutcome, MultipleResourcesFound
 )
+from .config import FHIR_SERVER_URL, FHIR_SERVER_AUTHORIZATION
 
 
 class TestLibAsyncCase(object):
-    URL = 'http://localhost:8080/fhir'
+    URL = FHIR_SERVER_URL
     client = None
     identifier = [{'system': 'http://example.com/env', 'value': 'fhirpy'}]
 
@@ -33,7 +34,7 @@ class TestLibAsyncCase(object):
     @classmethod
     def setup_class(cls):
         cls.client = AsyncFHIRClient(
-            cls.URL, authorization=BasicAuth('root', 'secret').encode()
+            cls.URL, authorization=FHIR_SERVER_AUTHORIZATION
         )
 
     async def create_resource(self, resource_type, **kwargs):
