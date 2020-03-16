@@ -11,6 +11,7 @@ This package provides an API for CRUD operations over FHIR resources
 
 You can test this library by interactive FHIR course in the repository [Aidbox/jupyter-course](https://github.com/Aidbox/jupyter-course).
 
+<!-- To regenerate table of contents: doctoc README.md --maxlevel=3 -->
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
@@ -18,6 +19,11 @@ You can test this library by interactive FHIR course in the repository [Aidbox/j
 - [Getting started](#getting-started)
   - [Async example](#async-example)
   - [Searchset examples](#searchset-examples)
+    - [Chained parameters](#chained-parameters)
+    - [Reference](#reference)
+    - [Date](#date)
+    - [Modifiers](#modifiers)
+    - [Raw parameters](#raw-parameters)
   - [Get exactly one resource](#get-exactly-one-resource)
   - [Get first result](#get-first-result)
   - [Get total count](#get-total-count)
@@ -27,13 +33,16 @@ You can test this library by interactive FHIR course in the repository [Aidbox/j
   - [Sort (_sort)](#sort-_sort)
   - [Elements (_elements)](#elements-_elements)
   - [Include](#include)
+    - [Modifier :iterate (or :recurse in some previous versions of FHIR)](#modifier-iterate-or-recurse-in-some-previous-versions-of-fhir)
+    - [Wild card (any search parameter of type=reference be included)](#wild-card-any-search-parameter-of-typereference-be-included)
   - [Revinclude](#revinclude)
+    - [Wild card (any search parameter of type=reference be included)](#wild-card-any-search-parameter-of-typereference-be-included-1)
 - [Resource and helper methods](#resource-and-helper-methods)
   - [Validate resource using operation $validate](#validate-resource-using-operation-validate)
   - [Accessing resource attributes](#accessing-resource-attributes)
   - [get_by_path(path, default=None)](#get_by_pathpath-defaultnone)
   - [serialize()](#serialize)
-- [Reference](#reference)
+- [Reference](#reference-1)
   - [Main class structure](#main-class-structure)
   - [Acync client (based on _aiohttp_) – AsyncFHIRClient](#acync-client-based-on-_aiohttp_--asyncfhirclient)
     - [AsyncFHIRResource](#asyncfhirresource)
@@ -135,7 +144,7 @@ patients.search(general_practitioner__Organization__name='Hospital')
 
 ### Reference
 ```Python
-practitioner = client.resources('Practitioner').search(id='john-smith').first()
+practitioner = client.resources('Practitioner').search(_id='john-smith').first()
 patients.search(general_practitioner=practitioner)
 # /Patient?general-practitioner=Practitioner/john-smith
 ```
@@ -191,7 +200,7 @@ practitioners = client.resources('Practitioner')
 patients = client.resources('Patient')
 
 try:
-    await practitioners.search(active=True, id='id').get()
+    await practitioners.search(active=True, _id='id').get()
 except ResourceNotFound:
     pass
 except MultipleResourcesFound:
