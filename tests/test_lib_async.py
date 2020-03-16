@@ -53,7 +53,7 @@ class TestLibAsyncCase(object):
         )
 
         patient = await self.client.resources('Patient') \
-            .search(id='patient').get()
+            .search(_id='patient').get()
         assert patient['name'] == [{'text': 'My patient'}]
 
     @pytest.mark.asyncio
@@ -69,7 +69,7 @@ class TestLibAsyncCase(object):
         await patient.save()
 
         check_patient = await self.client.resources('Patient') \
-            .search(id='patient').get()
+            .search(_id='patient').get()
         assert check_patient.active is True
         assert check_patient['birthDate'] == '1945-01-12'
         assert check_patient.get_by_path(['name', 0, 'text']) == 'SomeName'
@@ -100,13 +100,13 @@ class TestLibAsyncCase(object):
         await patient.delete()
 
         with pytest.raises(ResourceNotFound):
-            await self.get_search_set('Patient').search(id='patient').get()
+            await self.get_search_set('Patient').search(_id='patient').get()
 
     @pytest.mark.asyncio
     async def test_get_not_existing_id(self):
         with pytest.raises(ResourceNotFound):
             await self.client.resources('Patient') \
-                .search(id='FHIRPypy_not_existing_id').get()
+                .search(_id='FHIRPypy_not_existing_id').get()
 
     @pytest.mark.asyncio
     async def test_get_more_than_one_resources(self):
@@ -130,11 +130,11 @@ class TestLibAsyncCase(object):
     async def test_get_resource_by_search_with_id(self):
         await self.create_resource('Patient', id='patient', gender='male')
         patient = await self.client.resources('Patient') \
-            .search(gender='male', id='patient').get()
+            .search(gender='male', _id='patient').get()
         assert patient.id == 'patient'
         with pytest.raises(ResourceNotFound):
             await self.client.resources('Patient') \
-                .search(gender='female', id='patient').get()
+                .search(gender='female', _id='patient').get()
 
     @pytest.mark.asyncio
     async def test_get_resource_by_search(self):
@@ -256,10 +256,10 @@ class TestLibAsyncCase(object):
         }
         await self.create_resource('Bundle', **bundle)
         await self.client.resources('Patient').search(
-            id='bundle_patient_1'
+            _id='bundle_patient_1'
         ).get()
         await self.client.resources('Patient').search(
-            id='bundle_patient_2'
+            _id='bundle_patient_2'
         ).get()
 
     @pytest.mark.asyncio

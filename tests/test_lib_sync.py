@@ -51,7 +51,7 @@ class TestLibSyncCase(object):
             }]
         )
 
-        patient = self.client.resources('Patient').search(id='patient').get()
+        patient = self.client.resources('Patient').search(_id='patient').get()
         assert patient['name'] == [{'text': 'My patient'}]
 
     def test_update_patient(self):
@@ -66,7 +66,7 @@ class TestLibSyncCase(object):
         patient.save()
 
         check_patient = self.client.resources('Patient') \
-            .search(id='patient').get()
+            .search(_id='patient').get()
         assert check_patient.active is True
         assert check_patient['birthDate'] == '1945-01-12'
         assert check_patient.get_by_path(['name', 0, 'text']) == 'SomeName'
@@ -94,12 +94,12 @@ class TestLibSyncCase(object):
         patient.delete()
 
         with pytest.raises(ResourceNotFound):
-            self.get_search_set('Patient').search(id='patient').get()
+            self.get_search_set('Patient').search(_id='patient').get()
 
     def test_get_not_existing_id(self):
         with pytest.raises(ResourceNotFound):
             self.client.resources('Patient') \
-                .search(id='FHIRPypy_not_existing_id').get()
+                .search(_id='FHIRPypy_not_existing_id').get()
 
     def test_get_more_than_one_resources(self):
         self.create_resource('Patient', birthDate='1901-05-25')
@@ -120,11 +120,11 @@ class TestLibSyncCase(object):
     def test_get_resource_by_search_with_id(self):
         self.create_resource('Patient', id='patient', gender='male')
         patient = self.client.resources('Patient') \
-            .search(gender='male', id='patient').get()
+            .search(gender='male', _id='patient').get()
         assert patient.id == 'patient'
         with pytest.raises(ResourceNotFound):
             self.client.resources('Patient') \
-                .search(gender='female', id='patient').get()
+                .search(gender='female', _id='patient').get()
 
     def test_get_resource_by_search(self):
         self.create_resource(
@@ -238,10 +238,10 @@ class TestLibSyncCase(object):
         }
         self.create_resource('Bundle', **bundle)
         self.client.resources('Patient').search(
-            id='bundle_patient_1'
+            _id='bundle_patient_1'
         ).get()
         self.client.resources('Patient').search(
-            id='bundle_patient_2'
+            _id='bundle_patient_2'
         ).get()
 
     def test_is_valid(self):
