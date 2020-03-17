@@ -2,6 +2,7 @@ import pytest
 from math import ceil
 from aiohttp import BasicAuth, request
 from unittest.mock import Mock, patch
+from urllib.parse import parse_qs, urlparse
 
 from fhirpy.base.utils import parse_pagination_url
 from fhirpy import AsyncFHIRClient
@@ -364,7 +365,9 @@ class TestLibAsyncCase(object):
 
         first_call_args = mocked_request.call_args_list[0][0]
         first_call_url = list(first_call_args)[1]
-        path, params = parse_pagination_url(first_call_url)
+        parsed = urlparse(first_call_url)
+        params = parse_qs(parsed.query)
+        path = parsed.path
         assert '/Patient' in path
         assert params == {
             'name': [name],

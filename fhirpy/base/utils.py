@@ -1,5 +1,6 @@
 import reprlib
 from urllib.parse import urlencode, quote, parse_qs, urlparse
+from yarl import URL
 
 
 class AttrDict(dict):
@@ -75,6 +76,8 @@ def parse_pagination_url(url):
     >>> parse_pagination_url('/Patient?_count=100&name=ivan&name=petrov')
     ('/Patient', {'_count': ['100'], 'name': ['ivan', 'petrov']})
     """
+    if URL(url).is_absolute():
+        return url, None
     parsed = urlparse(url)
     params = parse_qs(parsed.query)
     path = parsed.path

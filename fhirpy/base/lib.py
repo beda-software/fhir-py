@@ -3,15 +3,15 @@ import copy
 import warnings
 from abc import ABC, abstractmethod
 
-import yarl
 import aiohttp
 import requests
 
+from yarl import URL
 from fhirpy.base.searchset import AbstractSearchSet
 from fhirpy.base.resource import BaseResource, BaseReference
 from fhirpy.base.utils import (
-    AttrDict, encode_params,
-    get_by_path, parse_pagination_url)
+    AttrDict, encode_params, get_by_path, parse_pagination_url
+)
 from fhirpy.base.exceptions import (
     ResourceNotFound, OperationOutcome, InvalidResponse, MultipleResourcesFound
 )
@@ -73,9 +73,17 @@ class AbstractClient(ABC):
         return headers
 
     def _build_request_url(self, path, params):
+        if URL(path).is_absolute():
+            if self.url in path:
+                return path
+            else:
+                raise ValueError(
+                    f'Request url "{path}" does not contain base url "{self.url}"'
+                    ' (possible security issue)'
+                )
+
         params = params or {}
         params['_format'] = 'json'
-
         return f'{self.url}/{path.lstrip("/")}?{encode_params(params)}'
 
 
@@ -103,7 +111,6 @@ class SyncClient(AbstractClient, ABC):
     def _do_request(self, method, path, data=None, params=None):
         headers = self._build_request_headers()
         url = self._build_request_url(path, params)
-
         r = requests.request(method, url, json=data, headers=headers)
 
         if 200 <= r.status_code < 300:
@@ -178,8 +185,7 @@ class SyncSearchSet(AbstractSearchSet, ABC):
         next_link = None
         while True:
             if next_link:
-                bundle_data = self.client._fetch_resource(*parse_pagination_url(
-                    next_link))
+                bundle_data = self.client._fetch_resource(*parse_pagination_url(next_link))
             else:
                 bundle_data = self.client._fetch_resource(
                     self.resource_type, self.params
