@@ -488,4 +488,4 @@ If you've already installed fhir-py library and want to test the last changes, r
 4. Run `pytest`
 
 
-If you've found any bugs or think that some part of fhir-py is not compatible with FHIR spec, feel free to create an issues/pull request.
+If you've found any bugs or think that some part of fhir-py is not compatible with FHIR spec, feel free to create an issue/pull request.

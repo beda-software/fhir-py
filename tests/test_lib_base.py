@@ -1,7 +1,7 @@
 import pytest
 from fhirpy import SyncFHIRClient, AsyncFHIRClient
 from fhirpy.lib import BaseFHIRReference
-from fhirpy.base.utils import AttrDict, SearchList
+from fhirpy.base.utils import AttrDict, SearchList, parse_pagination_url
 
 
 @pytest.mark.parametrize(
@@ -173,3 +173,15 @@ class TestLibBase(object):
         resource = client.resource('Patient')
         resource.id = 'id'
         assert resource.reference == 'Patient/id'
+
+    def test_parse_pagination_url_absolute(self, client):
+        url = 'https://github.com/beda-software/fhir-py/search?q=fhir-py&unscoped_q=fhir-py'
+        path, params = parse_pagination_url(url)
+        assert path == url
+        assert params is None
+
+    def test_parse_pagination_url_relative(self, client):
+        url = '/Patient?_count=100&name=ivan&name=petrov'
+        path, params = parse_pagination_url(url)
+        assert path == '/Patient'
+        assert params == {'_count': ['100'], 'name': ['ivan', 'petrov']}

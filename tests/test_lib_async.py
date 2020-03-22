@@ -1,10 +1,9 @@
 import pytest
 from math import ceil
-from aiohttp import BasicAuth, request
+from aiohttp import request
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlparse
 
-from fhirpy.base.utils import parse_pagination_url
 from fhirpy import AsyncFHIRClient
 from fhirpy.lib import AsyncFHIRResource
 from fhirpy.base.exceptions import (
@@ -394,3 +393,13 @@ class TestLibAsyncCase(object):
 
         assert len(received_ids) == patients_count
         assert patient_ids == received_ids
+
+    def test_build_request_url(self):
+        url = f'{FHIR_SERVER_URL}/Patient?_count=100&name=ivan&name=petrov'
+        request_url = self.client._build_request_url(url, None)
+        assert request_url == url
+
+    def test_build_request_url_wrong_path(self):
+        url = f'https://example.com/Patient?_count=100&name=ivan&name=petrov'
+        with pytest.raises(ValueError):
+            self.client._build_request_url(url, None)
