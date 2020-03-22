@@ -7,8 +7,8 @@ from urllib.parse import parse_qs, urlparse
 from fhirpy import AsyncFHIRClient
 from fhirpy.lib import AsyncFHIRResource
 from fhirpy.base.exceptions import (
-    ResourceNotFound, OperationOutcome, MultipleResourcesFound
-)
+    ResourceNotFound, OperationOutcome, MultipleResourcesFound,
+    ChangeResourceType)
 from .config import FHIR_SERVER_URL, FHIR_SERVER_AUTHORIZATION
 
 
@@ -403,3 +403,50 @@ class TestLibAsyncCase(object):
         url = f'https://example.com/Patient?_count=100&name=ivan&name=petrov'
         with pytest.raises(ValueError):
             self.client._build_request_url(url, None)
+
+    @pytest.mark.asyncio
+    async def test_save_fields(self):
+        patient = await self.create_resource(
+            'Patient', id='patient_to_update',
+            gender='female',
+            active=False,
+            birthDate='1998-01-01',
+            name=[{'text': 'Abc'}]
+        )
+        patient['gender'] = 'male'
+        patient['birthDate'] = '1998-02-02'
+        patient['active'] = True
+        patient['name'] = [{'text': 'Bcd'}]
+        await patient.save(fields=['gender', 'birthDate'])
+
+        patient_refreshed = await patient.to_reference().to_resource()
+        assert patient_refreshed['gender'] == patient['gender']
+        assert patient_refreshed['birthDate'] == patient['birthDate']
+        assert patient_refreshed['active'] is not patient['active']
+        assert patient_refreshed['active'] is False
+        assert patient_refreshed['name'] != patient['name']
+        assert patient_refreshed['name'] == [{'text': 'Abc'}]
+
+    @pytest.mark.asyncio
+    async def test_update(self):
+        patient = await self.create_resource(
+            'Patient', id='patient_to_update',
+            name=[{'text': 'J London'}],
+            active=False
+        )
+        new_name = [{
+            'text': 'Jack London',
+            'family': 'London',
+            'given': ['Jack'],
+        }]
+        await patient.update(active=True, name=new_name)
+        patient_refreshed = await patient.to_reference().to_resource()
+        assert patient_refreshed.serialize() == patient.serialize()
+        assert patient['name'] == new_name
+        assert patient['active'] is True
+
+    @pytest.mark.asyncio
+    async def test_update_resource_type(self):
+        patient = await self.create_resource('Patient', active=True)
+        with pytest.raises(ChangeResourceType):
+            await patient.update(resourceType='Practitioner')

@@ -20,3 +20,13 @@ class OperationOutcome(BaseFHIRError):
 
 class MultipleResourcesFound(BaseFHIRError):
     pass
+
+
+class ChangeResourceType(Exception):
+    def __init__(self):
+        default_message = (
+            'Can not change `resourceType` after instantiating resource. '
+            'You must re-instantiate resource using '
+            '`Client.resource` method'
+        )
+        super().__init__(default_message)

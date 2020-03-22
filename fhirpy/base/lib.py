@@ -277,15 +277,25 @@ class AsyncSearchSet(AbstractSearchSet, ABC):
 
 
 class SyncResource(BaseResource, ABC):
-    def save(self):
+    def save(self, fields=None):
+        data = self.serialize()
+        if fields:
+            data = {key: data[key] for key in fields}
+            method = 'patch'
+        else:
+            method = 'put' if self.id else 'post'
         data = self.client._do_request(
-            'put' if self.id else 'post',
+            method,
             self._get_path(),
-            data=self.serialize()
+            data=data
         )
 
         self['meta'] = data.get('meta', {})
         self['id'] = data.get('id')
+
+    def update(self, **kwargs):
+        super(BaseResource, self).update(**kwargs)
+        self.save(fields=kwargs.keys())
 
     def delete(self):
         return self.client._do_request('delete', self._get_path())
@@ -306,15 +316,26 @@ class SyncResource(BaseResource, ABC):
 
 
 class AsyncResource(BaseResource, ABC):
-    async def save(self):
+    async def save(self, fields=None):
+        data = self.serialize()
+        if fields:
+            data = {key: data[key] for key in fields}
+            method = 'patch'
+        else:
+            method = 'put' if self.id else 'post'
+
         data = await self.client._do_request(
-            'put' if self.id else 'post',
+            method,
             self._get_path(),
-            data=self.serialize()
+            data=data
         )
 
         self['meta'] = data.get('meta', {})
         self['id'] = data.get('id')
+
+    async def update(self, **kwargs):
+        super(BaseResource, self).update(**kwargs)
+        await self.save(fields=kwargs.keys())
 
     async def delete(self):
         return await self.client._do_request('delete', self._get_path())

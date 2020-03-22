@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from fhirpy.base.exceptions import ResourceNotFound
+from fhirpy.base.exceptions import ResourceNotFound, ChangeResourceType
 from fhirpy.base.utils import parse_path, get_by_path, convert_values
 
 
@@ -34,6 +34,18 @@ class AbstractResource(dict):
             super().__setattr__(key, value)
         except AttributeError:
             self[key] = value
+
+    def update(self, **kwargs):
+        """
+        This update is a bit stricter than dict.update()
+        It allows only **kwargs
+        """
+        if (
+            kwargs and 'resourceType' in kwargs.keys() and
+            self['resourceType'] != kwargs['resourceType']
+        ):
+            raise ChangeResourceType()
+        super(AbstractResource, self).update(**kwargs)
 
     def get_by_path(self, path, default=None):
         keys = parse_path(path)
@@ -94,11 +106,7 @@ class BaseResource(AbstractResource, ABC):
 
     def __setitem__(self, key, value):
         if key == 'resourceType':
-            raise KeyError(
-                'Can not change `resourceType` after instantiating resource. '
-                'You must re-instantiate resource using '
-                '`Client.resource` method'
-            )
+            raise ChangeResourceType()
 
         super(BaseResource, self).__setitem__(key, value)
 
@@ -109,11 +117,19 @@ class BaseResource(AbstractResource, ABC):
         return self.__str__()
 
     @abstractmethod  # pragma: no cover
-    def save(self):
+    def save(self, fields=None):
+        pass
+
+    @abstractmethod  # pragma: no cover
+    def update(self, **kwargs):
         pass
 
     @abstractmethod  # pragma: no cover
     def delete(self):
+        pass
+
+    @abstractmethod  # pragma: no cover
+    def refresh(self):
         pass
 
     def to_resource(self):
