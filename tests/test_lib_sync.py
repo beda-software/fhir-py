@@ -416,3 +416,14 @@ class TestLibSyncCase(object):
         patient = self.create_resource('Patient', active=True)
         with pytest.raises(ChangeResourceType):
             patient.update(resourceType='Practitioner')
+
+    def test_refresh(self):
+        patient_id = 'refresh-patient-id'
+        patient = self.create_resource('Patient', id=patient_id, active=True)
+
+        test_patient = self.client.reference('Patient', patient_id).to_resource()
+        test_patient.update(gender='male', name=[{'text': 'Jack London'}])
+        assert patient.serialize() != test_patient.serialize()
+
+        patient.refresh()
+        assert patient.serialize() == test_patient.serialize()

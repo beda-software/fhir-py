@@ -300,6 +300,11 @@ class SyncResource(BaseResource, ABC):
     def delete(self):
         return self.client._do_request('delete', self._get_path())
 
+    def refresh(self):
+        data = self.client._do_request('get', self._get_path())
+        data.pop('resourceType')
+        super(BaseResource, self).update(**data)
+
     def is_valid(self, raise_exception=False):
         data = self.client._do_request(
             'post',
@@ -339,6 +344,11 @@ class AsyncResource(BaseResource, ABC):
 
     async def delete(self):
         return await self.client._do_request('delete', self._get_path())
+
+    async def refresh(self):
+        data = await self.client._do_request('get', self._get_path())
+        data.pop('resourceType')
+        super(BaseResource, self).update(**data)
 
     async def to_resource(self):
         return super(AsyncResource, self).to_resource()

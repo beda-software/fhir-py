@@ -41,7 +41,7 @@ class AbstractResource(dict):
         It allows only **kwargs
         """
         if (
-            kwargs and 'resourceType' in kwargs.keys() and
+            'resourceType' in kwargs.keys() and
             self['resourceType'] != kwargs['resourceType']
         ):
             raise ChangeResourceType()

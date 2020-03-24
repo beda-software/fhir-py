@@ -449,4 +449,16 @@ class TestLibAsyncCase(object):
     async def test_update_resource_type(self):
         patient = await self.create_resource('Patient', active=True)
         with pytest.raises(ChangeResourceType):
-            await patient.update(resourceType='Practitioner')
+            await patient.update(active=False, resourceType='Practitioner')
+
+    @pytest.mark.asyncio
+    async def test_refresh(self):
+        patient_id = 'refresh-patient-id'
+        patient = await self.create_resource('Patient', id=patient_id, active=True)
+
+        test_patient = await self.client.reference('Patient', patient_id).to_resource()
+        await test_patient.update(gender='male', name=[{'text': 'Jack London'}])
+        assert patient.serialize() != test_patient.serialize()
+
+        await patient.refresh()
+        assert patient.serialize() == test_patient.serialize()
