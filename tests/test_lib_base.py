@@ -1,6 +1,5 @@
 import pytest
 from fhirpy import SyncFHIRClient, AsyncFHIRClient
-from fhirpy.base.exceptions import ChangeResourceType
 from fhirpy.lib import BaseFHIRReference
 from fhirpy.base.utils import AttrDict, SearchList, parse_pagination_url
 
@@ -164,11 +163,6 @@ class TestLibBase(object):
         assert resource.id == 'patient'
         resource.setdefault('active', True)
         assert resource.active is True
-
-    def test_set_resource_type_failed(self, client):
-        resource = client.resource('Patient')
-        with pytest.raises(ChangeResourceType):
-            resource['resourceType'] = 'Practitioner'
 
     def test_reference_for_local_resource(self, client):
         resource = client.resource('Patient')

@@ -6,7 +6,7 @@ from fhirpy import SyncFHIRClient
 from fhirpy.lib import SyncFHIRResource
 from fhirpy.base.exceptions import (
     ResourceNotFound, OperationOutcome, MultipleResourcesFound, InvalidResponse,
-    ChangeResourceType)
+)
 from .config import FHIR_SERVER_URL, FHIR_SERVER_AUTHORIZATION
 
 
@@ -390,9 +390,7 @@ class TestLibSyncCase(object):
         patient_refreshed = patient.to_reference().to_resource()
         assert patient_refreshed['gender'] == patient['gender']
         assert patient_refreshed['birthDate'] == patient['birthDate']
-        assert patient_refreshed['active'] is not patient['active']
         assert patient_refreshed['active'] is False
-        assert patient_refreshed['name'] != patient['name']
         assert patient_refreshed['name'] == [{'text': 'Abc'}]
 
     def test_update(self):
@@ -411,11 +409,6 @@ class TestLibSyncCase(object):
         assert patient_refreshed.serialize() == patient.serialize()
         assert patient['name'] == new_name
         assert patient['active'] is True
-
-    def test_update_resource_type(self):
-        patient = self.create_resource('Patient', active=True)
-        with pytest.raises(ChangeResourceType):
-            patient.update(resourceType='Practitioner')
 
     def test_refresh(self):
         patient_id = 'refresh-patient-id'

@@ -284,14 +284,14 @@ class SyncResource(BaseResource, ABC):
             method = 'patch'
         else:
             method = 'put' if self.id else 'post'
-        data = self.client._do_request(
+        response_data = self.client._do_request(
             method,
             self._get_path(),
             data=data
         )
-
-        self['meta'] = data.get('meta', {})
-        self['id'] = data.get('id')
+        if response_data:
+            super(BaseResource, self).clear()
+            super(BaseResource, self).update(**response_data)
 
     def update(self, **kwargs):
         super(BaseResource, self).update(**kwargs)
@@ -302,7 +302,7 @@ class SyncResource(BaseResource, ABC):
 
     def refresh(self):
         data = self.client._do_request('get', self._get_path())
-        data.pop('resourceType')
+        super(BaseResource, self).clear()
         super(BaseResource, self).update(**data)
 
     def is_valid(self, raise_exception=False):
@@ -329,14 +329,14 @@ class AsyncResource(BaseResource, ABC):
         else:
             method = 'put' if self.id else 'post'
 
-        data = await self.client._do_request(
+        response_data = await self.client._do_request(
             method,
             self._get_path(),
             data=data
         )
-
-        self['meta'] = data.get('meta', {})
-        self['id'] = data.get('id')
+        if response_data:
+            super(BaseResource, self).clear()
+            super(BaseResource, self).update(**response_data)
 
     async def update(self, **kwargs):
         super(BaseResource, self).update(**kwargs)
@@ -347,7 +347,7 @@ class AsyncResource(BaseResource, ABC):
 
     async def refresh(self):
         data = await self.client._do_request('get', self._get_path())
-        data.pop('resourceType')
+        super(BaseResource, self).clear()
         super(BaseResource, self).update(**data)
 
     async def to_resource(self):
