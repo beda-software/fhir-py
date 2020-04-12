@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/beda-software/fhir-py.svg?branch=master)](https://travis-ci.org/beda-software/fhir-py)
+[![Build Status](https://travis-ci.com/beda-software/fhir-py.svg?branch=master)](https://travis-ci.com/beda-software/fhir-py)
 [![codecov](https://codecov.io/gh/beda-software/fhir-py/branch/master/graph/badge.svg)](https://codecov.io/gh/beda-software/fhir-py)
 [![pypi](https://img.shields.io/pypi/v/fhirpy.svg)](https://pypi.python.org/pypi/fhirpy)
 [![Supported Python version](https://img.shields.io/badge/python-3.6+-blue.svg)](https://www.python.org/downloads/release/python-360/)
