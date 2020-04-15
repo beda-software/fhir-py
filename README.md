@@ -331,12 +331,12 @@ await client.resources('EpisodeOfCare').revinclude('*') \
 ```Python
 try:
     await client.resource('Patient', birthDate='date', custom_prop='123', telecom=True) \
-        .is_valid()
+        .is_valid(raise_exception=True)
 except OperationOutcome as e:
     print('Error: {}'.format(e))
 
 patient = client.resource('Patient', birthDate='1998-01-01')
-if (await patient.is_valid(raise_exception=False)):
+if (await patient.is_valid()):
     pass
 ```
 
