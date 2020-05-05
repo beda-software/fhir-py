@@ -180,3 +180,24 @@ class TestLibBase(object):
         path, params = parse_pagination_url(url)
         assert path == '/Patient'
         assert params == {'_count': ['100'], 'name': ['ivan', 'petrov']}
+
+    def test_accessing_property_as_attribute(self, client):
+        patient = client.resource(
+            'Patient', **{
+                'id':
+                    'patient',
+                'name': [{
+                    'given': ['Firstname'],
+                    'family': 'Lastname'
+                }],
+                'gender': 'male'
+        })
+        assert patient.gender == 'male'
+        assert patient.name[0].family == 'Lastname'
+        assert patient.name[0].given[0] == 'Firstname'
+        patient.gender = 'female'
+        assert patient['gender'] == 'female'
+        patient.name[0].family = 'Jackson'
+        assert patient['name'][0]['family'] == 'Jackson'
+        patient.name[0].given.append('Hellen')
+        assert patient['name'][0]['given'] == ['Firstname', 'Hellen']

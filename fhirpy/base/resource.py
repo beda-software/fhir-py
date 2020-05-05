@@ -22,11 +22,8 @@ class AbstractResource(dict):
     def __getitem__(self, key):
         return super(AbstractResource, self).__getitem__(key)
 
-    def __getattribute__(self, key):
-        try:
-            return super().__getattribute__(key)
-        except AttributeError:
-            return self[key]
+    def __getattr__(self, key):
+        return self[key]
 
     def __setattr__(self, key, value):
         try:
