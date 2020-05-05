@@ -168,6 +168,9 @@ class TestLibBase(object):
         resource = client.resource('Patient')
         with pytest.raises(KeyError):
             resource['resourceType'] = 'Practitioner'
+        # It doesn't throw an exception because resourceType
+        # is not changing actually
+        resource['resourceType'] = 'Patient'
 
     def test_reference_for_local_resource(self, client):
         resource = client.resource('Patient')

@@ -90,7 +90,7 @@ class BaseResource(AbstractResource, ABC):
         super(BaseResource, self).__init__(client, **converted_kwargs)
 
     def __setitem__(self, key, value):
-        if key == 'resourceType':
+        if key == 'resourceType' and value != self.resource_type:
             raise KeyError(
                 'Can not change `resourceType` after instantiating resource. '
                 'You must re-instantiate resource using '
