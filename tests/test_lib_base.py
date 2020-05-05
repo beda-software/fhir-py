@@ -164,6 +164,11 @@ class TestLibBase(object):
         resource.setdefault('active', True)
         assert resource.active is True
 
+    def test_set_resource_type_failed(self, client):
+        resource = client.resource('Patient')
+        with pytest.raises(KeyError):
+            resource['resourceType'] = 'Practitioner'
+
     def test_reference_for_local_resource(self, client):
         resource = client.resource('Patient')
         resource.id = 'id'
