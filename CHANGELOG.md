@@ -3,7 +3,6 @@
 * Fix fetch_all() – use "next" value #47
 * Fix to_resource, tests and readme – replace "id" search param by "_id" #55
 * Fix for absolute url's in "next" link (fetch_all/searchset iterator). Related to #47
-* Remove exception when changing resourceType (it's unnecessary to validate anything)
 * Add .refresh() method to resource #48
 * Add .update() and save(fields=[...]) – allow to PATCH resource #31
 * Update resource on save with returned response #58
