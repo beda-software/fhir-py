@@ -410,6 +410,23 @@ class TestLibSyncCase(object):
         assert patient['name'] == new_name
         assert patient['active'] is True
 
+    def test_update_without_id(self):
+        patient = self.client.resource(
+            'Patient',
+            identifier=self.identifier,
+            name=[{'text': 'J London'}])
+        new_name = [{
+            'text': 'Jack London',
+            'family': 'London',
+            'given': ['Jack'],
+        }]
+        with pytest.raises(TypeError):
+            patient.update(active=True, name=new_name)
+        with pytest.raises(TypeError):
+            patient['name'] = new_name
+            patient.save(fields=['name'])
+        patient.save()
+
     def test_refresh(self):
         patient_id = 'refresh-patient-id'
         patient = self.create_resource('Patient', id=patient_id, active=True)

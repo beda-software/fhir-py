@@ -280,6 +280,8 @@ class SyncResource(BaseResource, ABC):
     def save(self, fields=None):
         data = self.serialize()
         if fields:
+            if not self.id:
+                raise TypeError('Resource `id` is required for update operation')
             data = {key: data[key] for key in fields}
             method = 'patch'
         else:
@@ -324,6 +326,8 @@ class AsyncResource(BaseResource, ABC):
     async def save(self, fields=None):
         data = self.serialize()
         if fields:
+            if not self.id:
+                raise TypeError('Resource `id` is required for update operation')
             data = {key: data[key] for key in fields}
             method = 'patch'
         else:

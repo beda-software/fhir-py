@@ -444,6 +444,24 @@ class TestLibAsyncCase(object):
         assert patient['active'] is True
 
     @pytest.mark.asyncio
+    async def test_update_without_id(self):
+        patient = self.client.resource(
+            'Patient',
+            identifier=self.identifier,
+            name=[{'text': 'J London'}])
+        new_name = [{
+            'text': 'Jack London',
+            'family': 'London',
+            'given': ['Jack'],
+        }]
+        with pytest.raises(TypeError):
+            await patient.update(active=True, name=new_name)
+        with pytest.raises(TypeError):
+            patient['name'] = new_name
+            await patient.save(fields=['name'])
+        await patient.save()
+
+    @pytest.mark.asyncio
     async def test_refresh(self):
         patient_id = 'refresh-patient-id'
         patient = await self.create_resource('Patient', id=patient_id, active=True)
