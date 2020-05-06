@@ -88,11 +88,12 @@ async def main():
     )
     await organization.save()
 
-    # Update organization. Resource support accessing its elements
+    # Update (PATCH) organization. Resource support accessing its elements
     # both as attribute and as a dictionary keys
     if organization['active'] is False:
         organization.active = True
-    await organization.save()
+    await organization.save(fields=['active'])
+    # `await organization.update(active=True)` would do the same PATCH operation
 
     # Get patient resource by reference and delete
     patient_ref = client.reference('Patient', 'new_patient')
@@ -415,8 +416,10 @@ Returns an instance of the connection to the server which provides:
 provides:
 * .serialize() - serializes resource
 * .get_by_path(path, default=None) – gets the value at path of resource
-* `async` .save() - creates or updates resource instance
+* `async` .save(fields=[]) - creates or updates or patches (with fields=[...]) resource instance
+* `async` .update(**kwargs) - patches resource instance
 * `async` .delete() - deletes resource instance
+* `async` .refresh() - reloads resource from a server
 * `async` .to_reference(**kwargs) - returns `AsyncFHIRReference` for this resource
 
 ### AsyncFHIRReference

@@ -277,18 +277,35 @@ class AsyncSearchSet(AbstractSearchSet, ABC):
 
 
 class SyncResource(BaseResource, ABC):
-    def save(self):
-        data = self.client._do_request(
-            'put' if self.id else 'post',
+    def save(self, fields=None):
+        data = self.serialize()
+        if fields:
+            if not self.id:
+                raise TypeError('Resource `id` is required for update operation')
+            data = {key: data[key] for key in fields}
+            method = 'patch'
+        else:
+            method = 'put' if self.id else 'post'
+        response_data = self.client._do_request(
+            method,
             self._get_path(),
-            data=self.serialize()
+            data=data
         )
+        if response_data:
+            super(BaseResource, self).clear()
+            super(BaseResource, self).update(**response_data)
 
-        self['meta'] = data.get('meta', {})
-        self['id'] = data.get('id')
+    def update(self, **kwargs):
+        super(BaseResource, self).update(**kwargs)
+        self.save(fields=kwargs.keys())
 
     def delete(self):
         return self.client._do_request('delete', self._get_path())
+
+    def refresh(self):
+        data = self.client._do_request('get', self._get_path())
+        super(BaseResource, self).clear()
+        super(BaseResource, self).update(**data)
 
     def is_valid(self, raise_exception=False):
         data = self.client._do_request(
@@ -306,18 +323,36 @@ class SyncResource(BaseResource, ABC):
 
 
 class AsyncResource(BaseResource, ABC):
-    async def save(self):
-        data = await self.client._do_request(
-            'put' if self.id else 'post',
-            self._get_path(),
-            data=self.serialize()
-        )
+    async def save(self, fields=None):
+        data = self.serialize()
+        if fields:
+            if not self.id:
+                raise TypeError('Resource `id` is required for update operation')
+            data = {key: data[key] for key in fields}
+            method = 'patch'
+        else:
+            method = 'put' if self.id else 'post'
 
-        self['meta'] = data.get('meta', {})
-        self['id'] = data.get('id')
+        response_data = await self.client._do_request(
+            method,
+            self._get_path(),
+            data=data
+        )
+        if response_data:
+            super(BaseResource, self).clear()
+            super(BaseResource, self).update(**response_data)
+
+    async def update(self, **kwargs):
+        super(BaseResource, self).update(**kwargs)
+        await self.save(fields=kwargs.keys())
 
     async def delete(self):
         return await self.client._do_request('delete', self._get_path())
+
+    async def refresh(self):
+        data = await self.client._do_request('get', self._get_path())
+        super(BaseResource, self).clear()
+        super(BaseResource, self).update(**data)
 
     async def to_resource(self):
         return super(AsyncResource, self).to_resource()

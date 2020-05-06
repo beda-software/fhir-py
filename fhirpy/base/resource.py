@@ -22,11 +22,8 @@ class AbstractResource(dict):
     def __getitem__(self, key):
         return super(AbstractResource, self).__getitem__(key)
 
-    def __getattribute__(self, key):
-        try:
-            return super().__getattribute__(key)
-        except AttributeError:
-            return self[key]
+    def __getattr__(self, key):
+        return self[key]
 
     def __setattr__(self, key, value):
         try:
@@ -93,13 +90,12 @@ class BaseResource(AbstractResource, ABC):
         super(BaseResource, self).__init__(client, **converted_kwargs)
 
     def __setitem__(self, key, value):
-        if key == 'resourceType':
+        if key == 'resourceType' and value != self.resource_type:
             raise KeyError(
                 'Can not change `resourceType` after instantiating resource. '
                 'You must re-instantiate resource using '
                 '`Client.resource` method'
             )
-
         super(BaseResource, self).__setitem__(key, value)
 
     def __str__(self):  # pragma: no cover
@@ -109,11 +105,19 @@ class BaseResource(AbstractResource, ABC):
         return self.__str__()
 
     @abstractmethod  # pragma: no cover
-    def save(self):
+    def save(self, fields=None):
+        pass
+
+    @abstractmethod  # pragma: no cover
+    def update(self, **kwargs):
         pass
 
     @abstractmethod  # pragma: no cover
     def delete(self):
+        pass
+
+    @abstractmethod  # pragma: no cover
+    def refresh(self):
         pass
 
     def to_resource(self):
