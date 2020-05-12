@@ -6,6 +6,7 @@
 * Add .refresh() method to resource #48
 * Add .update() and save(fields=[...]) – allow to PATCH resource #31
 * Update resource on save with returned response #58
+* Add client.execute() and resource.execute() methods for executing FHIR operations #60
 
 ## 1.1.0
 * Remove schemas and resource key validation #33

@@ -10,7 +10,7 @@ from fhirpy.base.exceptions import (
 from .config import FHIR_SERVER_URL, FHIR_SERVER_AUTHORIZATION
 
 
-class TestLibSyncCase(object):
+class TestLibSyncCase:
     URL = FHIR_SERVER_URL
     client = None
     identifier = [{'system': 'http://example.com/env', 'value': 'fhirpy'}]
@@ -437,3 +437,152 @@ class TestLibSyncCase(object):
 
         patient.refresh()
         assert patient.serialize() == test_patient.serialize()
+
+    def test_client_execute_lastn(self):
+        patient = self.create_resource(
+            'Patient', name=[{'text': 'John First'}]
+        )
+        observation = self.create_resource(
+            'Observation',
+            status='registered',
+            subject=patient,
+            category=[{'coding': [{
+                'code': 'vital-signs',
+                'system': 'http://terminology.hl7.org/CodeSystem/observation-category',
+                'display': 'Vital Signs',
+            }]}],
+            code={'coding': [{'code': '10000-8', 'system': 'http://loinc.org'}]}
+        )
+        response = self.client.execute(
+            'Observation/$lastn',
+            method='get',
+            params={'patient': f'Patient/{patient.id}', 'category': 'vital-signs'}
+        )
+        assert response['resourceType'] == 'Bundle'
+        assert response['total'] == 1
+        assert response['entry'][0]['resource']['id'] == observation['id']
+
+    def test_resource_execute_lastn(self):
+        patient = self.create_resource(
+            'Patient', name=[{'text': 'John First'}]
+        )
+        observation = self.create_resource(
+            'Observation',
+            status='registered',
+            subject=patient,
+            category=[{'coding': [{
+                'code': 'vital-signs',
+                'system': 'http://terminology.hl7.org/CodeSystem/observation-category',
+                'display': 'Vital Signs',
+            }]}],
+            code={'coding': [{'code': '10000-8', 'system': 'http://loinc.org'}]}
+        )
+        response = patient.execute(
+            'Observation/$lastn',
+            method='get',
+            params={'category': 'vital-signs'}
+        )
+        assert response['resourceType'] == 'Bundle'
+        assert response['total'] == 1
+        assert response['entry'][0]['resource']['id'] == observation['id']
+
+    def test_client_execute_history(self):
+        patient = self.create_resource(
+            'Patient', name=[{'text': 'John First'}]
+        )
+        response = self.client.execute(f'Patient/{patient.id}/_history', 'get')
+        assert response['resourceType'] == 'Bundle'
+        assert response['type'] == 'history'
+        assert 'entry' in response
+
+    def test_resource_execute_history(self):
+        patient = self.create_resource(
+            'Patient', name=[{'text': 'John First'}]
+        )
+        response = self.client.execute(f'Patient/{patient.id}/_history', 'get')
+        assert response['resourceType'] == 'Bundle'
+        assert response['type'] == 'history'
+        assert response['total'] == 1
+        assert 'entry' in response
+
+
+class TestLibAsyncCaseAidbox:
+    URL = 'http://localhost:8080'
+    client = None
+
+    @classmethod
+    def setup_class(cls):
+        cls.client = SyncFHIRClient(
+            cls.URL,
+            authorization=FHIR_SERVER_AUTHORIZATION,
+            extra_headers={'Access-Control-Allow-Origin': '*'}
+        )
+
+    def test_resource_execute_mapping_debug(self):
+        """
+        Specific Aidbox operation (https://docs.aidbox.app/integrations/mappings)
+        """
+        mapping = self.client.resource(
+            'Mapping',
+            body={
+                'resourceType': 'Bundle',
+                'type': 'transaction',
+                'entry': [{
+                    'request': {'url': '/fhir/Patient', 'method': 'POST'},
+                    'resource': {
+                        'resourceType': 'Patient',
+                        'name': [{'given': ['$ firstName'], 'family': '$ lastName'}]
+                    }
+                }]
+            }
+        )
+        mapping.save()
+        response = mapping.execute(
+            '$debug',
+            data={
+                'firstName': 'John',
+                'lastName': 'Smith'
+            }
+        )
+        assert response['resourceType'] == 'Bundle'
+        assert response['type'] == 'transaction'
+        assert response['entry'][0]['request'] == mapping['body']['entry'][0]['request']
+        assert response['entry'][0]['resource'] == {
+            'resourceType': 'Patient',
+            'name': [{'given': ['John'], 'family': 'Smith'}]
+        }
+
+    def test_client_execute_mapping_debug(self):
+        """
+        Specific Aidbox operation (https://docs.aidbox.app/integrations/mappings)
+        """
+        mapping = {
+            'body': {
+                'resourceType': 'Bundle',
+                'type': 'transaction',
+                'entry': [{
+                    'request': {'url': '/fhir/Patient', 'method': 'POST'},
+                    'resource': {
+                        'resourceType': 'Patient',
+                        'name': [{'given': ['$ firstName'], 'family': '$ lastName'}]
+                    }
+                }]
+            }
+        }
+        response = self.client.execute(
+            f'Mapping/$debug',
+            data={
+                'mapping': mapping,
+                'scope': {
+                    'firstName': 'John',
+                    'lastName': 'Smith'
+                }
+            }
+        )
+        assert response['resourceType'] == 'Bundle'
+        assert response['type'] == 'transaction'
+        assert response['entry'][0]['request'] == mapping['body']['entry'][0]['request']
+        assert response['entry'][0]['resource'] == {
+            'resourceType': 'Patient',
+            'name': [{'given': ['John'], 'family': 'Smith'}]
+        }

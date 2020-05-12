@@ -145,6 +145,10 @@ class BaseResource(AbstractResource, ABC):
     def is_valid(self, raise_exception=False):
         pass
 
+    @abstractmethod
+    def execute(self, operation, method=None, **kwargs):
+        pass
+
     @property
     def id(self):
         return self.get('id', None)
