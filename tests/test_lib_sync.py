@@ -1,11 +1,13 @@
 import pytest
 import responses
-from requests.auth import _basic_auth_str
 
 from fhirpy import SyncFHIRClient
 from fhirpy.lib import SyncFHIRResource
 from fhirpy.base.exceptions import (
-    ResourceNotFound, OperationOutcome, MultipleResourcesFound, InvalidResponse,
+    ResourceNotFound,
+    OperationOutcome,
+    MultipleResourcesFound,
+    InvalidResponse,
 )
 from .config import FHIR_SERVER_URL, FHIR_SERVER_AUTHORIZATION
 
@@ -439,43 +441,72 @@ class TestLibSyncCase:
         assert patient.serialize() == test_patient.serialize()
 
     def test_client_execute_lastn(self):
-        patient = self.create_resource(
-            'Patient', name=[{'text': 'John First'}]
-        )
+        patient = self.create_resource('Patient', name=[{'text': 'John First'}])
         observation = self.create_resource(
             'Observation',
             status='registered',
             subject=patient,
-            category=[{'coding': [{
-                'code': 'vital-signs',
-                'system': 'http://terminology.hl7.org/CodeSystem/observation-category',
-                'display': 'Vital Signs',
-            }]}],
-            code={'coding': [{'code': '10000-8', 'system': 'http://loinc.org'}]}
+            category=[
+                {
+                    'coding':
+                        [
+                            {
+                                'code':
+                                    'vital-signs',
+                                'system':
+                                    'http://terminology.hl7.org/CodeSystem/observation-category',
+                                'display':
+                                    'Vital Signs',
+                            }
+                        ]
+                }
+            ],
+            code={
+                'coding': [{
+                    'code': '10000-8',
+                    'system': 'http://loinc.org'
+                }]
+            }
         )
         response = self.client.execute(
             'Observation/$lastn',
             method='get',
-            params={'patient': f'Patient/{patient.id}', 'category': 'vital-signs'}
+            params={
+                'patient': f'Patient/{patient.id}',
+                'category': 'vital-signs'
+            }
         )
         assert response['resourceType'] == 'Bundle'
         assert response['total'] == 1
         assert response['entry'][0]['resource']['id'] == observation['id']
 
     def test_resource_execute_lastn(self):
-        patient = self.create_resource(
-            'Patient', name=[{'text': 'John First'}]
-        )
+        patient = self.create_resource('Patient', name=[{'text': 'John First'}])
         observation = self.create_resource(
             'Observation',
             status='registered',
             subject=patient,
-            category=[{'coding': [{
-                'code': 'vital-signs',
-                'system': 'http://terminology.hl7.org/CodeSystem/observation-category',
-                'display': 'Vital Signs',
-            }]}],
-            code={'coding': [{'code': '10000-8', 'system': 'http://loinc.org'}]}
+            category=[
+                {
+                    'coding':
+                        [
+                            {
+                                'code':
+                                    'vital-signs',
+                                'system':
+                                    'http://terminology.hl7.org/CodeSystem/observation-category',
+                                'display':
+                                    'Vital Signs',
+                            }
+                        ]
+                }
+            ],
+            code={
+                'coding': [{
+                    'code': '10000-8',
+                    'system': 'http://loinc.org'
+                }]
+            }
         )
         response = patient.execute(
             'Observation/$lastn',
@@ -487,19 +518,24 @@ class TestLibSyncCase:
         assert response['entry'][0]['resource']['id'] == observation['id']
 
     def test_client_execute_history(self):
-        patient = self.create_resource(
-            'Patient', name=[{'text': 'John First'}]
-        )
+        patient = self.create_resource('Patient', name=[{'text': 'John First'}])
         response = self.client.execute(f'Patient/{patient.id}/_history', 'get')
         assert response['resourceType'] == 'Bundle'
         assert response['type'] == 'history'
         assert 'entry' in response
 
     def test_resource_execute_history(self):
-        patient = self.create_resource(
-            'Patient', name=[{'text': 'John First'}]
-        )
-        response = self.client.execute(f'Patient/{patient.id}/_history', 'get')
+        patient = self.create_resource('Patient', name=[{'text': 'John First'}])
+        response = patient.execute('_history', 'get')
+        assert response['resourceType'] == 'Bundle'
+        assert response['type'] == 'history'
+        assert response['total'] == 1
+        assert 'entry' in response
+
+    def test_reference_execute_history(self):
+        patient = self.create_resource('Patient', name=[{'text': 'John First'}])
+        patient_ref = patient.to_reference()
+        response = patient_ref.execute('_history', 'get')
         assert response['resourceType'] == 'Bundle'
         assert response['type'] == 'history'
         assert response['total'] == 1
@@ -525,31 +561,51 @@ class TestLibAsyncCaseAidbox:
         mapping = self.client.resource(
             'Mapping',
             body={
-                'resourceType': 'Bundle',
-                'type': 'transaction',
-                'entry': [{
-                    'request': {'url': '/fhir/Patient', 'method': 'POST'},
-                    'resource': {
-                        'resourceType': 'Patient',
-                        'name': [{'given': ['$ firstName'], 'family': '$ lastName'}]
-                    }
-                }]
+                'resourceType':
+                    'Bundle',
+                'type':
+                    'transaction',
+                'entry':
+                    [
+                        {
+                            'request':
+                                {
+                                    'url': '/fhir/Patient',
+                                    'method': 'POST'
+                                },
+                            'resource':
+                                {
+                                    'resourceType':
+                                        'Patient',
+                                    'name':
+                                        [
+                                            {
+                                                'given': ['$ firstName'],
+                                                'family': '$ lastName'
+                                            }
+                                        ]
+                                }
+                        }
+                    ]
             }
         )
         mapping.save()
         response = mapping.execute(
-            '$debug',
-            data={
+            '$debug', data={
                 'firstName': 'John',
                 'lastName': 'Smith'
             }
         )
         assert response['resourceType'] == 'Bundle'
         assert response['type'] == 'transaction'
-        assert response['entry'][0]['request'] == mapping['body']['entry'][0]['request']
+        assert response['entry'][0]['request'] == mapping['body']['entry'][0][
+            'request']
         assert response['entry'][0]['resource'] == {
             'resourceType': 'Patient',
-            'name': [{'given': ['John'], 'family': 'Smith'}]
+            'name': [{
+                'given': ['John'],
+                'family': 'Smith'
+            }]
         }
 
     def test_client_execute_mapping_debug(self):
@@ -557,17 +613,35 @@ class TestLibAsyncCaseAidbox:
         Specific Aidbox operation (https://docs.aidbox.app/integrations/mappings)
         """
         mapping = {
-            'body': {
-                'resourceType': 'Bundle',
-                'type': 'transaction',
-                'entry': [{
-                    'request': {'url': '/fhir/Patient', 'method': 'POST'},
-                    'resource': {
-                        'resourceType': 'Patient',
-                        'name': [{'given': ['$ firstName'], 'family': '$ lastName'}]
-                    }
-                }]
-            }
+            'body':
+                {
+                    'resourceType':
+                        'Bundle',
+                    'type':
+                        'transaction',
+                    'entry':
+                        [
+                            {
+                                'request':
+                                    {
+                                        'url': '/fhir/Patient',
+                                        'method': 'POST'
+                                    },
+                                'resource':
+                                    {
+                                        'resourceType':
+                                            'Patient',
+                                        'name':
+                                            [
+                                                {
+                                                    'given': ['$ firstName'],
+                                                    'family': '$ lastName'
+                                                }
+                                            ]
+                                    }
+                            }
+                        ]
+                }
         }
         response = self.client.execute(
             f'Mapping/$debug',
@@ -581,8 +655,12 @@ class TestLibAsyncCaseAidbox:
         )
         assert response['resourceType'] == 'Bundle'
         assert response['type'] == 'transaction'
-        assert response['entry'][0]['request'] == mapping['body']['entry'][0]['request']
+        assert response['entry'][0]['request'] == mapping['body']['entry'][0][
+            'request']
         assert response['entry'][0]['resource'] == {
             'resourceType': 'Patient',
-            'name': [{'given': ['John'], 'family': 'Smith'}]
+            'name': [{
+                'given': ['John'],
+                'family': 'Smith'
+            }]
         }

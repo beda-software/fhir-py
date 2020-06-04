@@ -476,23 +476,43 @@ class TestLibAsyncCase:
     @pytest.mark.asyncio
     async def test_client_execute_lastn(self):
         patient = await self.create_resource(
-            'Patient', name=[{'text': 'John First'}]
+            'Patient', name=[{
+                'text': 'John First'
+            }]
         )
         observation = await self.create_resource(
             'Observation',
             status='registered',
             subject=patient,
-            category=[{'coding': [{
-                'code': 'vital-signs',
-                'system': 'http://terminology.hl7.org/CodeSystem/observation-category',
-                'display': 'Vital Signs',
-            }]}],
-            code={'coding': [{'code': '10000-8', 'system': 'http://loinc.org'}]}
+            category=[
+                {
+                    'coding':
+                        [
+                            {
+                                'code':
+                                    'vital-signs',
+                                'system':
+                                    'http://terminology.hl7.org/CodeSystem/observation-category',
+                                'display':
+                                    'Vital Signs',
+                            }
+                        ]
+                }
+            ],
+            code={
+                'coding': [{
+                    'code': '10000-8',
+                    'system': 'http://loinc.org'
+                }]
+            }
         )
         response = await self.client.execute(
             'Observation/$lastn',
             method='get',
-            params={'patient': f'Patient/{patient.id}', 'category': 'vital-signs'}
+            params={
+                'patient': f'Patient/{patient.id}',
+                'category': 'vital-signs'
+            }
         )
         assert response['resourceType'] == 'Bundle'
         assert response['total'] == 1
@@ -501,18 +521,35 @@ class TestLibAsyncCase:
     @pytest.mark.asyncio
     async def test_resource_execute_lastn(self):
         patient = await self.create_resource(
-            'Patient', name=[{'text': 'John First'}]
+            'Patient', name=[{
+                'text': 'John First'
+            }]
         )
         observation = await self.create_resource(
             'Observation',
             status='registered',
             subject=patient,
-            category=[{'coding': [{
-                'code': 'vital-signs',
-                'system': 'http://terminology.hl7.org/CodeSystem/observation-category',
-                'display': 'Vital Signs',
-            }]}],
-            code={'coding': [{'code': '10000-8', 'system': 'http://loinc.org'}]}
+            category=[
+                {
+                    'coding':
+                        [
+                            {
+                                'code':
+                                    'vital-signs',
+                                'system':
+                                    'http://terminology.hl7.org/CodeSystem/observation-category',
+                                'display':
+                                    'Vital Signs',
+                            }
+                        ]
+                }
+            ],
+            code={
+                'coding': [{
+                    'code': '10000-8',
+                    'system': 'http://loinc.org'
+                }]
+            }
         )
         response = await patient.execute(
             'Observation/$lastn',
@@ -526,9 +563,13 @@ class TestLibAsyncCase:
     @pytest.mark.asyncio
     async def test_client_execute_history(self):
         patient = await self.create_resource(
-            'Patient', name=[{'text': 'John First'}]
+            'Patient', name=[{
+                'text': 'John First'
+            }]
         )
-        response = await self.client.execute(f'Patient/{patient.id}/_history', 'get')
+        response = await self.client.execute(
+            f'Patient/{patient.id}/_history', 'get'
+        )
         assert response['resourceType'] == 'Bundle'
         assert response['type'] == 'history'
         assert 'entry' in response
@@ -536,9 +577,24 @@ class TestLibAsyncCase:
     @pytest.mark.asyncio
     async def test_resource_execute_history(self):
         patient = await self.create_resource(
-            'Patient', name=[{'text': 'John First'}]
+            'Patient', name=[{
+                'text': 'John First'
+            }]
         )
-        response = await self.client.execute(f'Patient/{patient.id}/_history', 'get')
+        response = await patient.execute('_history', 'get')
+        assert response['resourceType'] == 'Bundle'
+        assert response['type'] == 'history'
+        assert response['total'] == 1
+        assert 'entry' in response
+
+    async def test_reference_execute_history(self):
+        patient = await self.create_resource(
+            'Patient', name=[{
+                'text': 'John First'
+            }]
+        )
+        patient_ref = patient.to_reference()
+        response = await patient_ref.execute('_history', 'get')
         assert response['resourceType'] == 'Bundle'
         assert response['type'] == 'history'
         assert response['total'] == 1
@@ -563,31 +619,51 @@ class TestLibAsyncCaseAidbox:
         mapping = self.client.resource(
             'Mapping',
             body={
-                'resourceType': 'Bundle',
-                'type': 'transaction',
-                'entry': [{
-                    'request': {'url': '/fhir/Patient', 'method': 'POST'},
-                    'resource': {
-                        'resourceType': 'Patient',
-                        'name': [{'given': ['$ firstName'], 'family': '$ lastName'}]
-                    }
-                }]
+                'resourceType':
+                    'Bundle',
+                'type':
+                    'transaction',
+                'entry':
+                    [
+                        {
+                            'request':
+                                {
+                                    'url': '/fhir/Patient',
+                                    'method': 'POST'
+                                },
+                            'resource':
+                                {
+                                    'resourceType':
+                                        'Patient',
+                                    'name':
+                                        [
+                                            {
+                                                'given': ['$ firstName'],
+                                                'family': '$ lastName'
+                                            }
+                                        ]
+                                }
+                        }
+                    ]
             }
         )
         await mapping.save()
         response = await mapping.execute(
-            '$debug',
-            data={
+            '$debug', data={
                 'firstName': 'John',
                 'lastName': 'Smith'
             }
         )
         assert response['resourceType'] == 'Bundle'
         assert response['type'] == 'transaction'
-        assert response['entry'][0]['request'] == mapping['body']['entry'][0]['request']
+        assert response['entry'][0]['request'] == mapping['body']['entry'][0][
+            'request']
         assert response['entry'][0]['resource'] == {
             'resourceType': 'Patient',
-            'name': [{'given': ['John'], 'family': 'Smith'}]
+            'name': [{
+                'given': ['John'],
+                'family': 'Smith'
+            }]
         }
 
     @pytest.mark.asyncio
@@ -596,17 +672,35 @@ class TestLibAsyncCaseAidbox:
         Specific Aidbox operation (https://docs.aidbox.app/integrations/mappings)
         """
         mapping = {
-            'body': {
-                'resourceType': 'Bundle',
-                'type': 'transaction',
-                'entry': [{
-                    'request': {'url': '/fhir/Patient', 'method': 'POST'},
-                    'resource': {
-                        'resourceType': 'Patient',
-                        'name': [{'given': ['$ firstName'], 'family': '$ lastName'}]
-                    }
-                }]
-            }
+            'body':
+                {
+                    'resourceType':
+                        'Bundle',
+                    'type':
+                        'transaction',
+                    'entry':
+                        [
+                            {
+                                'request':
+                                    {
+                                        'url': '/fhir/Patient',
+                                        'method': 'POST'
+                                    },
+                                'resource':
+                                    {
+                                        'resourceType':
+                                            'Patient',
+                                        'name':
+                                            [
+                                                {
+                                                    'given': ['$ firstName'],
+                                                    'family': '$ lastName'
+                                                }
+                                            ]
+                                    }
+                            }
+                        ]
+                }
         }
         response = await self.client.execute(
             f'Mapping/$debug',
@@ -620,8 +714,12 @@ class TestLibAsyncCaseAidbox:
         )
         assert response['resourceType'] == 'Bundle'
         assert response['type'] == 'transaction'
-        assert response['entry'][0]['request'] == mapping['body']['entry'][0]['request']
+        assert response['entry'][0]['request'] == mapping['body']['entry'][0][
+            'request']
         assert response['entry'][0]['resource'] == {
             'resourceType': 'Patient',
-            'name': [{'given': ['John'], 'family': 'Smith'}]
+            'name': [{
+                'given': ['John'],
+                'family': 'Smith'
+            }]
         }

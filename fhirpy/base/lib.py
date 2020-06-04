@@ -391,9 +391,7 @@ class AsyncResource(BaseResource, ABC):
 
     async def execute(self, operation, method='post', **kwargs):
         return await self.client._do_request(
-            method,
-            '{0}/{1}'.format(self._get_path(), operation),
-            **kwargs
+            method, '{0}/{1}'.format(self._get_path(), operation), **kwargs
         )
 
 
@@ -405,8 +403,17 @@ class SyncReference(BaseReference, ABC):
         """
         if not self.is_local:
             raise ResourceNotFound('Can not resolve not local resource')
-        return self.client.resources(self.resource_type).search(
-            _id=self.id).get()
+        return self.client.resources(self.resource_type).search(_id=self.id
+                                                               ).get()
+
+    def execute(self, operation, method='post', **kwargs):
+        if not self.is_local:
+            raise ResourceNotFound('Can not execute on not local resource')
+        return self.client._do_request(
+            method,
+            '{0}/{1}/{2}'.format(self.resource_type, self.id,
+                                 operation), **kwargs
+        )
 
 
 class AsyncReference(BaseReference, ABC):
@@ -417,5 +424,14 @@ class AsyncReference(BaseReference, ABC):
         """
         if not self.is_local:
             raise ResourceNotFound('Can not resolve not local resource')
-        return await self.client.resources(
-            self.resource_type).search(_id=self.id).get()
+        return await self.client.resources(self.resource_type
+                                          ).search(_id=self.id).get()
+
+    async def execute(self, operation, method='post', **kwargs):
+        if not self.is_local:
+            raise ResourceNotFound('Can not execute on not local resource')
+        return await self.client._do_request(
+            method,
+            '{0}/{1}/{2}'.format(self.resource_type, self.id,
+                                 operation), **kwargs
+        )

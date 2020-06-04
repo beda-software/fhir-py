@@ -145,7 +145,7 @@ class BaseResource(AbstractResource, ABC):
     def is_valid(self, raise_exception=False):
         pass
 
-    @abstractmethod
+    @abstractmethod  # pragma: no cover
     def execute(self, operation, method=None, **kwargs):
         pass
 
@@ -179,6 +179,10 @@ class BaseReference(AbstractResource):
 
     @abstractmethod  # pragma: no cover
     def to_resource(self):
+        pass
+
+    @abstractmethod  # pragma: no cover
+    def execute(self, operation, method=None, **kwargs):
         pass
 
     def to_reference(self, **kwargs):
