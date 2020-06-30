@@ -410,6 +410,7 @@ Returns an instance of the connection to the server which provides:
 * .reference(resource_type, id, reference, **kwargs) - returns `AsyncFHIRReference` to the resource
 * .resource(resource_type, **kwargs) - returns `AsyncFHIRResource` which described below
 * .resources(resource_type) - returns `AsyncFHIRSearchSet`
+* .execute(path, method='post', data=None, params=None) - returns a result of FHIR operation
 
 ### AsyncFHIRResource
 
@@ -421,11 +422,13 @@ provides:
 * `async` .delete() - deletes resource instance
 * `async` .refresh() - reloads resource from a server
 * `async` .to_reference(**kwargs) - returns `AsyncFHIRReference` for this resource
+* `async` .execute(operation, method='post', data=None, params=None) - returns a result of FHIR operation on the resource
 
 ### AsyncFHIRReference
 
 provides:
 * `async` .to_resource() - returns `AsyncFHIRResource` for this reference
+* `async` .execute(operation, method='post', data=None, params=None) - returns a result of FHIR operation on the resource
 
 ### AsyncFHIRSearchSet
 
@@ -474,7 +477,7 @@ The same as AsyncFHIRReference but with sync methods
 The same as AsyncFHIRSearchSet but with sync methods
 
 
-# Run tests
+# Run integration tests (need some test FHIR server, e.g. https://docs.aidbox.app/installation/setup-aidbox.dev)
 1. Clone this repository:
 `https://github.com/beda-software/fhir-py.git`
 
@@ -489,6 +492,5 @@ If you've already installed fhir-py library and want to test the last changes, r
 3. Provide ENV variables `FHIR_SERVER_URL` and `FHIR_SERVER_AUTHORIZATION`, or edit tests/config.py
 
 4. Run `pytest`
-
 
 If you've found any bugs or think that some part of fhir-py is not compatible with FHIR spec, feel free to create an issue/pull request.
