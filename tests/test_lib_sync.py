@@ -2,7 +2,8 @@ import pytest
 import responses
 
 from fhirpy import SyncFHIRClient
-from fhirpy.lib import SyncFHIRResource
+from fhirpy.base.utils import AttrDict
+from fhirpy.lib import SyncFHIRResource, SyncFHIRReference
 from fhirpy.base.exceptions import (
     ResourceNotFound,
     OperationOutcome,
@@ -545,3 +546,70 @@ class TestLibSyncCase:
         patient_ref = self.client.reference(reference='http://external.com/Patient/p1')
         with pytest.raises(ResourceNotFound):
             patient_ref.execute('_history', 'get')
+
+    def test_references_after_save(self):
+        patient = self.create_resource(
+            'Patient', name=[{
+                'text': 'John First'
+            }]
+        )
+        practitioner = self.create_resource(
+            'Practitioner', name=[{
+                'text': 'Jack'
+            }]
+        )
+        appointment = self.client.resource(
+            "Appointment",
+            **{
+                "status": "booked",
+                "participant": [
+                    {"actor": patient, "status": "accepted"},
+                    {"actor": practitioner, "status": "accepted"},
+                ],
+            },
+        )
+        appointment.save()
+        assert isinstance(appointment.participant[0].actor, SyncFHIRReference)
+        assert isinstance(appointment.participant[0], AttrDict)
+        test_patient = appointment.participant[0].actor.to_resource()
+        assert test_patient
+
+        assert isinstance(appointment.participant[1].actor, SyncFHIRReference)
+        assert isinstance(appointment.participant[1], AttrDict)
+        test_practitioner = appointment.participant[1].actor.to_resource()
+        assert test_practitioner
+
+    async def test_references_in_resource(self):
+        patient = self.create_resource(
+            'Patient', name=[{
+                'text': 'John First'
+            }]
+        )
+        practitioner = self.create_resource(
+            'Practitioner', name=[{
+                'text': 'Jack'
+            }]
+        )
+        appointment = self.client.resource(
+            "Appointment",
+            **{
+                "status": "booked",
+                "participant": [
+                    {"actor": patient, "status": "accepted"},
+                    {"actor": practitioner, "status": "accepted"},
+                ],
+            },
+        )
+        appointment.save()
+        test_appointment = self.client.resources('Appointment') \
+            .search(_id=appointment.id).get()
+
+        assert isinstance(test_appointment.participant[0].actor, SyncFHIRReference)
+        assert isinstance(test_appointment.participant[0], AttrDict)
+        test_patient = test_appointment.participant[0].actor.to_resource()
+        assert test_patient
+
+        assert isinstance(test_appointment.participant[1].actor, SyncFHIRReference)
+        assert isinstance(test_appointment.participant[1], AttrDict)
+        test_practitioner = test_appointment.participant[1].actor.to_resource()
+        assert test_practitioner

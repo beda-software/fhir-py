@@ -303,7 +303,7 @@ class SyncResource(BaseResource, ABC):
         )
         if response_data:
             super(BaseResource, self).clear()
-            super(BaseResource, self).update(**response_data)
+            super(BaseResource, self).update(**self.client.resource(self.resource_type, **response_data))
 
     def update(self, **kwargs):
         super(BaseResource, self).update(**kwargs)
@@ -358,7 +358,7 @@ class AsyncResource(BaseResource, ABC):
         )
         if response_data:
             super(BaseResource, self).clear()
-            super(BaseResource, self).update(**response_data)
+            super(BaseResource, self).update(**self.client.resource(self.resource_type, **response_data))
 
     async def update(self, **kwargs):
         super(BaseResource, self).update(**kwargs)

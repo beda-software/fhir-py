@@ -5,7 +5,8 @@ from unittest.mock import Mock, patch
 from urllib.parse import parse_qs, urlparse
 
 from fhirpy import AsyncFHIRClient
-from fhirpy.lib import AsyncFHIRResource
+from fhirpy.base.utils import AttrDict
+from fhirpy.lib import AsyncFHIRResource, AsyncFHIRReference
 from fhirpy.base.exceptions import (
     ResourceNotFound, OperationOutcome, MultipleResourcesFound
 )
@@ -606,3 +607,72 @@ class TestLibAsyncCase:
         patient_ref = self.client.reference(reference='http://external.com/Patient/p1')
         with pytest.raises(ResourceNotFound):
             await patient_ref.execute('_history', 'get')
+
+    @pytest.mark.asyncio
+    async def test_references_after_save(self):
+        patient = await self.create_resource(
+            'Patient', name=[{
+                'text': 'John First'
+            }]
+        )
+        practitioner = await self.create_resource(
+            'Practitioner', name=[{
+                'text': 'Jack'
+            }]
+        )
+        appointment = self.client.resource(
+            "Appointment",
+            **{
+                "status": "booked",
+                "participant": [
+                    {"actor": patient, "status": "accepted"},
+                    {"actor": practitioner, "status": "accepted"},
+                ],
+            },
+        )
+        await appointment.save()
+        assert isinstance(appointment.participant[0].actor, AsyncFHIRReference)
+        assert isinstance(appointment.participant[0], AttrDict)
+        test_patient = await appointment.participant[0].actor.to_resource()
+        assert test_patient
+
+        assert isinstance(appointment.participant[1].actor, AsyncFHIRReference)
+        assert isinstance(appointment.participant[1], AttrDict)
+        test_practitioner = await appointment.participant[1].actor.to_resource()
+        assert test_practitioner
+
+    @pytest.mark.asyncio
+    async def test_references_in_resource(self):
+        patient = await self.create_resource(
+            'Patient', name=[{
+                'text': 'John First'
+            }]
+        )
+        practitioner = await self.create_resource(
+            'Practitioner', name=[{
+                'text': 'Jack'
+            }]
+        )
+        appointment = self.client.resource(
+            "Appointment",
+            **{
+                "status": "booked",
+                "participant": [
+                    {"actor": patient, "status": "accepted"},
+                    {"actor": practitioner, "status": "accepted"},
+                ],
+            },
+        )
+        await appointment.save()
+        test_appointment = await self.client.resources('Appointment') \
+            .search(_id=appointment.id).get()
+
+        assert isinstance(test_appointment.participant[0].actor, AsyncFHIRReference)
+        assert isinstance(test_appointment.participant[0], AttrDict)
+        test_patient = await test_appointment.participant[0].actor.to_resource()
+        assert test_patient
+
+        assert isinstance(test_appointment.participant[1].actor, AsyncFHIRReference)
+        assert isinstance(test_appointment.participant[1], AttrDict)
+        test_practitioner = await test_appointment.participant[1].actor.to_resource()
+        assert test_practitioner
