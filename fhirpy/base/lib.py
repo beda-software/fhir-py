@@ -56,7 +56,7 @@ class AbstractClient(ABC):
     def resources(self, resource_type):
         return self.searchset_class(self, resource_type=resource_type)
 
-    @abstractmethod
+    @abstractmethod  # pragma: no cover
     def execute(self, path, method=None, **kwargs):
         pass
 

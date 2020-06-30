@@ -587,6 +587,7 @@ class TestLibAsyncCase:
         assert response['total'] == 1
         assert 'entry' in response
 
+    @pytest.mark.asyncio
     async def test_reference_execute_history(self):
         patient = await self.create_resource(
             'Patient', name=[{
@@ -600,126 +601,8 @@ class TestLibAsyncCase:
         assert response['total'] == 1
         assert 'entry' in response
 
-
-class TestLibAsyncCaseAidbox:
-    URL = 'http://localhost:8080'
-    client = None
-
-    @classmethod
-    def setup_class(cls):
-        cls.client = AsyncFHIRClient(
-            cls.URL, authorization=FHIR_SERVER_AUTHORIZATION
-        )
-
     @pytest.mark.asyncio
-    async def test_resource_execute_mapping_debug(self):
-        """
-        Specific Aidbox operation (https://docs.aidbox.app/integrations/mappings)
-        """
-        mapping = self.client.resource(
-            'Mapping',
-            body={
-                'resourceType':
-                    'Bundle',
-                'type':
-                    'transaction',
-                'entry':
-                    [
-                        {
-                            'request':
-                                {
-                                    'url': '/fhir/Patient',
-                                    'method': 'POST'
-                                },
-                            'resource':
-                                {
-                                    'resourceType':
-                                        'Patient',
-                                    'name':
-                                        [
-                                            {
-                                                'given': ['$ firstName'],
-                                                'family': '$ lastName'
-                                            }
-                                        ]
-                                }
-                        }
-                    ]
-            }
-        )
-        await mapping.save()
-        response = await mapping.execute(
-            '$debug', data={
-                'firstName': 'John',
-                'lastName': 'Smith'
-            }
-        )
-        assert response['resourceType'] == 'Bundle'
-        assert response['type'] == 'transaction'
-        assert response['entry'][0]['request'] == mapping['body']['entry'][0][
-            'request']
-        assert response['entry'][0]['resource'] == {
-            'resourceType': 'Patient',
-            'name': [{
-                'given': ['John'],
-                'family': 'Smith'
-            }]
-        }
-
-    @pytest.mark.asyncio
-    async def test_client_execute_mapping_debug(self):
-        """
-        Specific Aidbox operation (https://docs.aidbox.app/integrations/mappings)
-        """
-        mapping = {
-            'body':
-                {
-                    'resourceType':
-                        'Bundle',
-                    'type':
-                        'transaction',
-                    'entry':
-                        [
-                            {
-                                'request':
-                                    {
-                                        'url': '/fhir/Patient',
-                                        'method': 'POST'
-                                    },
-                                'resource':
-                                    {
-                                        'resourceType':
-                                            'Patient',
-                                        'name':
-                                            [
-                                                {
-                                                    'given': ['$ firstName'],
-                                                    'family': '$ lastName'
-                                                }
-                                            ]
-                                    }
-                            }
-                        ]
-                }
-        }
-        response = await self.client.execute(
-            f'Mapping/$debug',
-            data={
-                'mapping': mapping,
-                'scope': {
-                    'firstName': 'John',
-                    'lastName': 'Smith'
-                }
-            }
-        )
-        assert response['resourceType'] == 'Bundle'
-        assert response['type'] == 'transaction'
-        assert response['entry'][0]['request'] == mapping['body']['entry'][0][
-            'request']
-        assert response['entry'][0]['resource'] == {
-            'resourceType': 'Patient',
-            'name': [{
-                'given': ['John'],
-                'family': 'Smith'
-            }]
-        }
+    async def test_reference_execute_history_not_local(self):
+        patient_ref = self.client.reference(reference='http://external.com/Patient/p1')
+        with pytest.raises(ResourceNotFound):
+            await patient_ref.execute('_history', 'get')
