@@ -2,8 +2,8 @@ from abc import ABC
 
 from fhirpy.base.resource import BaseResource, BaseReference
 from .base import (
-    SyncClient, AsyncClient, SyncSearchSet, AsyncSearchSet,
-    SyncResource, AsyncResource, SyncReference, AsyncReference
+    SyncClient, AsyncClient, SyncSearchSet, AsyncSearchSet, SyncResource,
+    AsyncResource, SyncReference, AsyncReference
 )
 
 

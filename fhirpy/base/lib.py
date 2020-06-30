@@ -57,6 +57,10 @@ class AbstractClient(ABC):
         return self.searchset_class(self, resource_type=resource_type)
 
     @abstractmethod  # pragma: no cover
+    def execute(self, path, method=None, **kwargs):
+        pass
+
+    @abstractmethod  # pragma: no cover
     def _do_request(self, method, path, data=None, params=None):
         pass
 
@@ -88,6 +92,9 @@ class AbstractClient(ABC):
 
 
 class AsyncClient(AbstractClient, ABC):
+    async def execute(self, path, method='post', **kwargs):
+        return await self._do_request(method, path, **kwargs)
+
     async def _do_request(self, method, path, data=None, params=None):
         headers = self._build_request_headers()
         url = self._build_request_url(path, params)
@@ -108,6 +115,9 @@ class AsyncClient(AbstractClient, ABC):
 
 
 class SyncClient(AbstractClient, ABC):
+    def execute(self, path, method='post', **kwargs):
+        return self._do_request(method, path, **kwargs)
+
     def _do_request(self, method, path, data=None, params=None):
         headers = self._build_request_headers()
         url = self._build_request_url(path, params)
@@ -321,6 +331,14 @@ class SyncResource(BaseResource, ABC):
             return False
         return True
 
+    def execute(self, operation, method='post', data=None, params=None):
+        return self.client._do_request(
+            method,
+            '{0}/{1}'.format(self._get_path(), operation),
+            data=data,
+            params=params
+        )
+
 
 class AsyncResource(BaseResource, ABC):
     async def save(self, fields=None):
@@ -371,6 +389,11 @@ class AsyncResource(BaseResource, ABC):
             return False
         return True
 
+    async def execute(self, operation, method='post', **kwargs):
+        return await self.client._do_request(
+            method, '{0}/{1}'.format(self._get_path(), operation), **kwargs
+        )
+
 
 class SyncReference(BaseReference, ABC):
     def to_resource(self):
@@ -380,8 +403,17 @@ class SyncReference(BaseReference, ABC):
         """
         if not self.is_local:
             raise ResourceNotFound('Can not resolve not local resource')
-        return self.client.resources(self.resource_type).search(
-            _id=self.id).get()
+        return self.client.resources(self.resource_type).search(_id=self.id
+                                                               ).get()
+
+    def execute(self, operation, method='post', **kwargs):
+        if not self.is_local:
+            raise ResourceNotFound('Can not execute on not local resource')
+        return self.client._do_request(
+            method,
+            '{0}/{1}/{2}'.format(self.resource_type, self.id,
+                                 operation), **kwargs
+        )
 
 
 class AsyncReference(BaseReference, ABC):
@@ -392,5 +424,14 @@ class AsyncReference(BaseReference, ABC):
         """
         if not self.is_local:
             raise ResourceNotFound('Can not resolve not local resource')
-        return await self.client.resources(
-            self.resource_type).search(_id=self.id).get()
+        return await self.client.resources(self.resource_type
+                                          ).search(_id=self.id).get()
+
+    async def execute(self, operation, method='post', **kwargs):
+        if not self.is_local:
+            raise ResourceNotFound('Can not execute on not local resource')
+        return await self.client._do_request(
+            method,
+            '{0}/{1}/{2}'.format(self.resource_type, self.id,
+                                 operation), **kwargs
+        )

@@ -1,16 +1,18 @@
 import pytest
 import responses
-from requests.auth import _basic_auth_str
 
 from fhirpy import SyncFHIRClient
 from fhirpy.lib import SyncFHIRResource
 from fhirpy.base.exceptions import (
-    ResourceNotFound, OperationOutcome, MultipleResourcesFound, InvalidResponse,
+    ResourceNotFound,
+    OperationOutcome,
+    MultipleResourcesFound,
+    InvalidResponse,
 )
 from .config import FHIR_SERVER_URL, FHIR_SERVER_AUTHORIZATION
 
 
-class TestLibSyncCase(object):
+class TestLibSyncCase:
     URL = FHIR_SERVER_URL
     client = None
     identifier = [{'system': 'http://example.com/env', 'value': 'fhirpy'}]
@@ -437,3 +439,109 @@ class TestLibSyncCase(object):
 
         patient.refresh()
         assert patient.serialize() == test_patient.serialize()
+
+    def test_client_execute_lastn(self):
+        patient = self.create_resource('Patient', name=[{'text': 'John First'}])
+        observation = self.create_resource(
+            'Observation',
+            status='registered',
+            subject=patient,
+            category=[
+                {
+                    'coding':
+                        [
+                            {
+                                'code':
+                                    'vital-signs',
+                                'system':
+                                    'http://terminology.hl7.org/CodeSystem/observation-category',
+                                'display':
+                                    'Vital Signs',
+                            }
+                        ]
+                }
+            ],
+            code={
+                'coding': [{
+                    'code': '10000-8',
+                    'system': 'http://loinc.org'
+                }]
+            }
+        )
+        response = self.client.execute(
+            'Observation/$lastn',
+            method='get',
+            params={
+                'patient': f'Patient/{patient.id}',
+                'category': 'vital-signs'
+            }
+        )
+        assert response['resourceType'] == 'Bundle'
+        assert response['total'] == 1
+        assert response['entry'][0]['resource']['id'] == observation['id']
+
+    def test_resource_execute_lastn(self):
+        patient = self.create_resource('Patient', name=[{'text': 'John First'}])
+        observation = self.create_resource(
+            'Observation',
+            status='registered',
+            subject=patient,
+            category=[
+                {
+                    'coding':
+                        [
+                            {
+                                'code':
+                                    'vital-signs',
+                                'system':
+                                    'http://terminology.hl7.org/CodeSystem/observation-category',
+                                'display':
+                                    'Vital Signs',
+                            }
+                        ]
+                }
+            ],
+            code={
+                'coding': [{
+                    'code': '10000-8',
+                    'system': 'http://loinc.org'
+                }]
+            }
+        )
+        response = patient.execute(
+            'Observation/$lastn',
+            method='get',
+            params={'category': 'vital-signs'}
+        )
+        assert response['resourceType'] == 'Bundle'
+        assert response['total'] == 1
+        assert response['entry'][0]['resource']['id'] == observation['id']
+
+    def test_client_execute_history(self):
+        patient = self.create_resource('Patient', name=[{'text': 'John First'}])
+        response = self.client.execute(f'Patient/{patient.id}/_history', 'get')
+        assert response['resourceType'] == 'Bundle'
+        assert response['type'] == 'history'
+        assert 'entry' in response
+
+    def test_resource_execute_history(self):
+        patient = self.create_resource('Patient', name=[{'text': 'John First'}])
+        response = patient.execute('_history', 'get')
+        assert response['resourceType'] == 'Bundle'
+        assert response['type'] == 'history'
+        assert response['total'] == 1
+        assert 'entry' in response
+
+    def test_reference_execute_history(self):
+        patient = self.create_resource('Patient', name=[{'text': 'John First'}])
+        patient_ref = patient.to_reference()
+        response = patient_ref.execute('_history', 'get')
+        assert response['resourceType'] == 'Bundle'
+        assert response['type'] == 'history'
+        assert response['total'] == 1
+        assert 'entry' in response
+
+    def test_reference_execute_history_not_local(self):
+        patient_ref = self.client.reference(reference='http://external.com/Patient/p1')
+        with pytest.raises(ResourceNotFound):
+            patient_ref.execute('_history', 'get')
