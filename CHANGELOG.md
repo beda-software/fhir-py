@@ -1,4 +1,4 @@
-## Development
+## 1.2.0
 * Add more tests
 * Fix fetch_all() – use "next" value #47
 * Fix to_resource, tests and readme – replace "id" search param by "_id" #55
