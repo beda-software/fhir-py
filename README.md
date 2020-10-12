@@ -197,7 +197,7 @@ In this case, you can use `Raw()` wrapper without any transformations
 from fhirpy.base.searchset import Raw
 
 patients = client.resources('Patient')
-patients.search(Raw('general-practitioner.name=Hospital'))
+patients.search(Raw(**{'general-practitioner.name': 'Hospital'}))
 # /Patient?general-practitioner.name=Hospital
 ```
 
