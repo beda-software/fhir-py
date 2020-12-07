@@ -203,8 +203,14 @@ patients.search(Raw(**{'general-practitioner.name': 'Hospital'}))
 
 ## Get exactly one resource
 ```Python
+try:
+    patients = client.resources('Patient').get(id=specificid)
+except ResourceNotFound:
+    pass
+```
+
+```Python
 practitioners = client.resources('Practitioner')
-patients = client.resources('Patient')
 
 try:
     await practitioners.search(active=True, _id='id').get()
