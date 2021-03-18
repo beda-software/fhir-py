@@ -371,7 +371,6 @@ class TestLibAsyncCase:
         assert '/Patient' in path
         assert params == {
             'name': [name],
-            '_format': ['json'],
             '_count': ['5']
         }
 
