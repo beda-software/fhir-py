@@ -1,7 +1,7 @@
 requests==2.22.0
 pytest>=3.6.1
 pytest-cov==2.8.1
-aiohttp==3.6.2
+aiohttp==3.7.4
 pytest-asyncio==0.10.0
 responses==0.10.8
 yapf==0.29.0
