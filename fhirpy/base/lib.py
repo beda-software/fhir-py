@@ -69,7 +69,7 @@ class AbstractClient(ABC):
         pass
 
     def _build_request_headers(self):
-        headers = {'Authorization': self.authorization}
+        headers = {'Authorization': self.authorization, 'Accept': 'application/json'}
 
         if self.extra_headers is not None:
             headers = {**headers, **self.extra_headers}
@@ -87,7 +87,6 @@ class AbstractClient(ABC):
                 )
 
         params = params or {}
-        params['_format'] = 'json'
         return f'{self.url}/{path.lstrip("/")}?{encode_params(params)}'
 
 

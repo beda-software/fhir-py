@@ -1,3 +1,6 @@
+## 1.2.1
+* Fix delete operation. Always use `Accept` header instead of `_format` #71
+
 ## 1.2.0
 * Add more tests
 * Fix fetch_all() – use "next" value #47
