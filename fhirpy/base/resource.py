@@ -23,7 +23,7 @@ class AbstractResource(dict):
         try:
             return super(AbstractResource, self).__getitem__(key)
         except KeyError as e:
-            raise AttributeError(e)
+            raise AttributeError from e
 
     def __getattr__(self, key):
         return self[key]
