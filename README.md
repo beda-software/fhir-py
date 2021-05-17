@@ -56,7 +56,7 @@ You can test this library by interactive FHIR course in the repository [Aidbox/j
     - [SyncFHIRResource](#syncfhirresource)
     - [SyncFHIRReference](#syncfhirreference)
     - [SyncFHIRSearchSet](#syncfhirsearchset)
-- [Run integration tests (need some test FHIR server, e.g. https://docs.aidbox.app/installation/setup-aidbox.dev)](#run-integration-tests-need-some-test-fhir-server-eg-httpsdocsaidboxappinstallationsetup-aidboxdev)
+- [Run integration tests](#run-integration-tests)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -485,7 +485,8 @@ The same as AsyncFHIRReference but with sync methods
 The same as AsyncFHIRSearchSet but with sync methods
 
 
-# Run integration tests (need some test FHIR server, e.g. https://docs.aidbox.app/installation/setup-aidbox.dev)
+# Run integration tests
+(need some test FHIR server to run with, e.g. https://docs.aidbox.app/installation/setup-aidbox.dev)
 1. Clone this repository:
 `https://github.com/beda-software/fhir-py.git`
 
