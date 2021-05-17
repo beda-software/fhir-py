@@ -33,9 +33,9 @@ setup(
     author_email='fhirpy@beda.software',
     packages=['fhirpy'],
     include_package_data=True,
-    install_requires=['requests>=2.19.0', 'aiohttp>=3.5.1', 'pytz'],
+    install_requires=['requests>=2.25.1', 'aiohttp>=3.6.3', 'pytz'],
     tests_require=[
-        'pytest>=3.6.1', 'pytest-asyncio>=0.10.0', 'responses>=0.10.8'
+        'pytest>=6.2.4', 'pytest-asyncio>=0.15.1', 'responses>=0.13.3'
     ],
     zip_safe=False,
     project_urls={
