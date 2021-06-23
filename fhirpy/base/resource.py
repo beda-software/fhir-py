@@ -20,7 +20,10 @@ class AbstractResource(dict):
         super(AbstractResource, self).__setitem__(key, value)
 
     def __getitem__(self, key):
-        return super(AbstractResource, self).__getitem__(key)
+        try:
+            return super(AbstractResource, self).__getitem__(key)
+        except KeyError as e:
+            raise AttributeError from e
 
     def __getattr__(self, key):
         return self[key]
