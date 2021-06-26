@@ -8,7 +8,7 @@ services:
     links:
       - devbox
   devbox:
-    image: "healthsamurai/devbox:0.4.7"
+    image: "healthsamurai/devbox:edge"
     depends_on:
       - devbox-db
     ports:
@@ -21,7 +21,7 @@ services:
       AIDBOX_LICENSE_ID: ${AIDBOX_LICENSE_ID_TESTS}
       AIDBOX_LICENSE_KEY: ${AIDBOX_LICENSE_KEY_TESTS}
   devbox-db:
-    image: "aidbox/db:11.4.0.2"
+    image: healthsamurai/aidboxdb:13.2
     environment:
       POSTGRES_USER:     postgres
       POSTGRES_PASSWORD: postgres
