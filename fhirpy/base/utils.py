@@ -203,5 +203,5 @@ def get_by_path(data, path, default=None):
                 rv = rv[key]
 
         return rv
-    except (IndexError, KeyError):
+    except (IndexError, KeyError, AttributeError):
         return default
