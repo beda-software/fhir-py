@@ -98,6 +98,8 @@ class AsyncClient(AbstractClient, ABC):
     async def _do_request(self, method, path, data=None, params=None):
         headers = self._build_request_headers()
         url = self._build_request_url(path, params)
+        if method == 'patch':
+            headers['Content-Type'] = 'application/json-patch+json'
         async with aiohttp.request(
             method, url, json=data, headers=headers
         ) as r:
