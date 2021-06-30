@@ -119,10 +119,9 @@ class SyncClient(AbstractClient, ABC):
         return self._do_request(method, path, **kwargs)
 
     def _do_request(self, method, path, data=None, params=None):
-        if method == 'patch':
-            self.extra_headers['Content-Type'] = 'application/json-patch+json'
-
         headers = self._build_request_headers()
+        if method == 'patch':
+            headers['Content-Type'] = 'application/json-patch+json'
         url = self._build_request_url(path, params)
         r = requests.request(method, url, json=data, headers=headers)
 
