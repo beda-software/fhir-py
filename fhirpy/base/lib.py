@@ -87,7 +87,7 @@ class AbstractClient(ABC):
                 )
 
         params = params or {}
-        return f'{self.url}/{path.lstrip("/")}?{encode_params(params)}'
+        return f'{self.url.rstrip("/")}/{path.lstrip("/")}?{encode_params(params)}'
 
 
 class AsyncClient(AbstractClient, ABC):
