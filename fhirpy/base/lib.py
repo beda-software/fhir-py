@@ -78,10 +78,12 @@ class AbstractClient(ABC):
 
     def _build_request_url(self, path, params):
         if URL(path).is_absolute():
-            if urllib.parse.urlparse(self.url).port != '':
+            if urllib.parse.urlparse(self.url).port:
                 parsed = urllib.parse.urlparse(path)
-                if parsed.port == '' and parsed.scheme == "https":
-                    path = parsed.scheme + '://' + parsed.netloc + ':443' + parsed.path
+                if parsed.port is None and parsed.scheme == "https":
+                    path = f'{parsed.scheme}://{parsed.netloc}:443{parsed.path}?{parsed.query}'
+                    if parsed.fragment != "":
+                        path += f'#{parsed.fragment}'
             if self.url.rstrip("/") in path.rstrip("/"):
                 return path
             else:
