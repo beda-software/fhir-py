@@ -388,8 +388,12 @@ base_value = invoice.get_by_path([
 
 ## serialize()
 ```Python
-# Returns dict
+# Returns resources as dict
+patient = await client.reference('Patient', '1').to_resource()
 patient.serialize()
+# Or 
+await client.reference('Patient', '1').to_resource().serialize()
+# {'resourceType': 'Patient', 'id': '1', 'meta': {'versionId': '1', 'lastUpdated': '2021-11-13T11:50:24.685719Z'}, ...}
 ```
 
 # Reference
