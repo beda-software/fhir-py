@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 
 import aiohttp
 import requests
+import urllib
 
 from yarl import URL
 from fhirpy.base.searchset import AbstractSearchSet
@@ -78,7 +79,13 @@ class AbstractClient(ABC):
 
     def _build_request_url(self, path, params):
         if URL(path).is_absolute():
-            if self.url in path:
+            if urllib.parse.urlparse(self.url).port:
+                parsed = urllib.parse.urlparse(path)
+                if parsed.port is None and parsed.scheme == "https":
+                    path = f'{parsed.scheme}://{parsed.netloc}:443{parsed.path}?{parsed.query}'
+                    if parsed.fragment != "":
+                        path += f'#{parsed.fragment}'
+            if self.url.rstrip("/") in path.rstrip("/"):
                 return path
             else:
                 raise ValueError(
@@ -87,7 +94,7 @@ class AbstractClient(ABC):
                 )
 
         params = params or {}
-        return f'{self.url}/{path.lstrip("/")}?{encode_params(params)}'
+        return f'{self.url.rstrip("/")}/{path.lstrip("/")}?{encode_params(params)}'
 
 
 class AsyncClient(AbstractClient, ABC):
@@ -98,7 +105,7 @@ class AsyncClient(AbstractClient, ABC):
         headers = self._build_request_headers()
         url = self._build_request_url(path, params)
         async with aiohttp.request(
-            method, url, json=data, headers=headers
+                method, url, json=data, headers=headers
         ) as r:
             if 200 <= r.status < 300:
                 data = await r.text()
@@ -323,7 +330,7 @@ class SyncResource(BaseResource, ABC):
             data=self.serialize()
         )
         if any(
-            issue['severity'] in ['fatal', 'error'] for issue in data['issue']
+                issue['severity'] in ['fatal', 'error'] for issue in data['issue']
         ):
             if raise_exception:
                 raise OperationOutcome(data)
@@ -381,7 +388,7 @@ class AsyncResource(BaseResource, ABC):
             data=self.serialize()
         )
         if any(
-            issue['severity'] in ['fatal', 'error'] for issue in data['issue']
+                issue['severity'] in ['fatal', 'error'] for issue in data['issue']
         ):
             if raise_exception:
                 raise OperationOutcome(data)
@@ -403,7 +410,7 @@ class SyncReference(BaseReference, ABC):
         if not self.is_local:
             raise ResourceNotFound('Can not resolve not local resource')
         return self.client.resources(self.resource_type).search(_id=self.id
-                                                               ).get()
+                                                                ).get()
 
     def execute(self, operation, method='post', **kwargs):
         if not self.is_local:
@@ -424,7 +431,7 @@ class AsyncReference(BaseReference, ABC):
         if not self.is_local:
             raise ResourceNotFound('Can not resolve not local resource')
         return await self.client.resources(self.resource_type
-                                          ).search(_id=self.id).get()
+                                           ).search(_id=self.id).get()
 
     async def execute(self, operation, method='post', **kwargs):
         if not self.is_local:
