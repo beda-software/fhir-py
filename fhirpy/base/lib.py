@@ -2,6 +2,7 @@ import json
 import copy
 import warnings
 from abc import ABC, abstractmethod
+from json import JSONDecodeError
 
 import aiohttp
 import requests
@@ -9,11 +10,12 @@ import requests
 from yarl import URL
 from fhirpy.base.searchset import AbstractSearchSet
 from fhirpy.base.resource import BaseResource, BaseReference
-from fhirpy.base.utils import (
-    AttrDict, encode_params, get_by_path, parse_pagination_url
-)
+from fhirpy.base.utils import AttrDict, encode_params, get_by_path, parse_pagination_url
 from fhirpy.base.exceptions import (
-    ResourceNotFound, OperationOutcome, InvalidResponse, MultipleResourcesFound
+    ResourceNotFound,
+    OperationOutcome,
+    InvalidResponse,
+    MultipleResourcesFound,
 )
 
 
@@ -28,7 +30,7 @@ class AbstractClient(ABC):
         self.extra_headers = extra_headers
 
     def __str__(self):  # pragma: no cover
-        return '<{0} {1}>'.format(self.__class__.__name__, self.url)
+        return "<{0} {1}>".format(self.__class__.__name__, self.url)
 
     def __repr__(self):  # pragma: no cover
         return self.__str__()
@@ -49,7 +51,7 @@ class AbstractClient(ABC):
 
     def resource(self, resource_type=None, **kwargs):
         if resource_type is None:
-            raise TypeError('Argument `resource_type` is required')
+            raise TypeError("Argument `resource_type` is required")
 
         return self.resource_class(self, resource_type=resource_type, **kwargs)
 
@@ -69,7 +71,7 @@ class AbstractClient(ABC):
         pass
 
     def _build_request_headers(self):
-        headers = {'Authorization': self.authorization, 'Accept': 'application/json'}
+        headers = {"Authorization": self.authorization, "Accept": "application/json"}
 
         if self.extra_headers is not None:
             headers = {**headers, **self.extra_headers}
@@ -83,7 +85,7 @@ class AbstractClient(ABC):
             else:
                 raise ValueError(
                     f'Request url "{path}" does not contain base url "{self.url}"'
-                    ' (possible security issue)'
+                    " (possible security issue)"
                 )
 
         params = params or {}
@@ -91,15 +93,13 @@ class AbstractClient(ABC):
 
 
 class AsyncClient(AbstractClient, ABC):
-    async def execute(self, path, method='post', **kwargs):
+    async def execute(self, path, method="post", **kwargs):
         return await self._do_request(method, path, **kwargs)
 
     async def _do_request(self, method, path, data=None, params=None):
         headers = self._build_request_headers()
         url = self._build_request_url(path, params)
-        async with aiohttp.request(
-            method, url, json=data, headers=headers
-        ) as r:
+        async with aiohttp.request(method, url, json=data, headers=headers) as r:
             if 200 <= r.status < 300:
                 data = await r.text()
                 return json.loads(data, object_hook=AttrDict)
@@ -107,14 +107,21 @@ class AsyncClient(AbstractClient, ABC):
             if r.status == 404 or r.status == 410:
                 raise ResourceNotFound(await r.text())
 
-            raise OperationOutcome(await r.text())
+            data = await r.text()
+            try:
+                parsed_data = json.loads(data)
+                if parsed_data["resourceType"] == "OperationOutcome":
+                    raise OperationOutcome(resource=parsed_data)
+                raise OperationOutcome(reason=data)
+            except (KeyError, JSONDecodeError):
+                raise OperationOutcome(reason=data)
 
     async def _fetch_resource(self, path, params=None):
-        return await self._do_request('get', path, params=params)
+        return await self._do_request("get", path, params=params)
 
 
 class SyncClient(AbstractClient, ABC):
-    def execute(self, path, method='post', **kwargs):
+    def execute(self, path, method="post", **kwargs):
         return self._do_request(method, path, **kwargs)
 
     def _do_request(self, method, path, data=None, params=None):
@@ -123,33 +130,40 @@ class SyncClient(AbstractClient, ABC):
         r = requests.request(method, url, json=data, headers=headers)
 
         if 200 <= r.status_code < 300:
-            return json.loads(
-                r.content.decode(), object_hook=AttrDict
-            ) if r.content else None
+            return (
+                json.loads(r.content.decode(), object_hook=AttrDict)
+                if r.content
+                else None
+            )
 
         if r.status_code == 404 or r.status_code == 410:
             raise ResourceNotFound(r.content.decode())
 
-        raise OperationOutcome(r.content.decode())
+        data = r.content.decode()
+        try:
+            parsed_data = json.loads(data)
+            if parsed_data["resourceType"] == "OperationOutcome":
+                raise OperationOutcome(resource=parsed_data)
+            raise OperationOutcome(reason=data)
+        except (KeyError, JSONDecodeError):
+            raise OperationOutcome(reason=data)
 
     def _fetch_resource(self, path, params=None):
-        return self._do_request('get', path, params=params)
+        return self._do_request("get", path, params=params)
 
 
 class SyncSearchSet(AbstractSearchSet, ABC):
     def fetch(self):
-        bundle_data = self.client._fetch_resource(
-            self.resource_type, self.params
-        )
+        bundle_data = self.client._fetch_resource(self.resource_type, self.params)
         resources = self._get_bundle_resources(bundle_data)
         return resources
 
     def fetch_raw(self):
         data = self.client._fetch_resource(self.resource_type, self.params)
-        data_resource_type = data.get('resourceType', None)
+        data_resource_type = data.get("resourceType", None)
 
-        if data_resource_type == 'Bundle':
-            for item in data['entry']:
+        if data_resource_type == "Bundle":
+            for item in data["entry"]:
                 item.resource = self._perform_resource(item.resource)
 
         return data
@@ -165,25 +179,25 @@ class SyncSearchSet(AbstractSearchSet, ABC):
                 "and will be removed in future versions. "
                 "Please use 'search(id='...').get()'",
                 DeprecationWarning,
-                stacklevel=2
+                stacklevel=2,
             )
             searchset = searchset.search(_id=id)
         res_data = searchset.fetch()
         if len(res_data) == 0:
-            raise ResourceNotFound('No resources found')
+            raise ResourceNotFound("No resources found")
         elif len(res_data) > 1:
-            raise MultipleResourcesFound('More than one resource found')
+            raise MultipleResourcesFound("More than one resource found")
         resource = res_data[0]
         return self._perform_resource(resource)
 
     def count(self):
         new_params = copy.deepcopy(self.params)
-        new_params['_count'] = 0
-        new_params['_totalMethod'] = 'count'
+        new_params["_count"] = 0
+        new_params["_totalMethod"] = "count"
 
-        return self.client._fetch_resource(
-            self.resource_type, params=new_params
-        )['total']
+        return self.client._fetch_resource(self.resource_type, params=new_params)[
+            "total"
+        ]
 
     def first(self):
         result = self.limit(1).fetch()
@@ -194,13 +208,15 @@ class SyncSearchSet(AbstractSearchSet, ABC):
         next_link = None
         while True:
             if next_link:
-                bundle_data = self.client._fetch_resource(*parse_pagination_url(next_link))
+                bundle_data = self.client._fetch_resource(
+                    *parse_pagination_url(next_link)
+                )
             else:
                 bundle_data = self.client._fetch_resource(
                     self.resource_type, self.params
                 )
             new_resources = self._get_bundle_resources(bundle_data)
-            next_link = get_by_path(bundle_data, ['link', {'relation': 'next'}, 'url'])
+            next_link = get_by_path(bundle_data, ["link", {"relation": "next"}, "url"])
 
             for item in new_resources:
                 yield item
@@ -211,20 +227,16 @@ class SyncSearchSet(AbstractSearchSet, ABC):
 
 class AsyncSearchSet(AbstractSearchSet, ABC):
     async def fetch(self):
-        bundle_data = await self.client._fetch_resource(
-            self.resource_type, self.params
-        )
+        bundle_data = await self.client._fetch_resource(self.resource_type, self.params)
         resources = self._get_bundle_resources(bundle_data)
         return resources
 
     async def fetch_raw(self):
-        data = await self.client._fetch_resource(
-            self.resource_type, self.params
-        )
-        data_resource_type = data.get('resourceType', None)
+        data = await self.client._fetch_resource(self.resource_type, self.params)
+        data_resource_type = data.get("resourceType", None)
 
-        if data_resource_type == 'Bundle':
-            for item in data['entry']:
+        if data_resource_type == "Bundle":
+            for item in data["entry"]:
                 item.resource = self._perform_resource(item.resource)
 
         return data
@@ -240,26 +252,25 @@ class AsyncSearchSet(AbstractSearchSet, ABC):
                 "and will be removed in future versions. "
                 "Please use 'search(id='...').get()'",
                 DeprecationWarning,
-                stacklevel=2
+                stacklevel=2,
             )
             searchset = searchset.search(_id=id)
         res_data = await searchset.fetch()
         if len(res_data) == 0:
-            raise ResourceNotFound('No resources found')
+            raise ResourceNotFound("No resources found")
         elif len(res_data) > 1:
-            raise MultipleResourcesFound('More than one resource found')
+            raise MultipleResourcesFound("More than one resource found")
         resource = res_data[0]
         return self._perform_resource(resource)
 
     async def count(self):
         new_params = copy.deepcopy(self.params)
-        new_params['_count'] = 0
-        new_params['_totalMethod'] = 'count'
+        new_params["_count"] = 0
+        new_params["_totalMethod"] = "count"
 
         return (
-            await
-            self.client._fetch_resource(self.resource_type, params=new_params)
-        )['total']
+            await self.client._fetch_resource(self.resource_type, params=new_params)
+        )["total"]
 
     async def first(self):
         result = await self.limit(1).fetch()
@@ -270,13 +281,15 @@ class AsyncSearchSet(AbstractSearchSet, ABC):
         next_link = None
         while True:
             if next_link:
-                bundle_data = await self.client._fetch_resource(*parse_pagination_url(next_link))
+                bundle_data = await self.client._fetch_resource(
+                    *parse_pagination_url(next_link)
+                )
             else:
                 bundle_data = await self.client._fetch_resource(
                     self.resource_type, self.params
                 )
             new_resources = self._get_bundle_resources(bundle_data)
-            next_link = get_by_path(bundle_data, ['link', {'relation': 'next'}, 'url'])
+            next_link = get_by_path(bundle_data, ["link", {"relation": "next"}, "url"])
 
             for item in new_resources:
                 yield item
@@ -290,52 +303,46 @@ class SyncResource(BaseResource, ABC):
         data = self.serialize()
         if fields:
             if not self.id:
-                raise TypeError('Resource `id` is required for update operation')
+                raise TypeError("Resource `id` is required for update operation")
             data = {key: data[key] for key in fields}
-            method = 'patch'
+            method = "patch"
         else:
-            method = 'put' if self.id else 'post'
-        response_data = self.client._do_request(
-            method,
-            self._get_path(),
-            data=data
-        )
+            method = "put" if self.id else "post"
+        response_data = self.client._do_request(method, self._get_path(), data=data)
         if response_data:
             super(BaseResource, self).clear()
-            super(BaseResource, self).update(**self.client.resource(self.resource_type, **response_data))
+            super(BaseResource, self).update(
+                **self.client.resource(self.resource_type, **response_data)
+            )
 
     def update(self, **kwargs):
         super(BaseResource, self).update(**kwargs)
         self.save(fields=kwargs.keys())
 
     def delete(self):
-        return self.client._do_request('delete', self._get_path())
+        return self.client._do_request("delete", self._get_path())
 
     def refresh(self):
-        data = self.client._do_request('get', self._get_path())
+        data = self.client._do_request("get", self._get_path())
         super(BaseResource, self).clear()
         super(BaseResource, self).update(**data)
 
     def is_valid(self, raise_exception=False):
         data = self.client._do_request(
-            'post',
-            '{0}/$validate'.format(self.resource_type),
-            data=self.serialize()
+            "post", "{0}/$validate".format(self.resource_type), data=self.serialize()
         )
-        if any(
-            issue['severity'] in ['fatal', 'error'] for issue in data['issue']
-        ):
+        if any(issue["severity"] in ["fatal", "error"] for issue in data["issue"]):
             if raise_exception:
-                raise OperationOutcome(data)
+                raise OperationOutcome(resource=data)
             return False
         return True
 
-    def execute(self, operation, method='post', data=None, params=None):
+    def execute(self, operation, method="post", data=None, params=None):
         return self.client._do_request(
             method,
-            '{0}/{1}'.format(self._get_path(), operation),
+            "{0}/{1}".format(self._get_path(), operation),
             data=data,
-            params=params
+            params=params,
         )
 
 
@@ -344,30 +351,30 @@ class AsyncResource(BaseResource, ABC):
         data = self.serialize()
         if fields:
             if not self.id:
-                raise TypeError('Resource `id` is required for update operation')
+                raise TypeError("Resource `id` is required for update operation")
             data = {key: data[key] for key in fields}
-            method = 'patch'
+            method = "patch"
         else:
-            method = 'put' if self.id else 'post'
+            method = "put" if self.id else "post"
 
         response_data = await self.client._do_request(
-            method,
-            self._get_path(),
-            data=data
+            method, self._get_path(), data=data
         )
         if response_data:
             super(BaseResource, self).clear()
-            super(BaseResource, self).update(**self.client.resource(self.resource_type, **response_data))
+            super(BaseResource, self).update(
+                **self.client.resource(self.resource_type, **response_data)
+            )
 
     async def update(self, **kwargs):
         super(BaseResource, self).update(**kwargs)
         await self.save(fields=kwargs.keys())
 
     async def delete(self):
-        return await self.client._do_request('delete', self._get_path())
+        return await self.client._do_request("delete", self._get_path())
 
     async def refresh(self):
-        data = await self.client._do_request('get', self._get_path())
+        data = await self.client._do_request("get", self._get_path())
         super(BaseResource, self).clear()
         super(BaseResource, self).update(**data)
 
@@ -376,21 +383,17 @@ class AsyncResource(BaseResource, ABC):
 
     async def is_valid(self, raise_exception=False):
         data = await self.client._do_request(
-            'post',
-            '{0}/$validate'.format(self.resource_type),
-            data=self.serialize()
+            "post", "{0}/$validate".format(self.resource_type), data=self.serialize()
         )
-        if any(
-            issue['severity'] in ['fatal', 'error'] for issue in data['issue']
-        ):
+        if any(issue["severity"] in ["fatal", "error"] for issue in data["issue"]):
             if raise_exception:
-                raise OperationOutcome(data)
+                raise OperationOutcome(resource=data)
             return False
         return True
 
-    async def execute(self, operation, method='post', **kwargs):
+    async def execute(self, operation, method="post", **kwargs):
         return await self.client._do_request(
-            method, '{0}/{1}'.format(self._get_path(), operation), **kwargs
+            method, "{0}/{1}".format(self._get_path(), operation), **kwargs
         )
 
 
@@ -401,17 +404,16 @@ class SyncReference(BaseReference, ABC):
         from fhir server otherwise.
         """
         if not self.is_local:
-            raise ResourceNotFound('Can not resolve not local resource')
-        return self.client.resources(self.resource_type).search(_id=self.id
-                                                               ).get()
+            raise ResourceNotFound("Can not resolve not local resource")
+        return self.client.resources(self.resource_type).search(_id=self.id).get()
 
-    def execute(self, operation, method='post', **kwargs):
+    def execute(self, operation, method="post", **kwargs):
         if not self.is_local:
-            raise ResourceNotFound('Can not execute on not local resource')
+            raise ResourceNotFound("Can not execute on not local resource")
         return self.client._do_request(
             method,
-            '{0}/{1}/{2}'.format(self.resource_type, self.id,
-                                 operation), **kwargs
+            "{0}/{1}/{2}".format(self.resource_type, self.id, operation),
+            **kwargs,
         )
 
 
@@ -422,15 +424,14 @@ class AsyncReference(BaseReference, ABC):
         from fhir server otherwise.
         """
         if not self.is_local:
-            raise ResourceNotFound('Can not resolve not local resource')
-        return await self.client.resources(self.resource_type
-                                          ).search(_id=self.id).get()
+            raise ResourceNotFound("Can not resolve not local resource")
+        return await self.client.resources(self.resource_type).search(_id=self.id).get()
 
-    async def execute(self, operation, method='post', **kwargs):
+    async def execute(self, operation, method="post", **kwargs):
         if not self.is_local:
-            raise ResourceNotFound('Can not execute on not local resource')
+            raise ResourceNotFound("Can not execute on not local resource")
         return await self.client._do_request(
             method,
-            '{0}/{1}/{2}'.format(self.resource_type, self.id,
-                                 operation), **kwargs
+            "{0}/{1}/{2}".format(self.resource_type, self.id, operation),
+            **kwargs,
         )
