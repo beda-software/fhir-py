@@ -97,6 +97,8 @@ class AsyncClient(AbstractClient, ABC):
     async def _do_request(self, method, path, data=None, params=None):
         headers = self._build_request_headers()
         url = self._build_request_url(path, params)
+        if method == 'patch':
+            headers['Content-Type'] = 'application/json-patch+json'
         async with aiohttp.request(
             method, url, json=data, headers=headers
         ) as r:
@@ -119,6 +121,8 @@ class SyncClient(AbstractClient, ABC):
 
     def _do_request(self, method, path, data=None, params=None):
         headers = self._build_request_headers()
+        if method == 'patch':
+            headers['Content-Type'] = 'application/json-patch+json'
         url = self._build_request_url(path, params)
         r = requests.request(method, url, json=data, headers=headers)
 
@@ -288,10 +292,20 @@ class AsyncSearchSet(AbstractSearchSet, ABC):
 class SyncResource(BaseResource, ABC):
     def save(self, fields=None):
         data = self.serialize()
-        if fields:
+        if fields:  # Use FHIRPatch if fields for partial update are defined http://hl7.org/fhir/http.html#patch
             if not self.id:
                 raise TypeError('Resource `id` is required for update operation')
-            data = {key: data[key] for key in fields}
+            request_data = []
+            for key in fields:
+                operator = 'add'  #TODO add logic to support other operators
+                request_data.append(
+                    {
+                        'op': operator,
+                        'path': f'/{key}',
+                        'value': data[key]
+                    }
+                )
+            data = request_data
             method = 'patch'
         else:
             method = 'put' if self.id else 'post'
