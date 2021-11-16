@@ -1,3 +1,10 @@
+## 1.3.0
+
+* Fix resource fetching for /fhir base urls #81
+* is_valid should return OperationOutcome(data=data) #50
+* OperationOutcome returns dumped json on save #53
+* Format code
+
 ## 1.2.1
 * Fix delete operation. Always use `Accept` header instead of `_format` #71
 
