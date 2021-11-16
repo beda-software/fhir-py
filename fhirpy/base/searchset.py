@@ -9,8 +9,8 @@ from fhirpy.base.resource import BaseResource, BaseReference
 from fhirpy.base.utils import chunks, encode_params
 from fhirpy.base.exceptions import InvalidResponse
 
-FHIR_DATE_TIME_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
-FHIR_DATE_FORMAT = '%Y-%m-%d'
+FHIR_DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+FHIR_DATE_FORMAT = "%Y-%m-%d"
 
 
 def format_date_time(date: datetime.datetime):
@@ -26,11 +26,11 @@ def transform_param(param: str):
     >>> transform_param('general_practitioner')
     'general-practitioner'
     """
-    if param[0] == '_' or param[0] == '.':
+    if param[0] == "_" or param[0] == ".":
         # Don't correct _id, _has, _include, .effectiveDate and etc.
         return param
 
-    return param.replace('_', '-')
+    return param.replace("_", "-")
 
 
 def transform_value(value):
@@ -49,7 +49,7 @@ def transform_value(value):
     if isinstance(value, datetime.date):
         return format_date(value)
     if isinstance(value, bool):
-        return 'true' if value else 'false'
+        return "true" if value else "false"
     if isinstance(value, (BaseReference, BaseResource)):
         return value.reference
     return value
@@ -114,7 +114,7 @@ def SQ(*args, **kwargs):
         value = value if isinstance(value, list) else [value]
         value = [transform_value(sub_value) for sub_value in value]
 
-        key_parts = key.split('__')
+        key_parts = key.split("__")
 
         op = None
         if len(key_parts) % 2 == 0:
@@ -126,16 +126,25 @@ def SQ(*args, **kwargs):
         base_param, *chained_params = key_parts
         param_parts = [base_param]
         if chained_params:
-            param_parts.extend([
-                '.'.join(pair) for pair in chunks(chained_params, 2)])
-        param = ':'.join(param_parts)
+            param_parts.extend([".".join(pair) for pair in chunks(chained_params, 2)])
+        param = ":".join(param_parts)
 
         if op:
-            if op in ['contains', 'exact', 'missing', 'not',
-                      'below', 'above', 'in', 'not_in', 'text', 'of_type']:
-                param = '{0}:{1}'.format(param, transform_param(op))
-            elif op in ['eq', 'ne', 'gt', 'ge', 'lt', 'le', 'sa', 'eb', 'ap']:
-                value = ['{0}{1}'.format(op, sub_value) for sub_value in value]
+            if op in [
+                "contains",
+                "exact",
+                "missing",
+                "not",
+                "below",
+                "above",
+                "in",
+                "not_in",
+                "text",
+                "of_type",
+            ]:
+                param = "{0}:{1}".format(param, transform_param(op))
+            elif op in ["eq", "ne", "gt", "ge", "lt", "le", "sa", "eb", "ap"]:
+                value = ["{0}{1}".format(op, sub_value) for sub_value in value]
         res[transform_param(param)].extend(value)
 
     for arg in args:
@@ -144,7 +153,7 @@ def SQ(*args, **kwargs):
                 value = value if isinstance(value, list) else [value]
                 res[key].extend(value)
         else:
-            raise ValueError('Can\'t handle args without Raw() wrapper')
+            raise ValueError("Can't handle args without Raw() wrapper")
 
     return res
 
@@ -160,7 +169,7 @@ class AbstractSearchSet(ABC):
         self.params = defaultdict(list, params or {})
 
     def _perform_resource(self, data):
-        resource_type = data.get('resourceType', None)
+        resource_type = data.get("resourceType", None)
         resource = self.client.resource(resource_type, **data)
         return resource
 
@@ -204,31 +213,28 @@ class AbstractSearchSet(ABC):
     def elements(self, *attrs, exclude=False):
         attrs = set(attrs)
         if not exclude:
-            attrs |= {'id', 'resourceType'}
+            attrs |= {"id", "resourceType"}
         attrs = [attr for attr in attrs]
 
         return self.clone(
-            _elements='{0}{1}'.format('-' if exclude else '', ','.join(attrs)),
-            override=True
+            _elements="{0}{1}".format("-" if exclude else "", ",".join(attrs)),
+            override=True,
         )
 
     def has(self, *args, **kwargs):
         if len(args) % 2 != 0:
             raise TypeError(
-                'You should pass even size of arguments, for example: '
-                '`.has(\'Observation\', \'patient\', '
-                '\'AuditEvent\', \'entity\', user=\'id\')`'
+                "You should pass even size of arguments, for example: "
+                "`.has('Observation', 'patient', "
+                "'AuditEvent', 'entity', user='id')`"
             )
 
-        key_part = ':'.join(
-            ['_has:{0}'.format(':'.join(pair)) for pair in chunks(args, 2)]
+        key_part = ":".join(
+            ["_has:{0}".format(":".join(pair)) for pair in chunks(args, 2)]
         )
 
         return self.clone(
-            **{
-                ':'.join([key_part, key]): value
-                for key, value in SQ(**kwargs).items()
-            }
+            **{":".join([key_part, key]): value for key, value in SQ(**kwargs).items()}
         )
 
     def include(
@@ -241,28 +247,27 @@ class AbstractSearchSet(ABC):
         iterate=False,
         reverse=False
     ):
-        key_params = ['_revinclude' if reverse else '_include']
+        key_params = ["_revinclude" if reverse else "_include"]
 
         if iterate:
             # Added in FHIR v3.5
-            key_params.append('iterate')
+            key_params.append("iterate")
         if recursive:
             # Works for FHIR v3.0-3.3
-            key_params.append('recursive')
-        key = ':'.join(key_params)
+            key_params.append("recursive")
+        key = ":".join(key_params)
 
-        if resource_type == '*':
-            value = '*'
+        if resource_type == "*":
+            value = "*"
         else:
             if not attr:
                 raise TypeError(
-                    'You should provide attr '
-                    '(search parameter) argument'
+                    "You should provide attr " "(search parameter) argument"
                 )
             value_params = [resource_type, attr]
             if target_resource_type:
                 value_params.append(target_resource_type)
-            value = ':'.join(value_params)
+            value = ":".join(value_params)
 
         return self.clone(**{key: value})
 
@@ -281,7 +286,7 @@ class AbstractSearchSet(ABC):
             target_resource_type=target_resource_type,
             recursive=recursive,
             iterate=iterate,
-            reverse=True
+            reverse=True,
         )
 
     def search(self, *args, **kwargs):
@@ -291,30 +296,27 @@ class AbstractSearchSet(ABC):
         return self.clone(_count=limit, override=True)
 
     def sort(self, *keys):
-        sort_keys = ','.join(keys)
+        sort_keys = ",".join(keys)
         return self.clone(_sort=sort_keys, override=True)
 
     def __str__(self):  # pragma: no cover
-        return '<{0} {1}?{2}>'.format(
-            self.__class__.__name__, self.resource_type,
-            encode_params(self.params)
+        return "<{0} {1}?{2}>".format(
+            self.__class__.__name__, self.resource_type, encode_params(self.params)
         )
 
     def __repr__(self):  # pragma: no cover
         return self.__str__()
 
     def _get_bundle_resources(self, bundle_data):
-        bundle_resource_type = bundle_data.get('resourceType', None)
+        bundle_resource_type = bundle_data.get("resourceType", None)
 
-        if bundle_resource_type != 'Bundle':
+        if bundle_resource_type != "Bundle":
             raise InvalidResponse(
-                'Expected to receive Bundle '
-                'but {0} received'.format(bundle_resource_type)
+                "Expected to receive Bundle "
+                "but {0} received".format(bundle_resource_type)
             )
 
-        resources_data = [
-            res['resource'] for res in bundle_data.get('entry', [])
-        ]
+        resources_data = [res["resource"] for res in bundle_data.get("entry", [])]
 
         resources = []
         for data in resources_data:

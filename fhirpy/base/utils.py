@@ -27,7 +27,7 @@ def chunks(l, n):
     [[1, 2], [3, 4]]
     """
     for i in range(0, len(l), n):
-        yield l[i:i + n]
+        yield l[i : i + n]
 
 
 def unique_everseen(seq):
@@ -64,8 +64,8 @@ def encode_params(params):
             for k, v in params.items()
         },
         doseq=True,
-        safe=':,',
-        quote_via=quote
+        safe=":,",
+        quote_via=quote,
     )
 
 
@@ -121,10 +121,7 @@ def convert_values(data, fn):
     if isinstance(data, list):
         return SearchList(convert_values(x, fn) for x in data)
     if isinstance(data, dict):
-        return AttrDict(
-            {key: convert_values(value, fn)
-             for key, value in data.items()}
-        )
+        return AttrDict({key: convert_values(value, fn) for key, value in data.items()})
     return data
 
 
@@ -137,11 +134,11 @@ def parse_path(path):
     ['path', 'to', 0, 'element']
     """
     if isinstance(path, str):
-        return [int(key) if key.isdigit() else key for key in path.split('.')]
+        return [int(key) if key.isdigit() else key for key in path.split(".")]
     elif isinstance(path, list):
         return path
     else:  # pragma: no cover
-        raise TypeError('Path must be or a dotted string or a list')
+        raise TypeError("Path must be or a dotted string or a list")
 
 
 def get_by_path(data, path, default=None):
@@ -169,7 +166,7 @@ def get_by_path(data, path, default=None):
     >>> get_by_path({'a': {'b': None}}, ['a', 'b', 'c'], 0)
     0
     """
-    assert isinstance(path, list), 'Path must be a list'
+    assert isinstance(path, list), "Path must be a list"
 
     rv = data
     try:
@@ -183,9 +180,7 @@ def get_by_path(data, path, default=None):
                 elif isinstance(key, dict):
                     matched_index = -1
                     for index, item in enumerate(rv):
-                        if all(
-                            [item.get(k, None) == v for k, v in key.items()]
-                        ):
+                        if all([item.get(k, None) == v for k, v in key.items()]):
                             matched_index = index
                             break
                     if matched_index == -1:
@@ -194,8 +189,8 @@ def get_by_path(data, path, default=None):
                         rv = rv[matched_index]
                 else:  # pragma: no cover
                     raise TypeError(
-                        'Can not lookup by {0} in list. '
-                        'Possible lookups are by int or by dict.'.format(
+                        "Can not lookup by {0} in list. "
+                        "Possible lookups are by int or by dict.".format(
                             reprlib.repr(key)
                         )
                     )
@@ -205,3 +200,7 @@ def get_by_path(data, path, default=None):
         return rv
     except (IndexError, KeyError, AttributeError):
         return default
+
+
+def remove_prefix(s, prefix):
+    return s[len(prefix) :] if s.startswith(prefix) else s

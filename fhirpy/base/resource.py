@@ -13,8 +13,7 @@ class AbstractResource(dict):
         super(AbstractResource, self).__init__(**kwargs)
 
     def __eq__(self, other):
-        return isinstance(other, AbstractResource) \
-               and self.reference == other.reference
+        return isinstance(other, AbstractResource) and self.reference == other.reference
 
     def __setitem__(self, key, value):
         super(AbstractResource, self).__setitem__(key, value)
@@ -55,10 +54,7 @@ class AbstractResource(dict):
             else:
                 return item, False
 
-        return convert_values(
-            {key: value
-             for key, value in self.items()}, convert_fn
-        )
+        return convert_values({key: value for key, value in self.items()}, convert_fn)
 
     @property
     def id(self):  # pragma: no cover
@@ -87,22 +83,22 @@ class BaseResource(AbstractResource, ABC):
             return item, False
 
         self.resource_type = resource_type
-        kwargs['resourceType'] = resource_type
+        kwargs["resourceType"] = resource_type
         converted_kwargs = convert_values(kwargs, convert_fn)
 
         super(BaseResource, self).__init__(client, **converted_kwargs)
 
     def __setitem__(self, key, value):
-        if key == 'resourceType' and value != self.resource_type:
+        if key == "resourceType" and value != self.resource_type:
             raise KeyError(
-                'Can not change `resourceType` after instantiating resource. '
-                'You must re-instantiate resource using '
-                '`Client.resource` method'
+                "Can not change `resourceType` after instantiating resource. "
+                "You must re-instantiate resource using "
+                "`Client.resource` method"
             )
         super(BaseResource, self).__setitem__(key, value)
 
     def __str__(self):  # pragma: no cover
-        return '<{0} {1}>'.format(self.__class__.__name__, self._get_path())
+        return "<{0} {1}>".format(self.__class__.__name__, self._get_path())
 
     def __repr__(self):  # pragma: no cover
         return self.__str__()
@@ -135,7 +131,7 @@ class BaseResource(AbstractResource, ABC):
         """
         if not self.reference:
             raise ResourceNotFound(
-                'Can not get reference to unsaved resource without id'
+                "Can not get reference to unsaved resource without id"
             )
 
         return self.client.reference(reference=self.reference, **kwargs)
@@ -154,7 +150,7 @@ class BaseResource(AbstractResource, ABC):
 
     @property
     def id(self):
-        return self.get('id', None)
+        return self.get("id", None)
 
     @property
     def reference(self):
@@ -162,20 +158,20 @@ class BaseResource(AbstractResource, ABC):
         Returns reference if local resource is saved
         """
         if self.id:
-            return '{0}/{1}'.format(self.resource_type, self.id)
+            return "{0}/{1}".format(self.resource_type, self.id)
 
     def _get_path(self):
         if self.id:
-            return '{0}/{1}'.format(self.resource_type, self.id)
-        elif self.resource_type == 'Bundle':
-            return ''
+            return "{0}/{1}".format(self.resource_type, self.id)
+        elif self.resource_type == "Bundle":
+            return ""
 
         return self.resource_type
 
 
 class BaseReference(AbstractResource):
     def __str__(self):  # pragma: no cover
-        return '<{0} {1}>'.format(self.__class__.__name__, self.reference)
+        return "<{0} {1}>".format(self.__class__.__name__, self.reference)
 
     def __repr__(self):  # pragma: no cover
         return self.__str__()
