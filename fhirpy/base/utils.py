@@ -205,3 +205,7 @@ def get_by_path(data, path, default=None):
         return rv
     except (IndexError, KeyError, AttributeError):
         return default
+
+
+def remove_prefix(s, prefix):
+    return s[len(prefix):] if s.startswith(prefix) else s

@@ -1,3 +1,4 @@
+import json
 from enum import Enum
 
 
@@ -66,3 +67,4 @@ class OperationOutcome(BaseFHIRError):
                 "div": reason or "Something went wrong",
             },
         }
+        super().__init__(json.dumps(self.resource, indent=2))

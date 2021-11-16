@@ -1,5 +1,6 @@
 import json
 import copy
+import logging
 import warnings
 from abc import ABC, abstractmethod
 from json import JSONDecodeError
@@ -10,7 +11,13 @@ import requests
 from yarl import URL
 from fhirpy.base.searchset import AbstractSearchSet
 from fhirpy.base.resource import BaseResource, BaseReference
-from fhirpy.base.utils import AttrDict, encode_params, get_by_path, parse_pagination_url
+from fhirpy.base.utils import (
+    AttrDict,
+    encode_params,
+    get_by_path,
+    parse_pagination_url,
+    remove_prefix,
+)
 from fhirpy.base.exceptions import (
     ResourceNotFound,
     OperationOutcome,
@@ -87,9 +94,12 @@ class AbstractClient(ABC):
                     f'Request url "{path}" does not contain base url "{self.url}"'
                     " (possible security issue)"
                 )
-
+        path = path.lstrip("/")
+        base_url_path = URL(self.url).path.lstrip("/") + "/"
+        path = remove_prefix(path, base_url_path)
         params = params or {}
-        return f'{self.url}/{path.lstrip("/")}?{encode_params(params)}'
+
+        return f'{self.url.rstrip("/")}/{path.lstrip("/")}?{encode_params(params)}'
 
 
 class AsyncClient(AbstractClient, ABC):
