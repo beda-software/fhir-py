@@ -2,8 +2,14 @@ from abc import ABC
 
 from fhirpy.base.resource import BaseResource, BaseReference
 from .base import (
-    SyncClient, AsyncClient, SyncSearchSet, AsyncSearchSet, SyncResource,
-    AsyncResource, SyncReference, AsyncReference
+    SyncClient,
+    AsyncClient,
+    SyncSearchSet,
+    AsyncSearchSet,
+    SyncResource,
+    AsyncResource,
+    SyncReference,
+    AsyncReference,
 )
 
 
@@ -20,9 +26,10 @@ class BaseFHIRResource(BaseResource, ABC):
         if not isinstance(value, dict):
             return False
 
-        return 'reference' in value and \
-               not (set(value.keys()) - {
-                   'reference', 'display', 'type', 'identifier', 'extension'})
+        return "reference" in value and not (
+            set(value.keys())
+            - {"reference", "display", "type", "identifier", "extension"}
+        )
 
 
 class SyncFHIRResource(BaseFHIRResource, SyncResource):
@@ -36,7 +43,7 @@ class AsyncFHIRResource(BaseFHIRResource, AsyncResource):
 class BaseFHIRReference(BaseReference, ABC):
     @property
     def reference(self):
-        return self['reference']
+        return self["reference"]
 
     @property
     def id(self):
@@ -44,7 +51,7 @@ class BaseFHIRReference(BaseReference, ABC):
         Returns id if reference specifies to the local resource
         """
         if self.is_local:
-            return self.reference.split('/', 1)[1]
+            return self.reference.split("/", 1)[1]
 
     @property
     def resource_type(self):
@@ -52,11 +59,11 @@ class BaseFHIRReference(BaseReference, ABC):
         Returns resource type if reference specifies to the local resource
         """
         if self.is_local:
-            return self.reference.split('/', 1)[0]
+            return self.reference.split("/", 1)[0]
 
     @property
     def is_local(self):
-        return self.reference.count('/') == 1
+        return self.reference.count("/") == 1
 
 
 class SyncFHIRReference(BaseFHIRReference, SyncReference):
@@ -76,12 +83,11 @@ class SyncFHIRClient(SyncClient):
 
     def reference(self, resource_type=None, id=None, reference=None, **kwargs):
         if resource_type and id:
-            reference = '{0}/{1}'.format(resource_type, id)
+            reference = "{0}/{1}".format(resource_type, id)
 
         if not reference:
             raise TypeError(
-                'Arguments `resource_type` and `id` or `reference` '
-                'are required'
+                "Arguments `resource_type` and `id` or `reference` " "are required"
             )
         return SyncFHIRReference(self, reference=reference, **kwargs)
 
@@ -95,11 +101,10 @@ class AsyncFHIRClient(AsyncClient):
 
     def reference(self, resource_type=None, id=None, reference=None, **kwargs):
         if resource_type and id:
-            reference = '{0}/{1}'.format(resource_type, id)
+            reference = "{0}/{1}".format(resource_type, id)
 
         if not reference:
             raise TypeError(
-                'Arguments `resource_type` and `id` or `reference` '
-                'are required'
+                "Arguments `resource_type` and `id` or `reference` " "are required"
             )
         return AsyncFHIRReference(self, reference=reference, **kwargs)
