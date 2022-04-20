@@ -78,7 +78,10 @@ class AbstractClient(ABC):
         pass
 
     def _build_request_headers(self):
-        headers = {"Authorization": self.authorization, "Accept": "application/json"}
+        headers = {"Accept": "application/json"}
+
+        if self.authorization:
+            headers["Authorization"] = self.authorization
 
         if self.extra_headers is not None:
             headers = {**headers, **self.extra_headers}
