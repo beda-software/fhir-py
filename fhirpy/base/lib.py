@@ -116,22 +116,26 @@ class AsyncClient(AbstractClient, ABC):
     async def _do_request(self, method, path, data=None, params=None):
         headers = self._build_request_headers()
         url = self._build_request_url(path, params)
-        async with aiohttp.request(method, url, json=data, headers=headers, **self.aiohttp_config) as r:
-            if 200 <= r.status < 300:
+        async with aiohttp.ClientSession(headers=headers) as session:
+            async with session.request(
+                method, url, json=data, **self.aiohttp_config
+            ) as r:
+                if 200 <= r.status < 300:
+                    data = await r.text()
+                    print(json.loads(data, object_hook=AttrDict))
+                    return json.loads(data, object_hook=AttrDict)
+
+                if r.status == 404 or r.status == 410:
+                    raise ResourceNotFound(await r.text())
+
                 data = await r.text()
-                return json.loads(data, object_hook=AttrDict)
-
-            if r.status == 404 or r.status == 410:
-                raise ResourceNotFound(await r.text())
-
-            data = await r.text()
-            try:
-                parsed_data = json.loads(data)
-                if parsed_data["resourceType"] == "OperationOutcome":
-                    raise OperationOutcome(resource=parsed_data)
-                raise OperationOutcome(reason=data)
-            except (KeyError, JSONDecodeError):
-                raise OperationOutcome(reason=data)
+                try:
+                    parsed_data = json.loads(data)
+                    if parsed_data["resourceType"] == "OperationOutcome":
+                        raise OperationOutcome(resource=parsed_data)
+                    raise OperationOutcome(reason=data)
+                except (KeyError, JSONDecodeError):
+                    raise OperationOutcome(reason=data)
 
     async def _fetch_resource(self, path, params=None):
         return await self._do_request("get", path, params=params)
