@@ -78,9 +78,6 @@ class SyncFHIRClient(SyncClient):
     searchset_class = SyncFHIRSearchSet
     resource_class = SyncFHIRResource
 
-    def __init__(self, url, authorization=None, extra_headers=None):
-        super(SyncFHIRClient, self).__init__(url, authorization, extra_headers)
-
     def reference(self, resource_type=None, id=None, reference=None, **kwargs):
         if resource_type and id:
             reference = "{0}/{1}".format(resource_type, id)
@@ -95,9 +92,6 @@ class SyncFHIRClient(SyncClient):
 class AsyncFHIRClient(AsyncClient):
     searchset_class = AsyncFHIRSearchSet
     resource_class = AsyncFHIRResource
-
-    def __init__(self, url, authorization=None, extra_headers=None):
-        super(AsyncFHIRClient, self).__init__(url, authorization, extra_headers)
 
     def reference(self, resource_type=None, id=None, reference=None, **kwargs):
         if resource_type and id:
