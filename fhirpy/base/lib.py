@@ -103,13 +103,20 @@ class AbstractClient(ABC):
 
 
 class AsyncClient(AbstractClient, ABC):
+    aiohttp_config = None
+
+    def __init__(self, url, authorization=None, extra_headers=None, aiohttp_config=None):
+        self.aiohttp_config = aiohttp_config or {}
+
+        super().__init__(url, authorization, extra_headers)
+
     async def execute(self, path, method="post", **kwargs):
         return await self._do_request(method, path, **kwargs)
 
     async def _do_request(self, method, path, data=None, params=None):
         headers = self._build_request_headers()
         url = self._build_request_url(path, params)
-        async with aiohttp.request(method, url, json=data, headers=headers) as r:
+        async with aiohttp.request(method, url, json=data, headers=headers, **self.aiohttp_config) as r:
             if 200 <= r.status < 300:
                 data = await r.text()
                 return json.loads(data, object_hook=AttrDict)
@@ -131,13 +138,20 @@ class AsyncClient(AbstractClient, ABC):
 
 
 class SyncClient(AbstractClient, ABC):
+    requests_config = None
+
+    def __init__(self, url, authorization=None, extra_headers=None, requests_config=None):
+        self.requests_config = requests_config or {}
+
+        super().__init__(url, authorization, extra_headers)
+
     def execute(self, path, method="post", **kwargs):
         return self._do_request(method, path, **kwargs)
 
     def _do_request(self, method, path, data=None, params=None):
         headers = self._build_request_headers()
         url = self._build_request_url(path, params)
-        r = requests.request(method, url, json=data, headers=headers)
+        r = requests.request(method, url, json=data, headers=headers, **self.requests_config)
 
         if 200 <= r.status_code < 300:
             return (
