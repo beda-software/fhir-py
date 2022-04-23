@@ -424,6 +424,20 @@ Returns an instance of the connection to the server which provides:
 * .resources(resource_type) - returns `AsyncFHIRSearchSet`
 * .execute(path, method='post', data=None, params=None) - returns a result of FHIR operation
 
+### Aiohttp request parameters
+Sometimes you need more control over the way http request is made and provide additional aiohttp [session's request](https://docs.aiohttp.org/en/stable/client_reference.html#aiohttp.ClientSession.request) parameters like `ssl`, `proxy`, `cookies`, `timeout` etc. It's possible by providing `aiohttp_config` dict for `AsyncFHIRClient`:
+```Python
+client = AsyncFHIRClient(
+    FHIR_SERVER_URL,
+    aiohttp_config={
+        "ssl": ssl.create_default_context(),
+        "timeout": aiohttp.ClientTimeout(total=100),
+    }
+)
+```
+
+Be careful and don't override other request values like `params`, `json`, `data`, `auth`, because it'll interfere with the way `fhir-py` works and lead to an incorrect behavior. 
+
 ### AsyncFHIRResource
 
 provides:
@@ -474,6 +488,21 @@ Returns an instance of the connection to the server which provides:
 * .reference(resource_type, id, reference, **kwargs) - returns `SyncFHIRReference` to the resource
 * .resource(resource_type, **kwargs) - returns `SyncFHIRResource` which described below
 * .resources(resource_type) - returns `SyncFHIRSearchSet`
+
+### Requests request parameters
+Pass `requests_config` parameter to `SyncFHIRClient` if you want to provide additional parameters for a [request](https://docs.python-requests.org/en/latest/api/#requests.request) like `verify`, `cert`, `timeout` etc.
+```Python
+client = SyncFHIRClient(
+    FHIR_SERVER_URL,
+    requests_config={
+        "verify": False,
+        "allow_redirects": True,
+        "timeout": 60,
+    }
+)
+```
+
+Be careful and don't override other request values like `params`, `json`, `data`, `headers`, which may interfere with the way `fhir-py` works and lead to an incorrect behavior. 
 
 ### SyncFHIRResource
 
