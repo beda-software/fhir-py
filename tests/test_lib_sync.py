@@ -1,3 +1,6 @@
+import json
+from unittest.mock import patch, ANY
+
 import pytest
 import responses
 
@@ -11,6 +14,7 @@ from fhirpy.base.exceptions import (
     InvalidResponse,
 )
 from .config import FHIR_SERVER_URL, FHIR_SERVER_AUTHORIZATION
+from .utils import MockRequestsResponse
 
 
 class TestLibSyncCase:
@@ -531,3 +535,28 @@ class TestLibSyncCase:
         assert isinstance(test_appointment.participant[1], AttrDict)
         test_practitioner = test_appointment.participant[1].actor.to_resource()
         assert test_practitioner
+
+
+def test_requests_config():
+    client = SyncFHIRClient(
+        FHIR_SERVER_URL,
+        authorization=FHIR_SERVER_AUTHORIZATION,
+        requests_config={
+            "verify": False,
+            "cert": "some_cert"
+        }
+    )
+    json_resp_str = json.dumps(
+        {
+            'resourceType': 'Bundle',
+            'type': 'searchset',
+            'total': 0,
+            'entry': []
+        }
+    )
+    resp = MockRequestsResponse(bytes(json_resp_str, 'utf-8'), 200)
+    with patch("requests.request", return_value=resp) as patched_request:
+        client.resources('Patient').first()
+        patched_request.assert_called_with(
+            ANY, ANY, json=ANY, headers=ANY, verify=False, cert='some_cert'
+        )
