@@ -1,5 +1,8 @@
-## 1.3.0
+## Current
+* Add ability to provide additional params to Aiohttp (AsyncFHIRClient) and Requests (SyncFHIRClient) request
+* Make `authorization` param truly optional
 
+## 1.3.0
 * Fix resource fetching for /fhir base urls #81
 * is_valid should return OperationOutcome(data=data) #50
 * OperationOutcome returns dumped json on save #53
