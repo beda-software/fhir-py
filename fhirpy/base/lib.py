@@ -125,7 +125,8 @@ class AsyncClient(AbstractClient, ABC):
             ) as r:
                 if 200 <= r.status < 300:
                     data = await r.text()
-                    return json.loads(data, object_hook=AttrDict)
+                    return (json.loads(data, object_hook=AttrDict)
+                        if data else None)
 
                 if r.status == 404 or r.status == 410:
                     raise ResourceNotFound(await r.text())
