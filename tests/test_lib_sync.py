@@ -541,22 +541,14 @@ def test_requests_config():
     client = SyncFHIRClient(
         FHIR_SERVER_URL,
         authorization=FHIR_SERVER_AUTHORIZATION,
-        requests_config={
-            "verify": False,
-            "cert": "some_cert"
-        }
+        requests_config={"verify": False, "cert": "some_cert"},
     )
     json_resp_str = json.dumps(
-        {
-            'resourceType': 'Bundle',
-            'type': 'searchset',
-            'total': 0,
-            'entry': []
-        }
+        {"resourceType": "Bundle", "type": "searchset", "total": 0, "entry": []}
     )
-    resp = MockRequestsResponse(bytes(json_resp_str, 'utf-8'), 200)
+    resp = MockRequestsResponse(bytes(json_resp_str, "utf-8"), 200)
     with patch("requests.request", return_value=resp) as patched_request:
-        client.resources('Patient').first()
+        client.resources("Patient").first()
         patched_request.assert_called_with(
-            ANY, ANY, json=ANY, headers=ANY, verify=False, cert='some_cert'
+            ANY, ANY, json=ANY, headers=ANY, verify=False, cert="some_cert"
         )
