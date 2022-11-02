@@ -108,7 +108,9 @@ class AbstractClient(ABC):
 class AsyncClient(AbstractClient, ABC):
     aiohttp_config = None
 
-    def __init__(self, url, authorization=None, extra_headers=None, aiohttp_config=None):
+    def __init__(
+        self, url, authorization=None, extra_headers=None, aiohttp_config=None
+    ):
         self.aiohttp_config = aiohttp_config or {}
 
         super().__init__(url, authorization, extra_headers)
@@ -125,8 +127,7 @@ class AsyncClient(AbstractClient, ABC):
             ) as r:
                 if 200 <= r.status < 300:
                     data = await r.text()
-                    return (json.loads(data, object_hook=AttrDict)
-                        if data else None)
+                    return json.loads(data, object_hook=AttrDict) if data else None
 
                 if r.status == 404 or r.status == 410:
                     raise ResourceNotFound(await r.text())
@@ -147,7 +148,9 @@ class AsyncClient(AbstractClient, ABC):
 class SyncClient(AbstractClient, ABC):
     requests_config = None
 
-    def __init__(self, url, authorization=None, extra_headers=None, requests_config=None):
+    def __init__(
+        self, url, authorization=None, extra_headers=None, requests_config=None
+    ):
         self.requests_config = requests_config or {}
 
         super().__init__(url, authorization, extra_headers)
@@ -158,7 +161,9 @@ class SyncClient(AbstractClient, ABC):
     def _do_request(self, method, path, data=None, params=None):
         headers = self._build_request_headers()
         url = self._build_request_url(path, params)
-        r = requests.request(method, url, json=data, headers=headers, **self.requests_config)
+        r = requests.request(
+            method, url, json=data, headers=headers, **self.requests_config
+        )
 
         if 200 <= r.status_code < 300:
             return (

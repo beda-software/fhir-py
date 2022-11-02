@@ -597,27 +597,19 @@ async def test_aiohttp_config():
     client = AsyncFHIRClient(
         FHIR_SERVER_URL,
         authorization=FHIR_SERVER_AUTHORIZATION,
-        aiohttp_config={
-            "ssl": False,
-            "proxy": "http://example.com"
-        }
+        aiohttp_config={"ssl": False, "proxy": "http://example.com"},
     )
     resp = MockAiohttpResponse(
         bytes(
             json.dumps(
-                {
-                    'resourceType': 'Bundle',
-                    'type': 'searchset',
-                    'total': 0,
-                    'entry': []
-                }
-            ), 'utf-8'
-        ), 200
+                {"resourceType": "Bundle", "type": "searchset", "total": 0, "entry": []}
+            ),
+            "utf-8",
+        ),
+        200,
     )
-    with patch(
-        "aiohttp.ClientSession.request", return_value=resp
-    ) as patched_request:
-        await client.resources('Patient').first()
+    with patch("aiohttp.ClientSession.request", return_value=resp) as patched_request:
+        await client.resources("Patient").first()
         patched_request.assert_called_with(
-            ANY, ANY, json=None, ssl=False, proxy='http://example.com'
+            ANY, ANY, json=None, ssl=False, proxy="http://example.com"
         )
