@@ -148,6 +148,11 @@ patients.search(general_practitioner__Organization__name='Hospital')
 # /Patient?general-practitioner:Organization.name=Hospital
 ```
 
+```Python
+patients.search(general_practitioner__name='Hospital')
+# /Patient?general-practitioner.name=Hospital
+```
+
 ### Reference
 ```Python
 practitioner = client.resources('Practitioner').search(_id='john-smith').first()

@@ -1,6 +1,7 @@
 ## Current
 * Add ability to provide additional params to Aiohttp (AsyncFHIRClient) and Requests (SyncFHIRClient) request
 * Make `authorization` param truly optional
+* Support chained search without specifying resource #92
 
 ## 1.3.0
 * Fix resource fetching for /fhir base urls #81

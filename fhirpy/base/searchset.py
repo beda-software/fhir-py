@@ -78,6 +78,12 @@ def SQ(*args, **kwargs):
     >>> dict(SQ(patient__Patient__general_practitioner__Organization__name='Name'))
     {'patient:Patient.general-practitioner:Organization.name': ['Name']}
 
+    >>> dict(SQ(patient__Patient__general_practitioner__name='Name'))
+    {'patient:Patient.general-practitioner.name': ['Name']}
+
+    >>> dict(SQ(based_on__instantiates_canonical='PlanDefinition/id'))
+    {'based-on.instantiates-canonical': ['PlanDefinition/id']}
+
     >>> dict(SQ(period__ge='2018', period__lt='2019'))
     {'period': ['ge2018', 'lt2019']}
 
@@ -109,6 +115,20 @@ def SQ(*args, **kwargs):
     {'_has:Person:link:id': ['id']}
 
     """
+    param_ops = [
+        "contains",
+        "exact",
+        "missing",
+        "not",
+        "below",
+        "above",
+        "in",
+        "not_in",
+        "text",
+        "of_type",
+    ]
+    value_ops = ["eq", "ne", "gt", "ge", "lt", "le", "sa", "eb", "ap"]
+
     res = defaultdict(list)
     for key, value in kwargs.items():
         value = value if isinstance(value, list) else [value]
@@ -117,33 +137,24 @@ def SQ(*args, **kwargs):
         key_parts = key.split("__")
 
         op = None
-        if len(key_parts) % 2 == 0:
+        if key_parts[-1] in value_ops or key_parts[-1] in param_ops:
             # The operator is always the last part,
             # e.g., birth_date__ge or patient__Patient__birth_date__ge
             op = key_parts[-1]
             key_parts = key_parts[:-1]
 
-        base_param, *chained_params = key_parts
-        param_parts = [base_param]
-        if chained_params:
-            param_parts.extend([".".join(pair) for pair in chunks(chained_params, 2)])
-        param = ":".join(param_parts)
+        param = key_parts[0]
+        for part in key_parts[1:]:
+            # Resource type always starts with upper first letter
+            is_resource_type = part[0].isupper()
+
+            param += ":" if is_resource_type else "."
+            param += part
 
         if op:
-            if op in [
-                "contains",
-                "exact",
-                "missing",
-                "not",
-                "below",
-                "above",
-                "in",
-                "not_in",
-                "text",
-                "of_type",
-            ]:
+            if op in param_ops:
                 param = "{0}:{1}".format(param, transform_param(op))
-            elif op in ["eq", "ne", "gt", "ge", "lt", "le", "sa", "eb", "ap"]:
+            elif op in value_ops:
                 value = ["{0}{1}".format(op, sub_value) for sub_value in value]
         res[transform_param(param)].extend(value)
 
