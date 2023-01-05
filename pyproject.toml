@@ -34,3 +34,66 @@ test = ["pytest>=6.2.4", "pytest-asyncio>=0.15.1", "responses>=0.13.3"]
 Homepage = "https://github.com/beda-software/fhir-py"
 Documentation = "https://github.com/beda-software/fhir-py#readme"
 Source = "https://github.com/beda-software/fhir-py.git"
+
+[tool.tox]
+legacy_tox_ini = """
+    [pytest]
+    addopts=--tb=short
+
+    [tox]
+    envlist =
+        py38
+        py39
+        py310
+        py311
+    skip_missing_interpreters = true
+    requires =
+        virtualenv>=16.7.8
+        pip>=19.3.1
+
+    [gh-actions]
+    python =
+        3.8: py38
+        3.9: py39
+        3.10: py310
+        3.11: py311
+
+    [testenv]
+    passenv =
+        TOXENV
+        CI
+        CODECOV_*
+    commands =
+        pytest --doctest-modules --cov=./fhirpy tests
+    setenv =
+        PYTHONDONTWRITEBYTECODE=1
+        PYTHONWARNINGS=once
+    deps =
+        -r requirements.txt
+"""
+
+[tool.black]
+line-length = 100
+target-version = ['py311']
+exclude = '''
+(
+  /(
+    | \.git
+    | \.pytest_cache
+    | pyproject.toml
+    | dist
+  )/
+)
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+skip = [".gitignore"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --color=yes"
+testpaths = ["tests"]
+log_cli = true
+log_cli_level = "INFO"
