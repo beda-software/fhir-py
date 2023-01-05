@@ -1,0 +1,43 @@
+[tool.setuptools]
+zip-safe = false
+packages = ["fhirpy"]
+
+[tool.setuptools.dynamic]
+version = { attr = "fhirpy.VERSION" }
+
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "fhirpy"
+description = "FHIR client for python"
+readme = "README.md"
+license = { file = "LICENSE.md" }
+keywords = ["fhir"]
+dynamic = ["version"]
+authors = [{ name = "beda.software", email = "fhirpy@beda.software" }]
+dependencies = ["requests>=2.25.1", "aiohttp>=3.6.3", "pytz"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+requires-python = ">=3.8"
+
+[project.optional-dependencies]
+test = ["pytest>=6.2.4", "pytest-asyncio>=0.15.1", "responses>=0.13.3"]
+
+[project.urls]
+Homepage = "https://github.com/beda-software/fhir-py"
+Documentation = "https://github.com/beda-software/fhir-py#readme"
+Source = "https://github.com/beda-software/fhir-py.git"
