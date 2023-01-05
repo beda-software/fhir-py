@@ -1,6 +1,0 @@
-version: '3.1'
-services:
-  devbox:
-    image: healthsamurai/devbox:edge-arm64
-  devbox-db:
-    image: healthsamurai/aidboxdb:13.2-arm64
