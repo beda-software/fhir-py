@@ -1,14 +1,6 @@
-version: '3.1'
 services:
-  dockerize:
-    image: jwilder/dockerize
-    command: dockerize -wait http://devbox:8080/ -timeout 300s
-    depends_on:
-      - devbox
-    links:
-      - devbox
   devbox:
-    image: "healthsamurai/devbox:edge"
+    image: "healthsamurai/aidboxone:edge"
     depends_on:
       - devbox-db
     ports:
@@ -18,11 +10,22 @@ services:
     env_file:
       - env_tests
     environment:
-      AIDBOX_LICENSE_ID: ${AIDBOX_LICENSE_ID_TESTS}
-      AIDBOX_LICENSE_KEY: ${AIDBOX_LICENSE_KEY_TESTS}
+      AIDBOX_LICENSE: ${AIDBOX_LICENSE}
   devbox-db:
-    image: healthsamurai/aidboxdb:13.2
+    image: healthsamurai/aidboxdb:14.5
     environment:
-      POSTGRES_USER:     postgres
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB:       devbox
+      POSTGRES_DB: devbox
+  devbox-healthcheck:
+    image: curlimages/curl
+    entrypoint: /bin/sleep 10000
+    links:
+      - devbox
+    depends_on:
+      - devbox
+    healthcheck:
+      test: curl --fail http://devbox:8080/__healthcheck || exit 1
+      interval: 1s
+      timeout: 20s
+      retries: 100
