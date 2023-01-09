@@ -48,7 +48,7 @@ jobs:
           PGPASSWORD: postgres
       devbox-healthcheck:
         image: curlimages/curl
-        options: ->
+        options: >-
           --entrypoint /bin/sleep 10000
           --health-cmd curl --fail http://devbox:8080/__healthcheck || exit 1
           --health-interval 1s
