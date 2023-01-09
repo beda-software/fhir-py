@@ -17,11 +17,34 @@ jobs:
 
     env:
       PYTHON: ${{ matrix.python-version }}
-      AIDBOX_LICENSE: ${{ secrets.AIDBOX_LICENSE}}
+      
+    services:
+      devbox-db:
+        image: healthsamurai/aidboxdb:14.5
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: devbox
+      devbox:
+        image: healthsamurai/aidboxone:edge
+        ports:
+          - 8080:8080
+        env:
+          AIDBOX_LICENSE: ${{ secrets.AIDBOX_LICENSE}}
+        options: >-
+          --env-file env_tests
+      devbox-healthcheck:
+        image: curlimages/curl
+        options: ->
+          --entrypoint /bin/sleep 10000
+          --health-cmd curl --fail http://devbox:8080/__healthcheck || exit 1
+          --health-interval 1s
+          --health-timeout 20s
+          --health-retries 100
     steps:
     - uses: actions/checkout@v3
-    - name: Start aidbox
-      run: docker compose -f ./devbox/docker-compose.tests.yaml up -d
+    # - name: Start aidbox
+    #   run: docker compose -f ./devbox/docker-compose.tests.yaml up -d
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v4
       with:
@@ -35,8 +58,8 @@ jobs:
       run: pipenv install --dev
     - name: Run tests
       run: pipenv run pytest
-    - name: Stop aidbox
-      run: docker compose -f ./devbox/docker-compose.tests.yaml down
+    # - name: Stop aidbox
+    #   run: docker compose -f ./devbox/docker-compose.tests.yaml down
     # - name: Upload coverage to Codecov
     #   uses: codecov/codecov-action@v3
     #   with:
