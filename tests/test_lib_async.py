@@ -1,19 +1,18 @@
 import json
-import pytest
 from math import ceil
-from aiohttp import request
-from unittest.mock import Mock, patch, ANY
+from unittest.mock import ANY, Mock, patch
 from urllib.parse import parse_qs, urlparse
 
+import pytest
+from aiohttp import request
+
 from fhirpy import AsyncFHIRClient
+from fhirpy.base.exceptions import MultipleResourcesFound, OperationOutcome, ResourceNotFound
 from fhirpy.base.utils import AttrDict
-from fhirpy.lib import AsyncFHIRResource, AsyncFHIRReference
-from fhirpy.base.exceptions import (
-    ResourceNotFound,
-    OperationOutcome,
-    MultipleResourcesFound,
-)
-from .config import FHIR_SERVER_URL, FHIR_SERVER_AUTHORIZATION
+from fhirpy.lib import AsyncFHIRReference, AsyncFHIRResource
+from tests.utils import MockAiohttpResponse
+
+from .config import FHIR_SERVER_AUTHORIZATION, FHIR_SERVER_URL
 
 
 class TestLibAsyncCase:
