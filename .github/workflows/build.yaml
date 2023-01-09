@@ -17,7 +17,6 @@ jobs:
 
     env:
       PYTHON: ${{ matrix.python-version }}
-
     services:
       devbox-db:
         image: healthsamurai/aidboxdb:14.5
@@ -46,14 +45,14 @@ jobs:
           PGPORT: 5432
           PGUSER: postgres
           PGPASSWORD: postgres
-      devbox-healthcheck:
-        image: curlimages/curl
-        options: >-
-          --entrypoint "/bin/sleep 10000"
-          --health-cmd "curl --fail http://devbox:8080/__healthcheck || exit 1"
-          --health-interval 1s
-          --health-timeout 20s
-          --health-retries 100
+      # devbox-healthcheck:
+      #   image: curlimages/curl
+      #   options: >-
+      #     --entrypoint "/bin/sleep 10000"
+      #     --health-cmd "curl --fail http://devbox:8080/__healthcheck || exit 1"
+      #     --health-interval 5s
+      #     --health-timeout 20s
+      #     --health-retries 100
     steps:
       - uses: actions/checkout@v3
       # - name: Start aidbox
