@@ -15,6 +15,3 @@ responses = "==0.13.3"
 pytz = "==2021.1"
 black = "==22.10.0"
 pre-commit = "==2.20.0"
-
-[requires]
-python_version = "3.11"
