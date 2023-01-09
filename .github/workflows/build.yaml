@@ -17,7 +17,7 @@ jobs:
 
     env:
       PYTHON: ${{ matrix.python-version }}
-      
+
     services:
       devbox-db:
         image: healthsamurai/aidboxdb:14.5
@@ -31,8 +31,21 @@ jobs:
           - 8080:8080
         env:
           AIDBOX_LICENSE: ${{ secrets.AIDBOX_LICENSE}}
-        options: >-
-          --env-file env_tests
+          AIDBOX_CLIENT_ID: root
+          AIDBOX_CLIENT_SECRET: secret
+          AIDBOX_BASE_URL: http://devbox:8080
+          AIDBOX_PORT: 8080
+          AIDBOX_FHIR_VERSION: 4.0.0
+          APP_INIT_CLIENT_ID: root
+          APP_INIT_CLIENT_SECRET: secret
+          APP_INIT_URL: http://devbox:8080
+          APP_SUPERADMIN_PASSWORD: password
+          APP_SUPERADMIN_EMAIL: superadmin@example.com
+          PGHOST: database
+          PGDATABASE: devbox
+          PGPORT: 5432
+          PGUSER: postgres
+          PGPASSWORD: postgres
       devbox-healthcheck:
         image: curlimages/curl
         options: ->
@@ -42,22 +55,22 @@ jobs:
           --health-timeout 20s
           --health-retries 100
     steps:
-    - uses: actions/checkout@v3
-    # - name: Start aidbox
-    #   run: docker compose -f ./devbox/docker-compose.tests.yaml up -d
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Upgrade pip and pipenv
-      run: |
-        python -m pip install --upgrade pip pipenv
-    # - name: Check for security vulnerabilities
-    #   run: pipenv check
-    - name: Install dependencies
-      run: pipenv install --dev
-    - name: Run tests
-      run: pipenv run pytest
+      - uses: actions/checkout@v3
+      # - name: Start aidbox
+      #   run: docker compose -f ./devbox/docker-compose.tests.yaml up -d
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Upgrade pip and pipenv
+        run: |
+          python -m pip install --upgrade pip pipenv
+      # - name: Check for security vulnerabilities
+      #   run: pipenv check
+      - name: Install dependencies
+        run: pipenv install --dev
+      - name: Run tests
+        run: pipenv run pytest
     # - name: Stop aidbox
     #   run: docker compose -f ./devbox/docker-compose.tests.yaml down
     # - name: Upload coverage to Codecov
