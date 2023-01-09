@@ -49,8 +49,8 @@ jobs:
       devbox-healthcheck:
         image: curlimages/curl
         options: >-
-          --entrypoint /bin/sleep 10000
-          --health-cmd curl --fail http://devbox:8080/__healthcheck || exit 1
+          --entrypoint "/bin/sleep 10000"
+          --health-cmd "curl --fail http://devbox:8080/__healthcheck || exit 1"
           --health-interval 1s
           --health-timeout 20s
           --health-retries 100
