@@ -1,0 +1,34 @@
+name: fhirpy
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - python-version: 3.8
+          - python-version: 3.9
+          - python-version: "3.10"
+          - python-version: "3.11"
+    env:
+      PYTHON: ${{ matrix.python-version }}
+      AIDBOX_LICENSE: ${{ secrets.AIDBOX_LICENSE}}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run tests
+        run: ./run_test.sh
+        shell: bash
+    # - name: Upload coverage to Codecov
+    #   uses: codecov/codecov-action@v3
+    #   with:
+    #     token: ${{ secrets.CODECOV_TOKEN }}
+    #     env_vars: PYTHON
+    #     fail_ci_if_error: true
+    #     files: ./coverage.xml
+    #     flags: unittests
+    #     name: codecov-umbrella
+    #     verbose: true

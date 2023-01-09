@@ -1,15 +1,12 @@
 #!/bin/sh
+if [ -f ".env" ]; then
+    export `cat .env`
+fi
 
-if [ -z "${AIDBOX_LICENSE_KEY_TESTS}" ]; then
-    echo "AIDBOX_LICENSE_KEY_TESTS is required to run tests"
+if [ -z "${AIDBOX_LICENSE}" ]; then
+    echo "AIDBOX_LICENSE is required to run tests"
     exit 1
 fi
 
-if [ -z "${AIDBOX_LICENSE_ID_TESTS}" ]; then
-    echo "AIDBOX_LICENSE_ID_TESTS is required to run tests"
-    exit 1
-fi
-
-docker-compose -f docker-compose.tests.yaml pull
-docker-compose -f docker-compose.tests.yaml run dockerize
+docker compose -f docker-compose.tests.yaml up --exit-code-from devbox devbox
 exit $?
