@@ -29,3 +29,19 @@ services:
       interval: 1s
       timeout: 20s
       retries: 100
+  app:
+    build:
+      context: .
+      args:
+        PYTHON_VERSION: ${PYTHON:-3.11}
+    command: ["pipenv", "run", "pytest"]
+    depends_on:
+      devbox-healthcheck:
+        condition:
+          service_healthy
+    links:
+     - devbox
+    ports:
+     - "8081:8081"
+    volumes:
+     - .:/app
