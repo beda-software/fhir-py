@@ -365,6 +365,18 @@ patient_family = patient['name'][0]['family']
 patient_given_name = patient.name[0].given[0]
 ```
 
+## Static type checking with [mypy](https://github.com/python/mypy) and [fhir-py-types](https://github.com/beda-software/fhir-py-types)
+```Python
+from fhir_py_types.generated.resources import Patient
+
+patient: Patient = await client.resources('Patient').first()
+
+# Works only with dictionary-like resource access
+patient_family = patient['name'][0]['family1']
+# 'TypedDict "HumanName" has no key "family1" note: Did you mean "family"?'
+```
+Check [fhir-py-types](https://github.com/beda-software/fhir-py-types) for more details on generating type definitions from FHIR `StructureDefintion`
+
 ## get_by_path(path, default=None)
 ```Python
 patient_postal = patient.get_by_path(['resource', 'address', 0, 'postalCode'])
