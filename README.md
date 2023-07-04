@@ -45,6 +45,7 @@ You can test this library by interactive FHIR course in the repository [Aidbox/j
   - [Validate resource using operation $validate](#validate-resource-using-operation-validate)
   - [Accessing resource attributes](#accessing-resource-attributes)
   - [get_by_path(path, default=None)](#get_by_pathpath-defaultnone)
+  - [set_by_path(obj, path, value)](#set_by_pathpath)
   - [serialize()](#serialize)
 - [Reference](#reference-1)
   - [Main class structure](#main-class-structure)
@@ -401,6 +402,18 @@ base_value = invoice.get_by_path([
     'totalPriceComponent',
     {'type': 'base'},
     'amount', 'value'], 0)
+```
+
+## set_by_path(obj, path, value)
+```python
+resource = {
+    "name": [{"given": ["Firstname"], "family": "Lastname"}],
+}
+
+set_by_path(resource, ["name", 0, "given", 0], "FirstnameUpdated")
+
+# resource
+# {"name": [{"given": ["FirstnameUpdated"], "family": "Lastname"}]}
 ```
 
 ## serialize()

@@ -202,5 +202,26 @@ def get_by_path(data, path, default=None):
         return default
 
 
+def set_by_path(obj, path, value):
+    cursor = obj
+    last_part = path.pop()
+
+    for index, part in enumerate(path):
+        if isinstance(cursor, dict) and part not in cursor:
+            nextpart = (path + [last_part])[index + 1]
+            try:
+                nnextpart = (path + [last_part])[index + 2]
+            except IndexError:
+                nnextpart = ""
+
+            if isinstance(nextpart, int):
+                cursor[part] = [[] if isinstance(nnextpart, int) else {}]
+            else:
+                cursor[part] = {}
+
+        cursor = cursor[part]
+    cursor[last_part] = value
+
+
 def remove_prefix(s, prefix):
     return s[len(prefix) :] if s.startswith(prefix) else s

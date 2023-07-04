@@ -1,7 +1,7 @@
 import pytest
 from fhirpy import SyncFHIRClient, AsyncFHIRClient
 from fhirpy.lib import BaseFHIRReference
-from fhirpy.base.utils import AttrDict, SearchList, parse_pagination_url
+from fhirpy.base.utils import AttrDict, SearchList, parse_pagination_url, set_by_path
 
 
 @pytest.mark.parametrize("client", [SyncFHIRClient("mock"), AsyncFHIRClient("mock")])
@@ -145,6 +145,29 @@ class TestLibBase(object):
         name = names[0]
         assert isinstance(name, AttrDict)
         assert name.get_by_path(["given", 0]) == "Firstname"
+
+    def test_set_by_path(self, client):
+        resource = {
+            "name": [{"given": ["Firstname"], "family": "Lastname"}],
+        }
+
+        resource1 = resource.copy()
+        set_by_path(resource1, ["name", 0, "given", 0], "FirstnameUpdated")
+        assert resource1["name"][0]["given"][0] == "FirstnameUpdated"
+
+        resource2 = resource.copy()
+        with pytest.raises(IndexError):
+            set_by_path(resource2, ["name", 1, "given", 0], "FirstnameUpdated")
+
+        resource3 = resource.copy()
+        set_by_path(resource3, ["name"], None)
+        assert resource3["name"] == None
+
+        resource4 = resource.copy()
+        set_by_path(resource4, ["name", 0], {"text": "Firstname Lastname"})
+        assert resource4["name"][0]["text"] == "Firstname Lastname"
+        with pytest.raises(KeyError):
+            assert resource4["name"][0]["given"]
 
     def test_set_resource_setdefault(self, client):
         resource = client.resource("Patient", id="patient")
