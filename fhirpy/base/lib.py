@@ -107,11 +107,13 @@ class AbstractClient(ABC):
 
 class AsyncClient(AbstractClient, ABC):
     aiohttp_config = None
+    http_session = None
 
     def __init__(
-        self, url, authorization=None, extra_headers=None, aiohttp_config=None
+        self, url, authorization=None, extra_headers=None, aiohttp_config=None, http_session=None
     ):
         self.aiohttp_config = aiohttp_config or {}
+        self.http_session = http_session
 
         super().__init__(url, authorization, extra_headers)
 
@@ -121,9 +123,10 @@ class AsyncClient(AbstractClient, ABC):
     async def _do_request(self, method, path, data=None, params=None, returning_status=False):
         headers = self._build_request_headers()
         url = self._build_request_url(path, params)
-        async with aiohttp.ClientSession(headers=headers) as session:
+        _http_session = self.http_session or aiohttp.ClientSession()
+        async with _http_session as session:
             async with session.request(
-                method, url, json=data, **self.aiohttp_config
+                method, url, json=data, **self.aiohttp_config, headers=headers
             ) as r:
                 if 200 <= r.status < 300:
                     data = await r.text()
