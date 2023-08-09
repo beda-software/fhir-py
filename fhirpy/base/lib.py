@@ -383,7 +383,7 @@ class SyncResource(BaseResource, ABC):
 
 
 class AsyncResource(BaseResource, ABC):
-    async def save(self, fields=None):
+    async def save(self, fields=None, params=None):
         data = self.serialize()
         if fields:
             if not self.id:
@@ -394,7 +394,7 @@ class AsyncResource(BaseResource, ABC):
             method = "put" if self.id else "post"
 
         response_data = await self.client._do_request(
-            method, self._get_path(), data=data
+            method, self._get_path(), data=data, params=params
         )
         if response_data:
             super(BaseResource, self).clear()
