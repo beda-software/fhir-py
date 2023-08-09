@@ -406,6 +406,10 @@ class AsyncResource(BaseResource, ABC):
         super(BaseResource, self).update(**kwargs)
         await self.save(fields=kwargs.keys())
 
+    async def conditional_update(self, search_params, **kwargs):
+        super(BaseResource, self).update(**kwargs)
+        await self.save(fields=kwargs.keys(), params=search_params)
+
     async def delete(self):
         return await self.client._do_request("delete", self._get_path())
 

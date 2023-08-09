@@ -399,6 +399,33 @@ class TestLibAsyncCase:
         await patient.save()
 
     @pytest.mark.asyncio
+    async def test_conditional_update(self):
+        patient = self.client.resource(
+            "Patient", identifier=self.identifier, name=[{"text": "J London"}]
+        )
+
+        # Assert there is no patient with such identifier
+        assert await self.client.resources("Patient").search(identifier="fhirpy").count() == 0
+        # Execute conditional update with param self.identifier
+        await patient.conditional_update(search_params={"identifier": "fhirpy"})
+        # Assert there is one patient with such identifier
+        assert await self.client.resources("Patient").search(identifier="fhirpy").count() == 1
+        # Execute conditional update with param self.identifier
+        patient = self.client.resource(
+            "Patient", identifier=self.identifier, name=[{"text": "J London"}]
+        )
+        await patient.conditional_update(search_params={"identifier": "fhirpy"})
+        # Assert there is still one patient with such identifier
+        assert await self.client.resources("Patient").search(identifier="fhirpy").count() == 1
+        # Execute conditional update with different identifier
+        patient = self.client.resource(
+            "Patient", identifier=self.identifier, name=[{"text": "J London"}]
+        )
+        await patient.conditional_update(search_params={"identifier": "other"})
+        # Assert there two patients with such identifier
+        assert await self.client.resources("Patient").search(identifier="fhirpy").count() == 2
+
+    @pytest.mark.asyncio
     async def test_refresh(self):
         patient_id = "refresh-patient-id"
         patient = await self.create_resource("Patient", id=patient_id, active=True)
