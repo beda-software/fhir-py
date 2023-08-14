@@ -351,6 +351,10 @@ class SyncResource(BaseResource, ABC):
                 **self.client.resource(self.resource_type, **response_data)
             )
 
+    def create(self):
+        self.save()
+        return self
+
     def update(self, **kwargs):
         super(BaseResource, self).update(**kwargs)
         self.save(fields=kwargs.keys())
@@ -401,6 +405,10 @@ class AsyncResource(BaseResource, ABC):
             super(BaseResource, self).update(
                 **self.client.resource(self.resource_type, **response_data)
             )
+
+    async def create(self):
+        await self.save()
+        return self
 
     async def update(self, **kwargs):
         super(BaseResource, self).update(**kwargs)

@@ -43,10 +43,7 @@ class TestLibSyncCase:
         )
 
     def create_resource(self, resource_type, **kwargs):
-        p = self.client.resource(resource_type, identifier=self.identifier, **kwargs)
-        p.save()
-
-        return p
+        return self.client.resource(resource_type, identifier=self.identifier, **kwargs).create()
 
     def test_create_patient(self):
         self.create_resource("Patient", id="patient", name=[{"text": "My patient"}])

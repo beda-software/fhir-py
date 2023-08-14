@@ -37,10 +37,7 @@ class TestLibAsyncCase:
         cls.client = AsyncFHIRClient(cls.URL, authorization=FHIR_SERVER_AUTHORIZATION)
 
     async def create_resource(self, resource_type, **kwargs):
-        p = self.client.resource(resource_type, identifier=self.identifier, **kwargs)
-        await p.save()
-
-        return p
+        return await self.client.resource(resource_type, identifier=self.identifier, **kwargs).create()
 
     @pytest.mark.asyncio
     async def test_create_patient(self):
