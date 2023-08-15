@@ -179,10 +179,8 @@ class AbstractSearchSet(ABC):
         self.resource_type = resource_type
         self.params = defaultdict(list, params or {})
 
-    def _perform_resource(self, data):
-        resource_type = data.get("resourceType", None)
-        resource = self.client.resource(resource_type, **data)
-        return resource
+    def _dict_to_resource(self, data):
+        return self.client.resource(data['resourceType'], **data)
 
     @abstractmethod  # pragma: no cover
     def fetch(self):
@@ -331,7 +329,7 @@ class AbstractSearchSet(ABC):
 
         resources = []
         for data in resources_data:
-            resource = self._perform_resource(data)
+            resource = self._dict_to_resource(data)
             if resource.resource_type == self.resource_type:
                 resources.append(resource)
         return resources

@@ -190,6 +190,9 @@ class BaseReference(AbstractResource):
         """
         return self.client.reference(reference=self.reference, **kwargs)
 
+    def _dict_to_resource(self, data):
+        return self.client.resource(data['resourceType'], **data)
+
     @property  # pragma: no cover
     @abstractmethod
     def reference(self):
