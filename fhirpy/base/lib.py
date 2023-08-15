@@ -206,7 +206,7 @@ class SyncSearchSet(AbstractSearchSet, ABC):
 
         if data_resource_type == "Bundle":
             for item in data["entry"]:
-                item.resource = self._perform_resource(item.resource)
+                item.resource = self._dict_to_resource(item.resource)
 
         return data
 
@@ -230,7 +230,7 @@ class SyncSearchSet(AbstractSearchSet, ABC):
         elif len(res_data) > 1:
             raise MultipleResourcesFound("More than one resource found")
         resource = res_data[0]
-        return self._perform_resource(resource)
+        return self._dict_to_resource(resource)
 
     def count(self):
         new_params = copy.deepcopy(self.params)
@@ -283,7 +283,7 @@ class AsyncSearchSet(AbstractSearchSet, ABC):
 
         if data_resource_type == "Bundle":
             for item in data["entry"]:
-                item.resource = self._perform_resource(item.resource)
+                item.resource = self._dict_to_resource(item.resource)
 
         return data
 
@@ -307,7 +307,7 @@ class AsyncSearchSet(AbstractSearchSet, ABC):
         elif len(res_data) > 1:
             raise MultipleResourcesFound("More than one resource found")
         resource = res_data[0]
-        return self._perform_resource(resource)
+        return self._dict_to_resource(resource)
 
     async def count(self):
         new_params = copy.deepcopy(self.params)
@@ -464,7 +464,8 @@ class SyncReference(BaseReference, ABC):
         """
         if not self.is_local:
             raise ResourceNotFound("Can not resolve not local resource")
-        return self.client.resources(self.resource_type).search(_id=self.id).get()
+        resource_data = self.client._do_request("get", "{0}/{1}".format(self.resource_type, self.id))
+        return self._dict_to_resource(resource_data)
 
     def execute(self, operation, method="post", **kwargs):
         if not self.is_local:
@@ -484,7 +485,8 @@ class AsyncReference(BaseReference, ABC):
         """
         if not self.is_local:
             raise ResourceNotFound("Can not resolve not local resource")
-        return await self.client.resources(self.resource_type).search(_id=self.id).get()
+        resource_data = await self.client._do_request("get", "{0}/{1}".format(self.resource_type, self.id))
+        return self._dict_to_resource(resource_data)
 
     async def execute(self, operation, method="post", **kwargs):
         if not self.is_local:
