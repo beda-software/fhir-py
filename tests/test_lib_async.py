@@ -50,8 +50,10 @@ class TestLibAsyncCase:
     async def test_create_patient_conditionally__create_on_no_match(self):
         await self.create_resource("Patient", id="patient")
 
-        patient = await self.client.resources("Patient").search(identifier="other").create(
-            identifier=[{"system": "http://example.com/env", "value": "other"}], name=[{"text": "Indiana Jones"}])
+        patient_to_save = self.client.resource("Patient",
+                                               identifier=[{"system": "http://example.com/env", "value": "other"}],
+                                               name=[{"text": "Indiana Jones"}])
+        patient = await self.client.resources("Patient").search(identifier="other").create(patient_to_save)
         assert patient.id != "patient"
         assert patient.get_by_path(["name", 0, "text"]) == "Indiana Jones"
 
@@ -59,7 +61,8 @@ class TestLibAsyncCase:
     async def test_create_patient_conditionally__skip_on_one_match(self):
         await self.create_resource("Patient", id="patient")
 
-        patient = await self.client.resources("Patient").search(identifier="fhirpy").create(identifier=self.identifier)
+        patient_to_save = self.client.resource("Patient", identifier=self.identifier)
+        patient = await self.client.resources("Patient").search(identifier="fhirpy").create(patient_to_save)
         assert patient.id == "patient"
 
     @pytest.mark.asyncio
@@ -67,8 +70,9 @@ class TestLibAsyncCase:
         await self.create_resource("Patient", id="patient-one")
         await self.create_resource("Patient", id="patient-two")
 
+        patient_to_save = self.client.resource("Patient", identifier=self.identifier)
         with pytest.raises(MultipleResourcesFound):
-            await self.client.resources("Patient").search(identifier="fhirpy").create(identifier=self.identifier)
+            await self.client.resources("Patient").search(identifier="fhirpy").create(patient_to_save)
 
     @pytest.mark.asyncio
     async def test_update_patient(self):

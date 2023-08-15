@@ -246,9 +246,9 @@ class SyncSearchSet(AbstractSearchSet, ABC):
 
         return result[0] if result else None
 
-    def create(self, **resource_data):
-        resource = self.client.resource(self.resource_type, **resource_data)
-        return self.client._do_request("POST", self.resource_type, resource, self.params)
+    def create(self, resource):
+        assert resource.resource_type == self.resource_type
+        return self.client._do_request("POST", self.resource_type, resource.serialize(), self.params)
 
     def __iter__(self):
         next_link = None
@@ -269,7 +269,6 @@ class SyncSearchSet(AbstractSearchSet, ABC):
 
             if not next_link:
                 break
-
 
 class AsyncSearchSet(AbstractSearchSet, ABC):
     async def fetch(self):
@@ -323,10 +322,9 @@ class AsyncSearchSet(AbstractSearchSet, ABC):
 
         return result[0] if result else None
 
-    async def create(self, **resource_data):
-        resource = self.client.resource(self.resource_type, **resource_data)
-        return await self.client._do_request("POST", self.resource_type, resource, self.params)
-
+    async def create(self, resource):
+        assert resource.resource_type == self.resource_type
+        return await self.client._do_request("POST", self.resource_type, resource.serialize(), self.params)
 
     async def __aiter__(self):
         next_link = None
