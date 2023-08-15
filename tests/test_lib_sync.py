@@ -51,6 +51,27 @@ class TestLibSyncCase:
         patient = self.client.resources("Patient").search(_id="patient").get()
         assert patient["name"] == [{"text": "My patient"}]
 
+    def test_create_patient_conditionally__create_on_no_match(self):
+        self.create_resource("Patient", id="patient")
+
+        patient = self.client.resources("Patient").search(identifier="other").create(
+            identifier=[{"system": "http://example.com/env", "value": "other"}], name=[{"text": "Indiana Jones"}])
+        assert patient.id != "patient"
+        assert patient.get_by_path(["name", 0, "text"]) == "Indiana Jones"
+
+    def test_create_patient_conditionally__skip_on_one_match(self):
+        self.create_resource("Patient", id="patient")
+
+        patient = self.client.resources("Patient").search(identifier="fhirpy").create(identifier=self.identifier)
+        assert patient.id == "patient"
+
+    def test_create_patient_conditionally__fail_on_multiple_matches(self):
+        self.create_resource("Patient", id="patient-one")
+        self.create_resource("Patient", id="patient-two")
+
+        with pytest.raises(MultipleResourcesFound):
+            self.client.resources("Patient").search(identifier="fhirpy").create(identifier=self.identifier)
+
     def test_update_patient(self):
         patient = self.create_resource(
             "Patient", id="patient", name=[{"text": "My patient"}]

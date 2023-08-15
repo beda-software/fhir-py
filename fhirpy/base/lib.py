@@ -132,6 +132,9 @@ class AsyncClient(AbstractClient, ABC):
                 if r.status == 404 or r.status == 410:
                     raise ResourceNotFound(await r.text())
 
+                if r.status == 412:
+                    raise MultipleResourcesFound(await r.text())
+
                 data = await r.text()
                 try:
                     parsed_data = json.loads(data)
@@ -174,6 +177,9 @@ class SyncClient(AbstractClient, ABC):
 
         if r.status_code == 404 or r.status_code == 410:
             raise ResourceNotFound(r.content.decode())
+
+        if r.status_code == 412:
+            raise MultipleResourcesFound(r.content.decode())
 
         data = r.content.decode()
         try:
@@ -239,6 +245,10 @@ class SyncSearchSet(AbstractSearchSet, ABC):
         result = self.limit(1).fetch()
 
         return result[0] if result else None
+
+    def create(self, **resource_data):
+        resource = self.client.resource(self.resource_type, **resource_data)
+        return self.client._do_request("POST", self.resource_type, resource, self.params)
 
     def __iter__(self):
         next_link = None
@@ -312,6 +322,11 @@ class AsyncSearchSet(AbstractSearchSet, ABC):
         result = await self.limit(1).fetch()
 
         return result[0] if result else None
+
+    async def create(self, **resource_data):
+        resource = self.client.resource(self.resource_type, **resource_data)
+        return await self.client._do_request("POST", self.resource_type, resource, self.params)
+
 
     async def __aiter__(self):
         next_link = None
