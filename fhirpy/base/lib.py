@@ -427,7 +427,11 @@ class AsyncResource(BaseResource, ABC):
         await self.save(search_params=kwargs)
         return self
 
-    async def update(self, **kwargs):
+    async def update(self):
+        if not self.id:
+            raise TypeError("Resource `id` is required for update operation")
+        await self.save()
+    async def patch(self, **kwargs):
         super(BaseResource, self).update(**kwargs)
         await self.save(fields=kwargs.keys())
 

@@ -438,6 +438,29 @@ class TestLibAsyncCase:
 
     @pytest.mark.asyncio
     async def test_update(self):
+        patient_id = "patient_to_update"
+        patient_initial = await self.create_resource(
+            "Patient", id=patient_id, name=[{"text": "J London"}], active=False
+        )
+        new_name = [
+            {
+                "text": "Jack London",
+                "family": "London",
+                "given": ["Jack"],
+            }
+        ]
+        patient_updated = self.client.resource("Patient", id=patient_id, identifier=self.identifier, active=True)
+        await patient_updated.update()
+
+        await patient_initial.refresh()
+
+        assert patient_initial.id == patient_updated.id
+        assert patient_updated.get("name") is None
+        assert patient_initial.get("name") is None
+        assert patient_initial["active"] is True
+
+    @pytest.mark.asyncio
+    async def test_patch(self):
         patient = await self.create_resource(
             "Patient", id="patient_to_update", name=[{"text": "J London"}], active=False
         )
@@ -448,7 +471,7 @@ class TestLibAsyncCase:
                 "given": ["Jack"],
             }
         ]
-        await patient.update(active=True, name=new_name)
+        await patient.patch(active=True, name=new_name)
         patient_refreshed = await patient.to_reference().to_resource()
         assert patient_refreshed.serialize() == patient.serialize()
         assert patient["name"] == new_name
@@ -467,7 +490,9 @@ class TestLibAsyncCase:
             }
         ]
         with pytest.raises(TypeError):
-            await patient.update(active=True, name=new_name)
+            await patient.update()
+        with pytest.raises(TypeError):
+            await patient.patch(active=True, name=new_name)
         with pytest.raises(TypeError):
             patient["name"] = new_name
             await patient.save(fields=["name"])
@@ -479,7 +504,7 @@ class TestLibAsyncCase:
         patient = await self.create_resource("Patient", id=patient_id, active=True)
 
         test_patient = await self.client.reference("Patient", patient_id).to_resource()
-        await test_patient.update(gender="male", name=[{"text": "Jack London"}])
+        await test_patient.patch(gender="male", name=[{"text": "Jack London"}])
         assert patient.serialize() != test_patient.serialize()
 
         await patient.refresh()

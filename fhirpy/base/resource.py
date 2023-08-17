@@ -108,9 +108,12 @@ class BaseResource(AbstractResource, ABC):
         pass
 
     @abstractmethod  # pragma: no cover
-    def update(self, **kwargs):
+    def patch(self, **kwargs):
         pass
 
+    @abstractmethod  # pragma: no cover
+    def update(self):
+        pass
     @abstractmethod  # pragma: no cover
     def delete(self):
         pass
