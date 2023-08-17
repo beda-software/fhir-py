@@ -368,7 +368,11 @@ class SyncResource(BaseResource, ABC):
         self.save(search_params=kwargs)
         return self
 
-    def update(self, **kwargs):
+    def update(self):
+        if not self.id:
+            raise TypeError("Resource `id` is required for update operation")
+        self.save()
+    def patch(self, **kwargs):
         super(BaseResource, self).update(**kwargs)
         self.save(fields=kwargs.keys())
 

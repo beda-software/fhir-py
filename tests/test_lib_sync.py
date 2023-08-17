@@ -421,6 +421,28 @@ class TestLibSyncCase:
         assert patient_refreshed["name"] == [{"text": "Abc"}]
 
     def test_update(self):
+        patient_id = "patient_to_update"
+        patient_initial = self.create_resource(
+            "Patient", id=patient_id, name=[{"text": "J London"}], active=False
+        )
+        new_name = [
+            {
+                "text": "Jack London",
+                "family": "London",
+                "given": ["Jack"],
+            }
+        ]
+        patient_updated = self.client.resource("Patient", id=patient_id, identifier=self.identifier, active=True)
+        patient_updated.update()
+
+        patient_initial.refresh()
+
+        assert patient_initial.id == patient_updated.id
+        assert patient_updated.get("name") is None
+        assert patient_initial.get("name") is None
+        assert patient_initial["active"] is True
+
+    def test_patch(self):
         patient = self.create_resource(
             "Patient", id="patient_to_update", name=[{"text": "J London"}], active=False
         )
@@ -431,7 +453,7 @@ class TestLibSyncCase:
                 "given": ["Jack"],
             }
         ]
-        patient.update(active=True, name=new_name)
+        patient.patch(active=True, name=new_name)
         patient_refreshed = patient.to_reference().to_resource()
         assert patient_refreshed.serialize() == patient.serialize()
         assert patient["name"] == new_name
@@ -449,7 +471,9 @@ class TestLibSyncCase:
             }
         ]
         with pytest.raises(TypeError):
-            patient.update(active=True, name=new_name)
+            patient.update()
+        with pytest.raises(TypeError):
+            patient.patch(active=True, name=new_name)
         with pytest.raises(TypeError):
             patient["name"] = new_name
             patient.save(fields=["name"])
@@ -460,7 +484,7 @@ class TestLibSyncCase:
         patient = self.create_resource("Patient", id=patient_id, active=True)
 
         test_patient = self.client.reference("Patient", patient_id).to_resource()
-        test_patient.update(gender="male", name=[{"text": "Jack London"}])
+        test_patient.patch(gender="male", name=[{"text": "Jack London"}])
         assert patient.serialize() != test_patient.serialize()
 
         patient.refresh()
