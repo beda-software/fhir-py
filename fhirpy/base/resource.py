@@ -104,7 +104,7 @@ class BaseResource(AbstractResource, ABC):
         return self.__str__()
 
     @abstractmethod  # pragma: no cover
-    def save(self, fields=None):
+    def save(self, fields=None, search_params=None):
         pass
 
     @abstractmethod  # pragma: no cover

@@ -348,7 +348,7 @@ class AsyncSearchSet(AbstractSearchSet, ABC):
 
 
 class SyncResource(BaseResource, ABC):
-    def save(self, fields=None):
+    def save(self, fields=None, search_params=None):
         data = self.serialize()
         if fields:
             if not self.id:
@@ -357,15 +357,15 @@ class SyncResource(BaseResource, ABC):
             method = "patch"
         else:
             method = "put" if self.id else "post"
-        response_data = self.client._do_request(method, self._get_path(), data=data)
+        response_data = self.client._do_request(method, self._get_path(), data=data, params=search_params)
         if response_data:
             super(BaseResource, self).clear()
             super(BaseResource, self).update(
                 **self.client.resource(self.resource_type, **response_data)
             )
 
-    def create(self):
-        self.save()
+    def create(self, **kwargs):
+        self.save(search_params=kwargs)
         return self
 
     def update(self, **kwargs):
@@ -400,7 +400,7 @@ class SyncResource(BaseResource, ABC):
 
 
 class AsyncResource(BaseResource, ABC):
-    async def save(self, fields=None):
+    async def save(self, fields=None, search_params=None):
         data = self.serialize()
         if fields:
             if not self.id:
@@ -411,7 +411,7 @@ class AsyncResource(BaseResource, ABC):
             method = "put" if self.id else "post"
 
         response_data = await self.client._do_request(
-            method, self._get_path(), data=data
+            method, self._get_path(), data=data, params=search_params
         )
         if response_data:
             super(BaseResource, self).clear()
@@ -419,8 +419,8 @@ class AsyncResource(BaseResource, ABC):
                 **self.client.resource(self.resource_type, **response_data)
             )
 
-    async def create(self):
-        await self.save()
+    async def create(self, **kwargs):
+        await self.save(search_params=kwargs)
         return self
 
     async def update(self, **kwargs):
