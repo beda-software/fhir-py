@@ -70,7 +70,7 @@ class AbstractClient(ABC):
         pass
 
     @abstractmethod  # pragma: no cover
-    def _do_request(self, method, path, data=None, params=None):
+    def _do_request(self, method, path, data=None, params=None, returning_status=False):
         pass
 
     @abstractmethod  # pragma: no cover
@@ -118,7 +118,7 @@ class AsyncClient(AbstractClient, ABC):
     async def execute(self, path, method="post", **kwargs):
         return await self._do_request(method, path, **kwargs)
 
-    async def _do_request(self, method, path, data=None, params=None):
+    async def _do_request(self, method, path, data=None, params=None, returning_status=False):
         headers = self._build_request_headers()
         url = self._build_request_url(path, params)
         async with aiohttp.ClientSession(headers=headers) as session:
@@ -127,7 +127,8 @@ class AsyncClient(AbstractClient, ABC):
             ) as r:
                 if 200 <= r.status < 300:
                     data = await r.text()
-                    return json.loads(data, object_hook=AttrDict) if data else None
+                    r_data = json.loads(data, object_hook=AttrDict) if data else None
+                    return (r_data, r.status) if returning_status else r_data
 
                 if r.status == 404 or r.status == 410:
                     raise ResourceNotFound(await r.text())
@@ -161,7 +162,7 @@ class SyncClient(AbstractClient, ABC):
     def execute(self, path, method="post", **kwargs):
         return self._do_request(method, path, **kwargs)
 
-    def _do_request(self, method, path, data=None, params=None):
+    def _do_request(self, method, path, data=None, params=None, returning_status=False):
         headers = self._build_request_headers()
         url = self._build_request_url(path, params)
         r = requests.request(
@@ -169,11 +170,8 @@ class SyncClient(AbstractClient, ABC):
         )
 
         if 200 <= r.status_code < 300:
-            return (
-                json.loads(r.content.decode(), object_hook=AttrDict)
-                if r.content
-                else None
-            )
+            r_data = json.loads(r.content.decode(), object_hook=AttrDict) if r.content else None
+            return (r_data, r.status_code) if returning_status else r_data
 
         if r.status_code == 404 or r.status_code == 410:
             raise ResourceNotFound(r.content.decode())
@@ -246,9 +244,10 @@ class SyncSearchSet(AbstractSearchSet, ABC):
 
         return result[0] if result else None
 
-    def create(self, resource):
+    def get_or_create(self, resource):
         assert resource.resource_type == self.resource_type
-        return self.client._do_request("POST", self.resource_type, resource.serialize(), self.params)
+        data, status_code = self.client._do_request("POST", self.resource_type, resource.serialize(), self.params, True)
+        return data, (True if status_code == 201 else False)
 
     def __iter__(self):
         next_link = None
@@ -322,9 +321,10 @@ class AsyncSearchSet(AbstractSearchSet, ABC):
 
         return result[0] if result else None
 
-    async def create(self, resource):
+    async def get_or_create(self, resource):
         assert resource.resource_type == self.resource_type
-        return await self.client._do_request("POST", self.resource_type, resource.serialize(), self.params)
+        data, status_code = await self.client._do_request("POST", self.resource_type, resource.serialize(), self.params, True)
+        return data, (True if status_code == 201 else False)
 
     async def __aiter__(self):
         next_link = None

@@ -37,7 +37,9 @@ class TestLibAsyncCase:
         cls.client = AsyncFHIRClient(cls.URL, authorization=FHIR_SERVER_AUTHORIZATION)
 
     async def create_resource(self, resource_type, **kwargs):
-        return await self.client.resource(resource_type, identifier=self.identifier, **kwargs).create()
+        return await self.client.resource(
+            resource_type, identifier=self.identifier, **kwargs
+        ).create()
 
     @pytest.mark.asyncio
     async def test_create_patient(self):
@@ -50,20 +52,32 @@ class TestLibAsyncCase:
     async def test_create_patient_conditionally__create_on_no_match(self):
         await self.create_resource("Patient", id="patient")
 
-        patient_to_save = self.client.resource("Patient",
-                                               identifier=[{"system": "http://example.com/env", "value": "other"}],
-                                               name=[{"text": "Indiana Jones"}])
-        patient = await self.client.resources("Patient").search(identifier="other").create(patient_to_save)
+        patient_to_save = self.client.resource(
+            "Patient",
+            identifier=[{"system": "http://example.com/env", "value": "other"}, self.identifier[0]],
+            name=[{"text": "Indiana Jones"}],
+        )
+        patient, created = (
+            await self.client.resources("Patient")
+            .search(identifier="other")
+            .get_or_create(patient_to_save)
+        )
         assert patient.id != "patient"
         assert patient.get_by_path(["name", 0, "text"]) == "Indiana Jones"
+        assert created is True
 
     @pytest.mark.asyncio
     async def test_create_patient_conditionally__skip_on_one_match(self):
         await self.create_resource("Patient", id="patient")
 
         patient_to_save = self.client.resource("Patient", identifier=self.identifier)
-        patient = await self.client.resources("Patient").search(identifier="fhirpy").create(patient_to_save)
+        patient, created = (
+            await self.client.resources("Patient")
+            .search(identifier="fhirpy")
+            .get_or_create(patient_to_save)
+        )
         assert patient.id == "patient"
+        assert created is False
 
     @pytest.mark.asyncio
     async def test_create_patient_conditionally__fail_on_multiple_matches(self):
@@ -72,7 +86,9 @@ class TestLibAsyncCase:
 
         patient_to_save = self.client.resource("Patient", identifier=self.identifier)
         with pytest.raises(MultipleResourcesFound):
-            await self.client.resources("Patient").search(identifier="fhirpy").create(patient_to_save)
+            await self.client.resources("Patient").search(identifier="fhirpy").get_or_create(
+                patient_to_save
+            )
 
     @pytest.mark.asyncio
     async def test_update_patient(self):

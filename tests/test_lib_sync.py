@@ -54,19 +54,31 @@ class TestLibSyncCase:
     def test_create_patient_conditionally__create_on_no_match(self):
         self.create_resource("Patient", id="patient")
 
-        patient_to_save = self.client.resource("Patient",
-                                               identifier=[{"system": "http://example.com/env", "value": "other"}],
-                                               name=[{"text": "Indiana Jones"}])
-        patient = self.client.resources("Patient").search(identifier="other").create(patient_to_save)
+        patient_to_save = self.client.resource(
+            "Patient",
+            identifier=[{"system": "http://example.com/env", "value": "other"}, self.identifier[0]],
+            name=[{"text": "Indiana Jones"}],
+        )
+        patient, created = (
+            self.client.resources("Patient")
+            .search(identifier="other")
+            .get_or_create(patient_to_save)
+        )
         assert patient.id != "patient"
         assert patient.get_by_path(["name", 0, "text"]) == "Indiana Jones"
+        assert created is True
 
     def test_create_patient_conditionally__skip_on_one_match(self):
         self.create_resource("Patient", id="patient")
 
         patient_to_save = self.client.resource("Patient", identifier=self.identifier)
-        patient = self.client.resources("Patient").search(identifier="fhirpy").create(patient_to_save)
+        patient, created = (
+            self.client.resources("Patient")
+            .search(identifier="fhirpy")
+            .get_or_create(patient_to_save)
+        )
         assert patient.id == "patient"
+        assert created is False
 
     def test_create_patient_conditionally__fail_on_multiple_matches(self):
         self.create_resource("Patient", id="patient-one")
@@ -74,7 +86,7 @@ class TestLibSyncCase:
 
         patient_to_save = self.client.resource("Patient", identifier=self.identifier)
         with pytest.raises(MultipleResourcesFound):
-            self.client.resources("Patient").search(identifier="fhirpy").create(patient_to_save)
+            self.client.resources("Patient").search(identifier="fhirpy").get_or_create(patient_to_save)
 
     def test_update_patient(self):
         patient = self.create_resource(
