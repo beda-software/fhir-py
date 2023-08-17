@@ -51,7 +51,7 @@ class TestLibSyncCase:
         patient = self.client.resources("Patient").search(_id="patient").get()
         assert patient["name"] == [{"text": "My patient"}]
 
-    def test_create_patient_conditionally__create_on_no_match(self):
+    def test_get_or_create__create_on_no_match(self):
         self.create_resource("Patient", id="patient")
 
         patient_to_save = self.client.resource(
@@ -68,7 +68,7 @@ class TestLibSyncCase:
         assert patient.get_by_path(["name", 0, "text"]) == "Indiana Jones"
         assert created is True
 
-    def test_create_patient_conditionally__skip_on_one_match(self):
+    def test_get_or_create__skip_on_one_match(self):
         self.create_resource("Patient", id="patient")
 
         patient_to_save = self.client.resource("Patient", identifier=self.identifier)
@@ -80,7 +80,7 @@ class TestLibSyncCase:
         assert patient.id == "patient"
         assert created is False
 
-    def test_create_patient_conditionally__fail_on_multiple_matches(self):
+    def test_get_or_create__fail_on_multiple_matches(self):
         self.create_resource("Patient", id="patient-one")
         self.create_resource("Patient", id="patient-two")
 

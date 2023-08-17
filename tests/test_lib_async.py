@@ -49,7 +49,7 @@ class TestLibAsyncCase:
         assert patient["name"] == [{"text": "My patient"}]
 
     @pytest.mark.asyncio
-    async def test_create_patient_conditionally__create_on_no_match(self):
+    async def test_get_or_create__create_on_no_match(self):
         await self.create_resource("Patient", id="patient")
 
         patient_to_save = self.client.resource(
@@ -67,7 +67,7 @@ class TestLibAsyncCase:
         assert created is True
 
     @pytest.mark.asyncio
-    async def test_create_patient_conditionally__skip_on_one_match(self):
+    async def test_get_or_create__skip_on_one_match(self):
         await self.create_resource("Patient", id="patient")
 
         patient_to_save = self.client.resource("Patient", identifier=self.identifier)
@@ -80,7 +80,7 @@ class TestLibAsyncCase:
         assert created is False
 
     @pytest.mark.asyncio
-    async def test_create_patient_conditionally__fail_on_multiple_matches(self):
+    async def test_get_or_create__fail_on_multiple_matches(self):
         await self.create_resource("Patient", id="patient-one")
         await self.create_resource("Patient", id="patient-two")
 
