@@ -425,13 +425,6 @@ class TestLibSyncCase:
         patient_initial = self.create_resource(
             "Patient", id=patient_id, name=[{"text": "J London"}], active=False
         )
-        new_name = [
-            {
-                "text": "Jack London",
-                "family": "London",
-                "given": ["Jack"],
-            }
-        ]
         patient_updated = self.client.resource("Patient", id=patient_id, identifier=self.identifier, active=True)
         patient_updated.update()
 
@@ -443,8 +436,9 @@ class TestLibSyncCase:
         assert patient_initial["active"] is True
 
     def test_patch(self):
-        patient = self.create_resource(
-            "Patient", id="patient_to_update", name=[{"text": "J London"}], active=False
+        patient_id = "patient_to_patch"
+        patient_instance_1 = self.create_resource(
+            "Patient", id=patient_id, name=[{"text": "J London"}], active=False, birthDate="1998-01-01"
         )
         new_name = [
             {
@@ -453,11 +447,14 @@ class TestLibSyncCase:
                 "given": ["Jack"],
             }
         ]
-        patient.patch(active=True, name=new_name)
-        patient_refreshed = patient.to_reference().to_resource()
-        assert patient_refreshed.serialize() == patient.serialize()
-        assert patient["name"] == new_name
-        assert patient["active"] is True
+        patient_instance_2 = self.client.resource("Patient", id=patient_id, birthDate="2001-01-01")
+        patient_instance_2.patch(active=True, name=new_name)
+        patient_instance_1_refreshed = patient_instance_1.to_reference().to_resource()
+
+        assert patient_instance_1_refreshed.serialize() == patient_instance_2.serialize()
+        assert patient_instance_1_refreshed.active is True
+        assert patient_instance_1_refreshed.birthDate == "1998-01-01"
+        assert patient_instance_1_refreshed["name"] == new_name
 
     def test_update_without_id(self):
         patient = self.client.resource(

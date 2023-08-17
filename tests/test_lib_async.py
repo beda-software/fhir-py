@@ -442,13 +442,6 @@ class TestLibAsyncCase:
         patient_initial = await self.create_resource(
             "Patient", id=patient_id, name=[{"text": "J London"}], active=False
         )
-        new_name = [
-            {
-                "text": "Jack London",
-                "family": "London",
-                "given": ["Jack"],
-            }
-        ]
         patient_updated = self.client.resource("Patient", id=patient_id, identifier=self.identifier, active=True)
         await patient_updated.update()
 
@@ -461,8 +454,9 @@ class TestLibAsyncCase:
 
     @pytest.mark.asyncio
     async def test_patch(self):
-        patient = await self.create_resource(
-            "Patient", id="patient_to_update", name=[{"text": "J London"}], active=False
+        patient_id = "patient_to_patch"
+        patient_instance_1 = await self.create_resource(
+            "Patient", id=patient_id, name=[{"text": "J London"}], active=False, birthDate="1998-01-01"
         )
         new_name = [
             {
@@ -471,11 +465,14 @@ class TestLibAsyncCase:
                 "given": ["Jack"],
             }
         ]
-        await patient.patch(active=True, name=new_name)
-        patient_refreshed = await patient.to_reference().to_resource()
-        assert patient_refreshed.serialize() == patient.serialize()
-        assert patient["name"] == new_name
-        assert patient["active"] is True
+        patient_instance_2 = self.client.resource("Patient", id=patient_id, birthDate="2001-01-01")
+        await patient_instance_2.patch(active=True, name=new_name)
+        patient_instance_1_refreshed = await patient_instance_1.to_reference().to_resource()
+
+        assert patient_instance_1_refreshed.serialize() == patient_instance_2.serialize()
+        assert patient_instance_1_refreshed.active is True
+        assert patient_instance_1_refreshed.birthDate == "1998-01-01"
+        assert patient_instance_1_refreshed["name"] == new_name
 
     @pytest.mark.asyncio
     async def test_update_without_id(self):
