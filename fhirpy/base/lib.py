@@ -249,6 +249,19 @@ class SyncSearchSet(AbstractSearchSet, ABC):
         data, status_code = self.client._do_request("POST", self.resource_type, resource.serialize(), self.params, True)
         return data, (True if status_code == 201 else False)
 
+    def update(self, resource):
+        # TODO: Support cases where resource with id is provided
+        # accordingly to the https://build.fhir.org/http.html#cond-update
+        assert resource.resource_type == self.resource_type
+        data, status_code = self.client._do_request("PUT", self.resource_type, resource.serialize(), self.params, True)
+        return data, (True if status_code == 201 else False)
+
+    def patch(self, resource):
+        # TODO: Handle cases where resource with id is provided
+        assert resource.resource_type == self.resource_type
+        # TODO: Should we omit resourceType after serialization? (not to pollute history)
+        return self.client._do_request("PATCH", self.resource_type, resource.serialize(), self.params)
+
     def __iter__(self):
         next_link = None
         while True:
@@ -325,6 +338,19 @@ class AsyncSearchSet(AbstractSearchSet, ABC):
         assert resource.resource_type == self.resource_type
         data, status_code = await self.client._do_request("POST", self.resource_type, resource.serialize(), self.params, True)
         return data, (True if status_code == 201 else False)
+
+    async def update(self, resource):
+        # TODO: Support cases where resource with id is provided
+        # accordingly to the https://build.fhir.org/http.html#cond-update
+        assert resource.resource_type == self.resource_type
+        data, status_code = await self.client._do_request("PUT", self.resource_type, resource.serialize(), self.params, True)
+        return data, (True if status_code == 201 else False)
+
+    async def patch(self, resource):
+        # TODO: Handle cases where resource with id is provided
+        assert resource.resource_type == self.resource_type
+        # TODO: Should we omit resourceType after serialization? (not to pollute history)
+        return await self.client._do_request("PATCH", self.resource_type, resource.serialize(), self.params)
 
     async def __aiter__(self):
         next_link = None

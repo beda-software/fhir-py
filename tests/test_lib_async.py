@@ -114,7 +114,7 @@ class TestLibAsyncCase:
         assert patient.get_by_path(["meta", "versionId"]) == existing_patient.get_by_path(["meta", "versionId"])
 
     @pytest.mark.asyncio
-    async def test_get_or_create__fail_on_multiple_matches(self):
+    async def test_conditional_operations__fail_on_multiple_matches(self):
         await self.create_resource("Patient", id="patient-one")
         await self.create_resource("Patient", id="patient-two")
 
@@ -123,6 +123,78 @@ class TestLibAsyncCase:
             await self.client.resources("Patient").search(identifier="fhirpy").get_or_create(
                 patient_to_save
             )
+        with pytest.raises(MultipleResourcesFound):
+            await self.client.resources("Patient").search(identifier="fhirpy").update(patient_to_save)
+        with pytest.raises(MultipleResourcesFound):
+            await self.client.resources("Patient").search(identifier="fhirpy").patch(patient_to_save)
+
+    @pytest.mark.asyncio
+    async def test_update_with_params__no_match(self):
+        patient = await self.create_resource("Patient", id="patient", active=True)
+
+        patient_to_update = self.client.resource(
+            "Patient",
+            identifier=[{"system": "http://example.com/env", "value": "other"}, self.identifier[0]],
+            active=False
+        )
+        new_patient, created = await (
+            self.client.resources("Patient")
+            .search(identifier="other")
+            .update(patient_to_update)
+        )
+
+        await patient.refresh()
+        assert patient.active is True
+        assert new_patient.id != "patient"
+        assert new_patient.active is False
+        assert created is True
+
+    @pytest.mark.asyncio
+    async def test_update_with_params__one_match(self):
+        patient = await self.create_resource("Patient", id="patient", active=True)
+
+        patient_to_update = self.client.resource("Patient", identifier=self.identifier, name=[{"text": "Indiana Jones"}])
+        updated_patient, created = await (
+            self.client.resources("Patient")
+            .search(identifier="fhirpy")
+            .update(patient_to_update)
+        )
+        assert updated_patient.id == patient.id
+        assert created is False
+        assert updated_patient.get_by_path(["meta", "versionId"]) != patient.get_by_path(["meta", "versionId"])
+        assert updated_patient.get_by_path(["name", 0, "text"]) == "Indiana Jones"
+
+        await patient.refresh()
+        assert updated_patient.get_by_path(["meta", "versionId"]) == patient.get_by_path(["meta", "versionId"])
+        assert patient.get("active") is None
+
+    @pytest.mark.asyncio
+    async def test_patch_with_params__no_match(self):
+        patient_to_patch = self.client.resource(
+            "Patient",
+            identifier=[{"system": "http://example.com/env", "value": "other"}, self.identifier[0]],
+            active=False
+        )
+        with pytest.raises(ResourceNotFound):
+            await self.client.resources("Patient").search(identifier="other").patch(patient_to_patch)
+
+    @pytest.mark.asyncio
+    async def test_patch_with_params__one_match(self):
+        patient = await self.create_resource("Patient", id="patient", active=True)
+
+        patient_to_patch = self.client.resource("Patient", identifier=self.identifier, name=[{"text": "Indiana Jones"}])
+        patched_patient = await (
+            self.client.resources("Patient")
+            .search(identifier="fhirpy")
+            .patch(patient_to_patch)
+        )
+        assert patched_patient.id == patient.id
+        assert patched_patient.get_by_path(["meta", "versionId"]) != patient.get_by_path(["meta", "versionId"])
+        assert patched_patient.get_by_path(["name", 0, "text"]) == "Indiana Jones"
+
+        await patient.refresh()
+        assert patched_patient.get_by_path(["meta", "versionId"]) == patient.get_by_path(["meta", "versionId"])
+        assert patient.active is True
 
     @pytest.mark.asyncio
     async def test_update_patient(self):
