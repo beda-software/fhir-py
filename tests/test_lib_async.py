@@ -64,12 +64,14 @@ class TestLibAsyncCase:
 
     @pytest.mark.asyncio
     async def test_conditional_create__skip_on_one_match(self):
-        await self.create_resource("Patient", id="patient")
+        existing_patient = await self.create_resource("Patient", id="patient")
 
-        patient = self.client.resource("Patient", identifier=self.identifier)
+        patient = self.client.resource("Patient", identifier=self.identifier, name=[{"text": "Indiana Jones"}])
         await patient.create(identifier="fhirpy")
 
         assert patient.id == "patient"
+        assert patient.get("name") is None
+        assert patient.get_by_path(["meta", "versionId"]) == existing_patient.get_by_path(["meta", "versionId"])
 
     @pytest.mark.asyncio
     async def test_conditional_create__fail_on_multiple_matches(self):
@@ -99,7 +101,7 @@ class TestLibAsyncCase:
 
     @pytest.mark.asyncio
     async def test_get_or_create__skip_on_one_match(self):
-        await self.create_resource("Patient", id="patient")
+        existing_patient = await self.create_resource("Patient", id="patient")
 
         patient_to_save = self.client.resource("Patient", identifier=self.identifier)
         patient, created = (
@@ -109,6 +111,7 @@ class TestLibAsyncCase:
         )
         assert patient.id == "patient"
         assert created is False
+        assert patient.get_by_path(["meta", "versionId"]) == existing_patient.get_by_path(["meta", "versionId"])
 
     @pytest.mark.asyncio
     async def test_get_or_create__fail_on_multiple_matches(self):

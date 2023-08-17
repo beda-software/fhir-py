@@ -65,12 +65,14 @@ class TestLibSyncCase:
         assert patient.get_by_path(["name", 0, "text"]) == "Indiana Jones"
 
     def test_conditional_create__skip_on_one_match(self):
-        self.create_resource("Patient", id="patient")
+        existing_patient = self.create_resource("Patient", id="patient")
 
-        patient = self.client.resource("Patient", identifier=self.identifier)
+        patient = self.client.resource("Patient", identifier=self.identifier, name=[{"text": "Indiana Jones"}])
         patient.create(identifier="fhirpy")
 
         assert patient.id == "patient"
+        assert patient.get("name") is None
+        assert patient.get_by_path(["meta", "versionId"]) == existing_patient.get_by_path(["meta", "versionId"])
 
     def test_conditional_create__fail_on_multiple_matches(self):
         self.create_resource("Patient", id="patient-one")
@@ -97,7 +99,7 @@ class TestLibSyncCase:
         assert created is True
 
     def test_get_or_create__skip_on_one_match(self):
-        self.create_resource("Patient", id="patient")
+        existing_patient = self.create_resource("Patient", id="patient")
 
         patient_to_save = self.client.resource("Patient", identifier=self.identifier)
         patient, created = (
@@ -107,6 +109,7 @@ class TestLibSyncCase:
         )
         assert patient.id == "patient"
         assert created is False
+        assert patient.get_by_path(["meta", "versionId"]) == existing_patient.get_by_path(["meta", "versionId"])
 
     def test_get_or_create__fail_on_multiple_matches(self):
         self.create_resource("Patient", id="patient-one")
