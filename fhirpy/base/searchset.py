@@ -206,6 +206,18 @@ class AbstractSearchSet(ABC):
     def first(self):
         pass
 
+    @abstractmethod
+    async def get_or_create(self, resource):
+        pass
+
+    @abstractmethod
+    def update(self, resource):
+        pass
+
+    @abstractmethod
+    def patch(self, resource):
+        pass
+
     def clone(self, override=False, **kwargs):
         new_params = copy.deepcopy(self.params)
         for key, value in kwargs.items():
