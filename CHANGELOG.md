@@ -1,4 +1,12 @@
-## Current
+## 1.4.1
+* Implement conditional operations #112:
+  * ! BREAKING CHANGE: `resource.update(params)` is replaced with `resource.patch(params)`, `resource.update(params)` works as conditional update and accepts `search_params` instead of partial resource
+* Fix get resource by id: `reference.to_resource()` is `GET /<resource_type>/<id>` instead of `GET /<resource_type>?_id=<id>` #111
+
+## 1.3.2
+* Implement `set_by_path(obj, path, value)`
+
+## 1.3.1
 * Add ability to provide additional params to Aiohttp (AsyncFHIRClient) and Requests (SyncFHIRClient) request
 * Make `authorization` param truly optional
 * Support chained search without specifying resource #92
