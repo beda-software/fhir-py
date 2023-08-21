@@ -2,6 +2,8 @@
 * Implement conditional operations #112:
   * ! BREAKING CHANGE: `resource.update(params)` is replaced with `resource.patch(params)`, `resource.update(params)` works as conditional update and accepts `search_params` instead of partial resource
 * Fix get resource by id: `reference.to_resource()` is `GET /<resource_type>/<id>` instead of `GET /<resource_type>?_id=<id>` #111
+* Bump aiohttp from 3.7.4 to 3.8.5 by @dependabot in #105
+* Bump certifi from 2023.5.7 to 2023.7.22 by @dependabot in #106
 
 ## 1.3.2
 * Implement `set_by_path(obj, path, value)`
