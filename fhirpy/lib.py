@@ -27,8 +27,7 @@ class BaseFHIRResource(BaseResource, ABC):
             return False
 
         return "reference" in value and not (
-            set(value.keys())
-            - {"reference", "display", "type", "identifier", "extension"}
+            set(value.keys()) - {"reference", "display", "type", "identifier", "extension"}
         )
 
 
@@ -83,9 +82,7 @@ class SyncFHIRClient(SyncClient):
             reference = "{0}/{1}".format(resource_type, id)
 
         if not reference:
-            raise TypeError(
-                "Arguments `resource_type` and `id` or `reference` " "are required"
-            )
+            raise TypeError("Arguments `resource_type` and `id` or `reference` " "are required")
         return SyncFHIRReference(self, reference=reference, **kwargs)
 
 
@@ -98,7 +95,5 @@ class AsyncFHIRClient(AsyncClient):
             reference = "{0}/{1}".format(resource_type, id)
 
         if not reference:
-            raise TypeError(
-                "Arguments `resource_type` and `id` or `reference` " "are required"
-            )
+            raise TypeError("Arguments `resource_type` and `id` or `reference` " "are required")
         return AsyncFHIRReference(self, reference=reference, **kwargs)

@@ -51,7 +51,7 @@ class OperationOutcome(BaseFHIRError):
         *,
         resource=None,
         severity=IssueSeverity.fatal.value,
-        code=IssueType.invalid.value
+        code=IssueType.invalid.value,
     ):
         self.resource = resource or {
             "resourceType": "OperationOutcome",
