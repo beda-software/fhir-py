@@ -399,6 +399,16 @@ patched_patient = await client.resources("Patient").search(identifier="fhirpy").
 # multiple matches -> 412 'MultipleResourcesFound'
 ```
 
+### Conditional delete
+[FHIR spec: Conditional delete](https://build.fhir.org/http.html#cdelete)<br>
+```Python
+response_data, status_code = await self.client.resources("Patient").search(identifier="abc").delete()
+
+# no match -> status_code = 204 'No Content'
+# one match -> status_code = 200 'OK'
+# multiple matches -> status_code = 412 'MultipleResourcesFound' (implementation specific)
+```
+
 # Resource and helper methods
 
 ## Validate resource using operation $validate

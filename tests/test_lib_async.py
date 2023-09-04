@@ -234,6 +234,37 @@ class TestLibAsyncCase:
             await self.get_search_set("Patient").search(_id="patient").get()
 
     @pytest.mark.asyncio
+    async def test_delete_with_params__no_match(self):
+        patient = await self.create_resource("Patient", id="patient")
+
+        _, status_code = await self.client.resources("Patient").search(identifier="other").delete()
+
+        await self.get_search_set("Patient").search(_id="patient").get()
+        assert status_code == 204
+
+    @pytest.mark.asyncio
+    async def test_delete_with_params__one_match(self):
+        patient = self.client.resource(
+            "Patient", id="patient",
+            identifier=[{"system": "http://example.com/env", "value": "other"}, self.identifier[0]],
+        )
+        await patient.save()
+
+        data, status_code = await self.client.resources("Patient").search(identifier="other").delete()
+
+        with pytest.raises(ResourceNotFound):
+            await self.get_search_set("Patient").search(_id="patient").get()
+        assert status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_delete_with_params__multiple_matches(self):
+        await self.create_resource("Patient", id="patient-1")
+        await self.create_resource("Patient", id="patient-2")
+
+        with pytest.raises(MultipleResourcesFound):
+            await self.client.resources("Patient").search(identifier="fhirpy").delete()
+
+    @pytest.mark.asyncio
     async def test_get_not_existing_id(self):
         with pytest.raises(ResourceNotFound):
             await self.client.resources("Patient").search(_id="FHIRPypy_not_existing_id").get()
