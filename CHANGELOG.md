@@ -1,3 +1,6 @@
+## 1.4.2
+* Conditional delete @pavlushkin
+
 ## 1.4.1
 * Implement conditional operations #112:
   * ! BREAKING CHANGE: `resource.update(partial_resource)` is replaced with `resource.patch(partial_resource)`, `resource.update(params)` works as conditional update and accepts `search_params` instead of partial resource
