@@ -45,6 +45,7 @@ You can test this library by interactive FHIR course in the repository [Aidbox/j
     - [Conditional create](#conditional-create)
     - [Conditional update](#conditional-update)
     - [Conditional patch](#conditional-patch)
+    - [Conditional delete](#conditional-delete)
 - [Resource and helper methods](#resource-and-helper-methods)
   - [Validate resource using operation $validate](#validate-resource-using-operation-validate)
   - [Accessing resource attributes](#accessing-resource-attributes)
