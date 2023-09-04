@@ -262,6 +262,9 @@ class SyncSearchSet(AbstractSearchSet, ABC):
         # TODO: Should we omit resourceType after serialization? (not to pollute history)
         return self.client._do_request("PATCH", self.resource_type, resource.serialize(), self.params)
 
+    def delete(self):
+        return self.client._do_request("DELETE", self.resource_type, params=self.params, returning_status=True)
+
     def __iter__(self):
         next_link = None
         while True:
@@ -351,6 +354,9 @@ class AsyncSearchSet(AbstractSearchSet, ABC):
         assert resource.resource_type == self.resource_type
         # TODO: Should we omit resourceType after serialization? (not to pollute history)
         return await self.client._do_request("PATCH", self.resource_type, resource.serialize(), self.params)
+
+    async def delete(self):
+        return await self.client._do_request("DELETE", self.resource_type, params=self.params, returning_status=True)
 
     async def __aiter__(self):
         next_link = None

@@ -225,6 +225,35 @@ class TestLibSyncCase:
         with pytest.raises(ResourceNotFound):
             self.get_search_set("Patient").search(_id="patient").get()
 
+    def test_delete_with_params__no_match(self):
+        self.create_resource("Patient", id="patient")
+
+        _, status_code = self.client.resources("Patient").search(identifier="other").delete()
+
+        self.get_search_set("Patient").search(_id="patient").get()
+        assert status_code == 204
+
+
+    def test_delete_with_params__one_match(self):
+        patient = self.client.resource(
+            "Patient", id="patient",
+            identifier=[{"system": "http://example.com/env", "value": "other"}, self.identifier[0]],
+        )
+        patient.save()
+
+        _, status_code = self.client.resources("Patient").search(identifier="other").delete()
+
+        with pytest.raises(ResourceNotFound):
+            self.get_search_set("Patient").search(_id="patient").get()
+        assert status_code == 200
+
+    def test_delete_with_params__multiple_matches(self):
+        self.create_resource("Patient", id="patient-1")
+        self.create_resource("Patient", id="patient-2")
+
+        with pytest.raises(MultipleResourcesFound):
+            self.client.resources("Patient").search(identifier="fhirpy").delete()
+
     def test_get_not_existing_id(self):
         with pytest.raises(ResourceNotFound):
             self.client.resources("Patient").search(
