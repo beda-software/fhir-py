@@ -43,9 +43,7 @@ class TestSearchSet(object):
         assert search_set.params == {"_elements": ["-name"]}
 
     def test_include(self, client):
-        search_set = client.resources("Patient").include(
-            "Patient", "general-practitioner"
-        )
+        search_set = client.resources("Patient").include("Patient", "general-practitioner")
         assert search_set.params == {"_include": ["Patient:general-practitioner"]}
 
     def test_has(self, client):
@@ -76,14 +74,10 @@ class TestSearchSet(object):
         search_set = client.resources("Patient").include(
             "Patient", "general-practitioner", "Organization"
         )
-        assert search_set.params == {
-            "_include": ["Patient:general-practitioner:Organization"]
-        }
+        assert search_set.params == {"_include": ["Patient:general-practitioner:Organization"]}
 
     def test_include_recursive(self, client):
-        search_set = client.resources("Patient").include(
-            "Organization", "partof", recursive=True
-        )
+        search_set = client.resources("Patient").include("Organization", "partof", recursive=True)
         assert search_set.params == {"_include:recursive": ["Organization:partof"]}
 
     def test_include_iterate(self, client):
@@ -131,15 +125,11 @@ class TestSearchSet(object):
 
     def test_search_transform_reference_value(self, client):
         practitioner_ref = client.reference("Practitioner", "some_id")
-        search_set = client.resources("Patient").search(
-            general_practitioner=practitioner_ref
-        )
+        search_set = client.resources("Patient").search(general_practitioner=practitioner_ref)
         assert search_set.params == {"general-practitioner": ["Practitioner/some_id"]}
 
     def test_search_chained_params_simple(self, client):
-        search_set = client.resources("EpisodeOfCare").search(
-            patient__Patient__name="John"
-        )
+        search_set = client.resources("EpisodeOfCare").search(patient__Patient__name="John")
 
         assert search_set.params == {"patient:Patient.name": ["John"]}
 

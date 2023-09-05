@@ -114,6 +114,7 @@ class BaseResource(AbstractResource, ABC):
     @abstractmethod  # pragma: no cover
     def update(self):
         pass
+
     @abstractmethod  # pragma: no cover
     def delete(self):
         pass
@@ -133,9 +134,7 @@ class BaseResource(AbstractResource, ABC):
         Returns Reference instance for this resource
         """
         if not self.reference:
-            raise ResourceNotFound(
-                "Can not get reference to unsaved resource without id"
-            )
+            raise ResourceNotFound("Can not get reference to unsaved resource without id")
 
         return self.client.reference(reference=self.reference, **kwargs)
 
@@ -194,7 +193,7 @@ class BaseReference(AbstractResource):
         return self.client.reference(reference=self.reference, **kwargs)
 
     def _dict_to_resource(self, data):
-        return self.client.resource(data['resourceType'], **data)
+        return self.client.resource(data["resourceType"], **data)
 
     @property  # pragma: no cover
     @abstractmethod

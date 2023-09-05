@@ -111,7 +111,7 @@ class TestLibBase(object):
                         "reference": "Practitioner/pr2",
                     },
                 ],
-            }
+            },
         )
         assert (
             resource.get_by_path(
@@ -120,10 +120,7 @@ class TestLibBase(object):
             == "practitioner"
         )
         assert (
-            resource.get_by_path(
-                ["generalPractitioner", {"reference": "Practitioner/100"}]
-            )
-            is None
+            resource.get_by_path(["generalPractitioner", {"reference": "Practitioner/100"}]) is None
         )
         assert (
             resource.get_by_path(
@@ -133,9 +130,7 @@ class TestLibBase(object):
             == "practitioner2"
         )
         assert (
-            resource.get_by_path(
-                ["generalPractitioner", 1, "reference"], "Practitioner/pr_test"
-            )
+            resource.get_by_path(["generalPractitioner", 1, "reference"], "Practitioner/pr_test")
             == "Practitioner/pr2"
         )
         assert resource.get_by_path(["generalPractitioner", 2, "reference"]) is None
@@ -208,7 +203,7 @@ class TestLibBase(object):
                 "id": "patient",
                 "name": [{"given": ["Firstname"], "family": "Lastname"}],
                 "gender": "male",
-            }
+            },
         )
         assert patient.gender == "male"
         assert patient.name[0].family == "Lastname"
