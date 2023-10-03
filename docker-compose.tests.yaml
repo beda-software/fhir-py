@@ -34,7 +34,7 @@ services:
       context: .
       args:
         PYTHON_VERSION: ${PYTHON:-3.11}
-    command: ["pipenv", "run", "pytest"]
+    command: ${TEST_COMMAND}
     depends_on:
       devbox-healthcheck:
         condition:

@@ -1,4 +1,19 @@
-## Current
+## 1.4.2
+* Conditional delete @pavlushkin
+
+## 1.4.1
+* Implement conditional operations #112:
+  * ! BREAKING CHANGE: `resource.update(partial_resource)` is replaced with `resource.patch(partial_resource)`, `resource.update(params)` works as conditional update and accepts `search_params` instead of partial resource
+  * Migration guide:
+    * `resource.update(active=True)` -> `resource.patch(active=True)`
+* Fix get resource by id: `reference.to_resource()` is `GET /<resource_type>/<id>` instead of `GET /<resource_type>?_id=<id>` #111
+* Bump aiohttp from 3.7.4 to 3.8.5 by @dependabot in #105
+* Bump certifi from 2023.5.7 to 2023.7.22 by @dependabot in #106
+
+## 1.3.2
+* Implement `set_by_path(obj, path, value)`
+
+## 1.3.1
 * Add ability to provide additional params to Aiohttp (AsyncFHIRClient) and Requests (SyncFHIRClient) request
 * Make `authorization` param truly optional
 * Support chained search without specifying resource #92

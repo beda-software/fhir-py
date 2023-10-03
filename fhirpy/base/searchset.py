@@ -180,7 +180,7 @@ class AbstractSearchSet(ABC):
         self.params = defaultdict(list, params or {})
 
     def _dict_to_resource(self, data):
-        return self.client.resource(data['resourceType'], **data)
+        return self.client.resource(data["resourceType"], **data)
 
     @abstractmethod  # pragma: no cover
     def fetch(self):
@@ -250,9 +250,7 @@ class AbstractSearchSet(ABC):
                 "'AuditEvent', 'entity', user='id')`"
             )
 
-        key_part = ":".join(
-            ["_has:{0}".format(":".join(pair)) for pair in chunks(args, 2)]
-        )
+        key_part = ":".join(["_has:{0}".format(":".join(pair)) for pair in chunks(args, 2)])
 
         return self.clone(
             **{":".join([key_part, key]): value for key, value in SQ(**kwargs).items()}
@@ -266,7 +264,7 @@ class AbstractSearchSet(ABC):
         *,
         recursive=False,
         iterate=False,
-        reverse=False
+        reverse=False,
     ):
         key_params = ["_revinclude" if reverse else "_include"]
 
@@ -282,9 +280,7 @@ class AbstractSearchSet(ABC):
             value = "*"
         else:
             if not attr:
-                raise TypeError(
-                    "You should provide attr " "(search parameter) argument"
-                )
+                raise TypeError("You should provide attr " "(search parameter) argument")
             value_params = [resource_type, attr]
             if target_resource_type:
                 value_params.append(target_resource_type)
@@ -293,13 +289,7 @@ class AbstractSearchSet(ABC):
         return self.clone(**{key: value})
 
     def revinclude(
-        self,
-        resource_type,
-        attr=None,
-        target_resource_type=None,
-        *,
-        recursive=False,
-        iterate=False
+        self, resource_type, attr=None, target_resource_type=None, *, recursive=False, iterate=False
     ):
         return self.include(
             resource_type,
@@ -333,8 +323,7 @@ class AbstractSearchSet(ABC):
 
         if bundle_resource_type != "Bundle":
             raise InvalidResponse(
-                "Expected to receive Bundle "
-                "but {0} received".format(bundle_resource_type)
+                "Expected to receive Bundle " "but {0} received".format(bundle_resource_type)
             )
 
         resources_data = [res["resource"] for res in bundle_data.get("entry", [])]

@@ -41,6 +41,11 @@ You can test this library by interactive FHIR course in the repository [Aidbox/j
     - [Wild card (any search parameter of type=reference be included)](#wild-card-any-search-parameter-of-typereference-be-included)
   - [Revinclude](#revinclude)
     - [Wild card (any search parameter of type=reference be included)](#wild-card-any-search-parameter-of-typereference-be-included-1)
+  - [Conditional operations](#conditional-operations)
+    - [Conditional create](#conditional-create)
+    - [Conditional update](#conditional-update)
+    - [Conditional patch](#conditional-patch)
+    - [Conditional delete](#conditional-delete)
 - [Resource and helper methods](#resource-and-helper-methods)
   - [Validate resource using operation $validate](#validate-resource-using-operation-validate)
   - [Accessing resource attributes](#accessing-resource-attributes)
@@ -93,7 +98,7 @@ async def main():
     if organization['active'] is False:
         organization.active = True
     await organization.save(fields=['active'])
-    # `await organization.update(active=True)` would do the same PATCH operation
+    # `await organization.patch(active=True)` would do the same PATCH operation
 
     # Get patient resource by reference and delete
     patient_ref = client.reference('Patient', 'new_patient')
@@ -340,6 +345,71 @@ await client.resources('EpisodeOfCare').revinclude('*') \
 # /EpisodeOfCare?_revinclude=*
 ```
 
+## Conditional operations
+### Conditional create
+[FHIR spec: Conditional create](https://build.fhir.org/http.html#ccreate)<br>
+#### For resource
+```Python
+# resource.create(search_params)
+# executes POST /Patient?identifier=fhirpy
+
+patient = client.resource("Patient",
+    identifier=[{"system": "http://example.com/env", "value": "fhirpy"}],
+    name=[{"text": "Mr. Smith"}],
+)
+await patient.create(identifier="other")
+```
+#### For SearchSet
+```Python
+# searchset.get_or_create(resource)
+# executes POST /Patient?identifier=fhirpy
+
+patient, created = await client.resources("Patient").search(identifier="fhirpy").get_or_create(patient_to_save)
+
+# no match -> created is True
+# one match -> created is False, return existing resource
+# multiple matches -> 412 'MultipleResourcesFound'
+```
+### Conditional update
+[FHIR spec: Conditional update](https://build.fhir.org/http.html#cond-update)<br>
+```Python
+# resource, created: bool = searchset.patch(resource)
+# executes PUT /Patient?identifier=fhirpy
+
+patient_to_update = client.resource("Patient", 
+                                    identifier=[{"system": "http://example.com/env", "value": "fhirpy"}],
+                                    active=False)
+new_patient, created = await client.resources("Patient").search(identifier="fhirpy").update(patient_to_update)
+
+# no match -> created is True
+# one match -> created is False, the matched resource is overwritten
+# multiple matches -> 412 'MultipleResourcesFound'
+```
+### Conditional patch
+[FHIR spec: Conditional patch](https://build.fhir.org/http.html#cond-patch)<br>
+```Python
+# patched_resource = searchset.patch(resource)
+# executes PATCH /Patient?identifier=fhirpy
+
+patient_to_patch = client.resource("Patient", 
+                                    identifier=[{"system": "http://example.com/env", "value": "fhirpy"}], 
+                                    name=[{"text": "Mr. Smith"}])
+patched_patient = await client.resources("Patient").search(identifier="fhirpy").patch(patient_to_patch)
+
+# no match -> 404 'ResourceNotFound'
+# multiple matches -> 412 'MultipleResourcesFound'
+```
+
+### Conditional delete
+[FHIR spec: Conditional delete](https://build.fhir.org/http.html#cdelete)<br>
+```Python
+response_data, status_code = await self.client.resources("Patient").search(identifier="abc").delete()
+
+# no match -> status_code = 204 'No Content'
+# one match -> status_code = 200 'OK'
+# multiple matches -> status_code = 412 'MultipleResourcesFound' (implementation specific)
+```
+
 # Resource and helper methods
 
 ## Validate resource using operation $validate
@@ -474,7 +544,8 @@ provides:
 * .serialize() - serializes resource
 * .get_by_path(path, default=None) – gets the value at path of resource
 * `async` .save(fields=[]) - creates or updates or patches (with fields=[...]) resource instance
-* `async` .update(**kwargs) - patches resource instance
+* `async` .update() - overrides resource instance
+* `async` .patch(**kwargs) - patches resource instance
 * `async` .delete() - deletes resource instance
 * `async` .refresh() - reloads resource from a server
 * `async` .to_reference(**kwargs) - returns `AsyncFHIRReference` for this resource
@@ -502,6 +573,9 @@ provides:
 * `async` .first() - returns `Resource` or None
 * `async` .get(id=None) - returns `Resource` or raises `ResourceNotFound` when no resource found or MultipleResourcesFound when more than one resource found (parameter 'id' is deprecated)
 * `async` .count() - makes query to the server and returns the total number of resources that match the SearchSet
+* `async` .get_or_create(resource) - conditional create
+* `async` .update(resource) - conditional update
+* `async` .patch(resource) - conditional patch
 
 
 ## Sync client (based on _requests_) – SyncFHIRClient
