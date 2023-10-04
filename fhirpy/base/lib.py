@@ -121,11 +121,11 @@ class AsyncClient(AbstractClient, ABC):
         return await self._do_request(method, path, **kwargs)
 
     async def _do_request(self, method, path, data=None, params=None, returning_status=False):
-        headers = self._build_request_headers()
-        url = self._build_request_url(path, params)
-        _http_session = self.http_session or aiohttp.ClientSession()
-        async with _http_session as session:
-            async with session.request(
+        try:
+            headers = self._build_request_headers()
+            url = self._build_request_url(path, params)
+            _http_session = self.http_session or aiohttp.ClientSession()
+            async with _http_session.request(
                 method, url, json=data, **self.aiohttp_config, headers=headers
             ) as r:
                 if 200 <= r.status < 300:
@@ -147,6 +147,9 @@ class AsyncClient(AbstractClient, ABC):
                     raise OperationOutcome(reason=data)
                 except (KeyError, JSONDecodeError):
                     raise OperationOutcome(reason=data)
+        finally:
+            if self.http_session is None:
+                await _http_session.close()
 
     async def _fetch_resource(self, path, params=None):
         return await self._do_request("get", path, params=params)

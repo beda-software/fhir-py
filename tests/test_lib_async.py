@@ -1,17 +1,15 @@
 import json
+import pytest
+from aiohttp import request, ClientSession
 from math import ceil
 from unittest.mock import ANY, Mock, patch
 from urllib.parse import parse_qs, urlparse
-
-import pytest
-from aiohttp import request
 
 from fhirpy import AsyncFHIRClient
 from fhirpy.base.exceptions import MultipleResourcesFound, OperationOutcome, ResourceNotFound
 from fhirpy.base.utils import AttrDict
 from fhirpy.lib import AsyncFHIRReference, AsyncFHIRResource
 from tests.utils import MockAiohttpResponse
-
 from .config import FHIR_SERVER_AUTHORIZATION, FHIR_SERVER_URL
 
 
@@ -802,3 +800,24 @@ async def test_aiohttp_config():
         patched_request.assert_called_with(
             ANY, ANY, json=None, ssl=False, proxy="http://example.com"
         )
+
+
+@pytest.mark.asyncio
+async def test_use_persistent_session():
+    persistent_session = ClientSession()
+    client = AsyncFHIRClient(
+        FHIR_SERVER_URL, authorization=FHIR_SERVER_AUTHORIZATION, http_session=persistent_session
+    )
+    client_no_session = AsyncFHIRClient(
+        FHIR_SERVER_URL,
+        authorization=FHIR_SERVER_AUTHORIZATION,
+    )
+    mock_session = ClientSession()
+    with patch("aiohttp.ClientSession", return_value=mock_session) as patched_session:
+        await client.resources("Patient").first()
+        await client.resources("Patient").first()  # Assert that session is reused and not closed
+        await persistent_session.close()
+        patched_session.assert_not_called()
+
+        await client_no_session.resources("Patient").first()
+        patched_session.assert_called_once()
