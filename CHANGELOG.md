@@ -1,3 +1,6 @@
+## Latest
+* Support aiohttp persistent session
+
 ## 1.4.2
 * Conditional delete @pavlushkin
 

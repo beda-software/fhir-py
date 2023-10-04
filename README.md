@@ -52,6 +52,7 @@ You can test this library by interactive FHIR course in the repository [Aidbox/j
   - [get_by_path(path, default=None)](#get_by_pathpath-defaultnone)
   - [set_by_path(obj, path, value)](#set_by_pathpath)
   - [serialize()](#serialize)
+- [Use persistent session](#use-persistent-session)
 - [Reference](#reference-1)
   - [Main class structure](#main-class-structure)
   - [Acync client (based on _aiohttp_) – AsyncFHIRClient](#acync-client-based-on-_aiohttp_--asyncfhirclient)
@@ -494,6 +495,18 @@ patient.serialize()
 # Or 
 await client.reference('Patient', '1').to_resource().serialize()
 # {'resourceType': 'Patient', 'id': '1', 'meta': {'versionId': '1', 'lastUpdated': '2021-11-13T11:50:24.685719Z'}, ...}
+```
+# Use persistent session
+Support aiohttp [persistent session](https://docs.aiohttp.org/en/latest/client_advanced.html#aiohttp-persistent-session):
+```Python
+# Create and manage session manually
+persistent_session = ClientSession()
+
+client = AsyncFHIRClient(
+    FHIR_SERVER_URL, authorization=FHIR_SERVER_AUTHORIZATION, http_session=persistent_session
+)
+
+await persistent_session.close()
 ```
 
 # Reference
