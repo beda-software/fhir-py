@@ -798,7 +798,7 @@ async def test_aiohttp_config():
     with patch("aiohttp.ClientSession.request", return_value=resp) as patched_request:
         await client.resources("Patient").first()
         patched_request.assert_called_with(
-            ANY, ANY, json=None, ssl=False, proxy="http://example.com"
+            ANY, ANY, json=None, ssl=False, proxy="http://example.com", headers=ANY
         )
 
 
