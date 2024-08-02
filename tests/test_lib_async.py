@@ -1,5 +1,6 @@
 import json
 from math import ceil
+from typing import ClassVar
 from unittest.mock import ANY, Mock, patch
 from urllib.parse import parse_qs, urlparse
 
@@ -18,15 +19,14 @@ from .config import FHIR_SERVER_AUTHORIZATION, FHIR_SERVER_URL
 class TestLibAsyncCase:
     URL = FHIR_SERVER_URL
     client = None
-    identifier = [{"system": "http://example.com/env", "value": "fhirpy"}]
+    identifier: ClassVar = [{"system": "http://example.com/env", "value": "fhirpy"}]
 
     @classmethod
     def get_search_set(cls, resource_type):
         return cls.client.resources(resource_type).search(**{"identifier": "fhirpy"})
 
     @pytest.fixture(autouse=True)
-    @pytest.mark.asyncio
-    async def clearDb(self):
+    async def _clear_db(self):
         for resource_type in ["Patient", "Practitioner"]:
             search_set = self.get_search_set(resource_type)
             async for item in search_set:
@@ -41,14 +41,14 @@ class TestLibAsyncCase:
             resource_type, identifier=self.identifier, **kwargs
         ).create()
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_create_patient(self):
         await self.create_resource("Patient", id="patient", name=[{"text": "My patient"}])
 
         patient = await self.client.resources("Patient").search(_id="patient").get()
         assert patient["name"] == [{"text": "My patient"}]
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_conditional_create__create_on_no_match(self):
         await self.create_resource("Patient", id="patient")
 
@@ -62,7 +62,7 @@ class TestLibAsyncCase:
         assert patient.id != "patient"
         assert patient.get_by_path(["name", 0, "text"]) == "Indiana Jones"
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_conditional_create__skip_on_one_match(self):
         existing_patient = await self.create_resource("Patient", id="patient")
 
@@ -77,7 +77,7 @@ class TestLibAsyncCase:
             ["meta", "versionId"]
         )
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_conditional_create__fail_on_multiple_matches(self):
         await self.create_resource("Patient", id="patient-one")
         await self.create_resource("Patient", id="patient-two")
@@ -87,7 +87,7 @@ class TestLibAsyncCase:
                 identifier="fhirpy"
             )
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_get_or_create__create_on_no_match(self):
         await self.create_resource("Patient", id="patient")
 
@@ -105,7 +105,7 @@ class TestLibAsyncCase:
         assert patient.get_by_path(["name", 0, "text"]) == "Indiana Jones"
         assert created is True
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_get_or_create__skip_on_one_match(self):
         existing_patient = await self.create_resource("Patient", id="patient")
 
@@ -121,7 +121,7 @@ class TestLibAsyncCase:
             ["meta", "versionId"]
         )
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_conditional_operations__fail_on_multiple_matches(self):
         await self.create_resource("Patient", id="patient-one")
         await self.create_resource("Patient", id="patient-two")
@@ -140,7 +140,7 @@ class TestLibAsyncCase:
                 patient_to_save
             )
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_with_params__no_match(self):
         patient = await self.create_resource("Patient", id="patient", active=True)
 
@@ -159,7 +159,7 @@ class TestLibAsyncCase:
         assert new_patient.active is False
         assert created is True
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_with_params__one_match(self):
         patient = await self.create_resource("Patient", id="patient", active=True)
 
@@ -182,7 +182,7 @@ class TestLibAsyncCase:
         )
         assert patient.get("active") is None
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_patch_with_params__no_match(self):
         patient_to_patch = self.client.resource(
             "Patient",
@@ -194,7 +194,7 @@ class TestLibAsyncCase:
                 patient_to_patch
             )
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_patch_with_params__one_match(self):
         patient = await self.create_resource("Patient", id="patient", active=True)
 
@@ -216,7 +216,7 @@ class TestLibAsyncCase:
         )
         assert patient.active is True
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_patient(self):
         patient = await self.create_resource("Patient", id="patient", name=[{"text": "My patient"}])
         patient["active"] = True
@@ -229,7 +229,7 @@ class TestLibAsyncCase:
         assert check_patient["birthDate"] == "1945-01-12"
         assert check_patient.get_by_path(["name", 0, "text"]) == "SomeName"
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_count(self):
         search_set = self.get_search_set("Patient")
 
@@ -239,13 +239,13 @@ class TestLibAsyncCase:
 
         assert await search_set.count() == 1
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_create_without_id(self):
         patient = await self.create_resource("Patient")
 
         assert patient.id is not None
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_delete(self):
         patient = await self.create_resource("Patient", id="patient")
         await patient.delete()
@@ -253,16 +253,16 @@ class TestLibAsyncCase:
         with pytest.raises(ResourceNotFound):
             await self.get_search_set("Patient").search(_id="patient").get()
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_delete_with_params__no_match(self):
-        patient = await self.create_resource("Patient", id="patient")
+        await self.create_resource("Patient", id="patient")
 
         _, status_code = await self.client.resources("Patient").search(identifier="other").delete()
 
         await self.get_search_set("Patient").search(_id="patient").get()
-        assert status_code == 204
+        assert status_code == 204  # noqa: PLR2004
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_delete_with_params__one_match(self):
         patient = self.client.resource(
             "Patient",
@@ -277,9 +277,9 @@ class TestLibAsyncCase:
 
         with pytest.raises(ResourceNotFound):
             await self.get_search_set("Patient").search(_id="patient").get()
-        assert status_code == 200
+        assert status_code == 200  # noqa: PLR2004
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_delete_with_params__multiple_matches(self):
         await self.create_resource("Patient", id="patient-1")
         await self.create_resource("Patient", id="patient-2")
@@ -287,12 +287,12 @@ class TestLibAsyncCase:
         with pytest.raises(MultipleResourcesFound):
             await self.client.resources("Patient").search(identifier="fhirpy").delete()
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_get_not_existing_id(self):
         with pytest.raises(ResourceNotFound):
             await self.client.resources("Patient").search(_id="FHIRPypy_not_existing_id").get()
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_get_more_than_one_resources(self):
         await self.create_resource("Patient", birthDate="1901-05-25")
         await self.create_resource("Patient", birthDate="1905-05-25")
@@ -301,14 +301,14 @@ class TestLibAsyncCase:
         with pytest.raises(MultipleResourcesFound):
             await self.client.resources("Patient").search(birthdate__gt="1900").get()
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_get_resource_by_id_is_deprecated(self):
         await self.create_resource("Patient", id="patient", gender="male")
         with pytest.warns(DeprecationWarning):
             patient = await self.client.resources("Patient").search(gender="male").get(id="patient")
         assert patient.id == "patient"
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_get_resource_by_search_with_id(self):
         await self.create_resource("Patient", id="patient", gender="male")
         patient = await self.client.resources("Patient").search(gender="male", _id="patient").get()
@@ -316,7 +316,7 @@ class TestLibAsyncCase:
         with pytest.raises(ResourceNotFound):
             await self.client.resources("Patient").search(gender="female", _id="patient").get()
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_get_resource_by_search(self):
         await self.create_resource("Patient", id="patient1", gender="male", birthDate="1901-05-25")
         await self.create_resource(
@@ -335,17 +335,17 @@ class TestLibAsyncCase:
         )
         assert patient_2.id == "patient2"
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_not_found_error(self):
         with pytest.raises(ResourceNotFound):
             await self.client.resources("FHIRPyNotExistingResource").fetch()
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_operation_outcome_error(self):
         with pytest.raises(OperationOutcome):
             await self.create_resource("Patient", name="invalid")
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_to_resource_for_local_reference(self):
         await self.create_resource("Patient", id="p1", name=[{"text": "Name"}])
 
@@ -360,14 +360,14 @@ class TestLibAsyncCase:
             "name": [{"text": "Name"}],
         }
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_to_resource_for_external_reference(self):
         reference = self.client.reference(reference="http://external.com/Patient/p1")
 
         with pytest.raises(ResourceNotFound):
             await reference.to_resource()
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_to_resource_for_resource(self):
         resource = self.client.resource("Patient", id="p1", name=[{"text": "Name"}])
         resource_copy = await resource.to_resource()
@@ -383,7 +383,7 @@ class TestLibAsyncCase:
         with pytest.raises(ResourceNotFound):
             resource.to_reference()
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_to_reference_for_resource(self):
         patient = await self.create_resource("Patient", id="p1")
 
@@ -394,7 +394,7 @@ class TestLibAsyncCase:
             "display": "patient",
         }
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_create_bundle(self):
         bundle = {
             "resourceType": "bundle",
@@ -420,7 +420,7 @@ class TestLibAsyncCase:
         await self.client.resources("Patient").search(_id="bundle_patient_1").get()
         await self.client.resources("Patient").search(_id="bundle_patient_2").get()
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_is_valid(self):
         resource = self.client.resource
         assert await resource("Patient", id="id123").is_valid() is True
@@ -442,7 +442,7 @@ class TestLibAsyncCase:
                 raise_exception=True
             )
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_get_first(self):
         await self.create_resource("Patient", id="patient_first", name=[{"text": "Abc"}])
         await self.create_resource("Patient", id="patient_second", name=[{"text": "Bbc"}])
@@ -450,7 +450,7 @@ class TestLibAsyncCase:
         assert isinstance(patient, AsyncFHIRResource)
         assert patient.id == "patient_first"
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_fetch_raw(self):
         await self.create_resource("Patient", name=[{"text": "RareName"}])
         await self.create_resource("Patient", name=[{"text": "RareName"}])
@@ -458,7 +458,7 @@ class TestLibAsyncCase:
         assert bundle.resourceType == "Bundle"
         for entry in bundle.entry:
             assert isinstance(entry.resource, AsyncFHIRResource)
-        assert len(bundle.entry) == 2
+        assert len(bundle.entry) == 2  # noqa: PLR2004
 
     async def create_test_patients(self, count=10, name="Not Rare Name"):
         bundle = {
@@ -482,7 +482,7 @@ class TestLibAsyncCase:
         await self.create_resource("Bundle", **bundle)
         return patient_ids
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     @pytest.mark.skip(reason="Need to mock aiohttp.ClientSession.request instead")
     # TODO: fix once https://github.com/beda-software/fhir-py/issues/93 is done
     async def test_fetch_all(self):
@@ -495,7 +495,7 @@ class TestLibAsyncCase:
         with patch("aiohttp.request", mocked_request):
             patients = await patient_set.fetch_all()
 
-        received_ids = set(p.id for p in patients)
+        received_ids = {p.id for p in patients}
 
         assert len(received_ids) == patients_count
         assert patient_ids == received_ids
@@ -510,7 +510,7 @@ class TestLibAsyncCase:
         assert "/Patient" in path
         assert params == {"name": [name], "_count": ["5"]}
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     @pytest.mark.skip(reason="Need to mock aiohttp.ClientSession.request instead")
     # TODO: fix once https://github.com/beda-software/fhir-py/issues/93 is done
     async def test_async_for_iterator(self):
@@ -536,11 +536,11 @@ class TestLibAsyncCase:
         assert request_url == url
 
     def test_build_request_url_wrong_path(self):
-        url = f"https://example.com/Patient?_count=100&name=ivan&name=petrov"
-        with pytest.raises(ValueError):
+        url = "https://example.com/Patient?_count=100&name=ivan&name=petrov"
+        with pytest.raises(ValueError):  # noqa: PT011
             self.client._build_request_url(url, None)
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_save_fields(self):
         patient = await self.create_resource(
             "Patient",
@@ -562,7 +562,7 @@ class TestLibAsyncCase:
         assert patient_refreshed["active"] is False
         assert patient_refreshed["name"] == [{"text": "Abc"}]
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update(self):
         patient_id = "patient_to_update"
         patient_initial = await self.create_resource(
@@ -580,7 +580,7 @@ class TestLibAsyncCase:
         assert patient_initial.get("name") is None
         assert patient_initial["active"] is True
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_patch(self):
         patient_id = "patient_to_patch"
         patient_instance_1 = await self.create_resource(
@@ -606,7 +606,7 @@ class TestLibAsyncCase:
         assert patient_instance_1_refreshed.birthDate == "1998-01-01"
         assert patient_instance_1_refreshed["name"] == new_name
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_update_without_id(self):
         patient = self.client.resource(
             "Patient", identifier=self.identifier, name=[{"text": "J London"}]
@@ -622,12 +622,12 @@ class TestLibAsyncCase:
             await patient.update()
         with pytest.raises(TypeError):
             await patient.patch(active=True, name=new_name)
+        patient["name"] = new_name
         with pytest.raises(TypeError):
-            patient["name"] = new_name
             await patient.save(fields=["name"])
         await patient.save()
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_refresh(self):
         patient_id = "refresh-patient-id"
         patient = await self.create_resource("Patient", id=patient_id, active=True)
@@ -639,7 +639,7 @@ class TestLibAsyncCase:
         await patient.refresh()
         assert patient.serialize() == test_patient.serialize()
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_client_execute_lastn(self):
         patient = await self.create_resource("Patient", name=[{"text": "John First"}])
         observation = await self.create_resource(
@@ -668,7 +668,7 @@ class TestLibAsyncCase:
         assert response["total"] == 1
         assert response["entry"][0]["resource"]["id"] == observation["id"]
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_resource_execute_lastn(self):
         patient = await self.create_resource("Patient", name=[{"text": "John First"}])
         observation = await self.create_resource(
@@ -695,7 +695,7 @@ class TestLibAsyncCase:
         assert response["total"] == 1
         assert response["entry"][0]["resource"]["id"] == observation["id"]
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_client_execute_history(self):
         patient = await self.create_resource("Patient", name=[{"text": "John First"}])
         response = await self.client.execute(f"Patient/{patient.id}/_history", "get")
@@ -703,7 +703,7 @@ class TestLibAsyncCase:
         assert response["type"] == "history"
         assert "entry" in response
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_resource_execute_history(self):
         patient = await self.create_resource("Patient", name=[{"text": "John First"}])
         response = await patient.execute("_history", "get")
@@ -712,7 +712,7 @@ class TestLibAsyncCase:
         assert response["total"] == 1
         assert "entry" in response
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_reference_execute_history(self):
         patient = await self.create_resource("Patient", name=[{"text": "John First"}])
         patient_ref = patient.to_reference()
@@ -722,13 +722,13 @@ class TestLibAsyncCase:
         assert response["total"] == 1
         assert "entry" in response
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_reference_execute_history_not_local(self):
         patient_ref = self.client.reference(reference="http://external.com/Patient/p1")
         with pytest.raises(ResourceNotFound):
             await patient_ref.execute("_history", "get")
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_references_after_save(self):
         patient = await self.create_resource("Patient", name=[{"text": "John First"}])
         practitioner = await self.create_resource("Practitioner", name=[{"text": "Jack"}])
@@ -753,7 +753,7 @@ class TestLibAsyncCase:
         test_practitioner = await appointment.participant[1].actor.to_resource()
         assert test_practitioner
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_references_in_resource(self):
         patient = await self.create_resource("Patient", name=[{"text": "John First"}])
         practitioner = await self.create_resource("Practitioner", name=[{"text": "Jack"}])
@@ -783,7 +783,7 @@ class TestLibAsyncCase:
         assert test_practitioner
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_aiohttp_config():
     client = AsyncFHIRClient(
         FHIR_SERVER_URL,

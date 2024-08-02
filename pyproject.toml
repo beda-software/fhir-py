@@ -18,14 +18,14 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Internet :: WWW/HTTP",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 
 [project.optional-dependencies]
 test = ["pytest>=6.2.4", "pytest-asyncio>=0.15.1", "responses>=0.13.3"]
@@ -50,11 +50,11 @@ exclude_also = [
 ]
 
 [tool.black]
-target-version = ["py311"]
+target-version = ["py39"]
 line-length = 100
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py39"
 line-length = 100
 extend-exclude = ["emded"]
 
@@ -66,7 +66,7 @@ select = ["I", "E", "F", "N", "B", "C4", "PT", "UP", "I001", "A", "RET", "TID251
 # PIE804 is disabled because we often use FHIR like camelCase variables
 # SIM102 is disabled because nested if's are more readable
 # SIM117 is disabled because nested with's are more readable
-ignore = ["E501", "RUF006", "RUF015", "PIE804", "SIM102", "SIM117"]
+ignore = ["E501", "RUF006", "RUF015", "PIE804", "SIM102", "SIM117", "N818"]
 unfixable = ["F401"]
 
 [tool.autohooks]

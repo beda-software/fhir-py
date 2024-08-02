@@ -1,26 +1,28 @@
 import json
-from unittest.mock import patch, ANY
+from typing import ClassVar
+from unittest.mock import ANY, patch
 
 import pytest
 import responses
 
 from fhirpy import SyncFHIRClient
-from fhirpy.base.utils import AttrDict
-from fhirpy.lib import SyncFHIRResource, SyncFHIRReference
 from fhirpy.base.exceptions import (
-    ResourceNotFound,
-    OperationOutcome,
-    MultipleResourcesFound,
     InvalidResponse,
+    MultipleResourcesFound,
+    OperationOutcome,
+    ResourceNotFound,
 )
-from .config import FHIR_SERVER_URL, FHIR_SERVER_AUTHORIZATION
+from fhirpy.base.utils import AttrDict
+from fhirpy.lib import SyncFHIRReference, SyncFHIRResource
+
+from .config import FHIR_SERVER_AUTHORIZATION, FHIR_SERVER_URL
 from .utils import MockRequestsResponse
 
 
 class TestLibSyncCase:
     URL = FHIR_SERVER_URL
     client = None
-    identifier = [{"system": "http://example.com/env", "value": "fhirpy"}]
+    identifier: ClassVar = [{"system": "http://example.com/env", "value": "fhirpy"}]
 
     @classmethod
     def get_search_set(cls, resource_type):
@@ -28,7 +30,7 @@ class TestLibSyncCase:
 
     @classmethod
     @pytest.fixture(autouse=True)
-    def clearDb(cls):
+    def _clear_db(cls):
         for resource_type in ["Patient", "Practitioner"]:
             search_set = cls.get_search_set(resource_type)
             for item in search_set:
@@ -240,7 +242,7 @@ class TestLibSyncCase:
         _, status_code = self.client.resources("Patient").search(identifier="other").delete()
 
         self.get_search_set("Patient").search(_id="patient").get()
-        assert status_code == 204
+        assert status_code == 204  # noqa: PLR2004
 
     def test_delete_with_params__one_match(self):
         patient = self.client.resource(
@@ -254,7 +256,7 @@ class TestLibSyncCase:
 
         with pytest.raises(ResourceNotFound):
             self.get_search_set("Patient").search(_id="patient").get()
-        assert status_code == 200
+        assert status_code == 200  # noqa: PLR2004
 
     def test_delete_with_params__multiple_matches(self):
         self.create_resource("Patient", id="patient-1")
@@ -407,7 +409,7 @@ class TestLibSyncCase:
         assert bundle.resourceType == "Bundle"
         for entry in bundle.entry:
             assert isinstance(entry.resource, SyncFHIRResource)
-        assert len(bundle.entry) == 2
+        assert len(bundle.entry) == 2  # noqa: PLR2004
 
     def create_test_patients(self, count=10, name="Not Rare Name"):
         bundle = {
@@ -439,7 +441,7 @@ class TestLibSyncCase:
 
         patients = patient_set.fetch_all()
 
-        received_ids = set(p.id for p in patients)
+        received_ids = {p.id for p in patients}
 
         assert len(received_ids) == patients_count
         assert patient_ids == received_ids
@@ -560,8 +562,8 @@ class TestLibSyncCase:
             patient.update()
         with pytest.raises(TypeError):
             patient.patch(active=True, name=new_name)
+        patient["name"] = new_name
         with pytest.raises(TypeError):
-            patient["name"] = new_name
             patient.save(fields=["name"])
         patient.save()
 
