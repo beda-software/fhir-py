@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 .idea/*
+.vscode
 
 # C extensions
 *.so
@@ -105,3 +106,4 @@ venv.bak/
 .mypy_cache/
 
 .DS_Store
+.history

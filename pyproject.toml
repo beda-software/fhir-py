@@ -35,25 +35,6 @@ Homepage = "https://github.com/beda-software/fhir-py"
 Documentation = "https://github.com/beda-software/fhir-py#readme"
 Source = "https://github.com/beda-software/fhir-py.git"
 
-[tool.black]
-line-length = 100
-target-version = ['py311']
-exclude = '''
-(
-  /(
-    | \.git
-    | \.pytest_cache
-    | pyproject.toml
-    | dist
-  )/
-)
-'''
-
-[tool.isort]
-profile = "black"
-line_length = 100
-skip = [".gitignore"]
-
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-ra -q --color=yes --cov=fhirpy --cov-report=xml"
@@ -67,3 +48,27 @@ exclude_also = [
     "@abstractmethod",
     "^\\s*\\.\\.\\.\\s*$"
 ]
+
+[tool.black]
+target-version = ["py311"]
+line-length = 100
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+extend-exclude = ["emded"]
+
+[tool.ruff.lint]
+select = ["I", "E", "F", "N", "B", "C4", "PT", "UP", "I001", "A", "RET", "TID251", "RUF", "SIM", "PYI", "T20", "PIE", "G", "ISC", "PL"]
+# E501 is disabled because line limit is controlled by black
+# RUF005 is disabled because we use asyncio tasks without cancelling
+# RUF015 is disabled because index access is preferred way for us
+# PIE804 is disabled because we often use FHIR like camelCase variables
+# SIM102 is disabled because nested if's are more readable
+# SIM117 is disabled because nested with's are more readable
+ignore = ["E501", "RUF006", "RUF015", "PIE804", "SIM102", "SIM117"]
+unfixable = ["F401"]
+
+[tool.autohooks]
+mode = "pipenv"
+pre-commit = ["autohooks.plugins.black", "autohooks.plugins.mypy", "autohooks.plugins.ruff"]
