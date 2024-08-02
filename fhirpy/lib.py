@@ -1,23 +1,27 @@
 from abc import ABC
+from typing import Generic, Union, overload
 
-from fhirpy.base.resource import BaseResource, BaseReference
+from fhirpy.base.client import TClient
+from fhirpy.base.resource import BaseReference, BaseResource
+from fhirpy.base.resource_protocol import TResource
+
 from .base import (
-    SyncClient,
     AsyncClient,
-    SyncSearchSet,
-    AsyncSearchSet,
-    SyncResource,
-    AsyncResource,
-    SyncReference,
     AsyncReference,
+    AsyncResource,
+    AsyncSearchSet,
+    SyncClient,
+    SyncReference,
+    SyncResource,
+    SyncSearchSet,
 )
 
 
-class SyncFHIRSearchSet(SyncSearchSet):
+class SyncFHIRSearchSet(Generic[TResource], SyncSearchSet["SyncFHIRClient", TResource]):
     pass
 
 
-class AsyncFHIRSearchSet(AsyncSearchSet):
+class AsyncFHIRSearchSet(Generic[TResource], AsyncSearchSet["AsyncFHIRClient", TResource]):
     pass
 
 
@@ -31,15 +35,15 @@ class BaseFHIRResource(BaseResource, ABC):
         )
 
 
-class SyncFHIRResource(BaseFHIRResource, SyncResource):
+class SyncFHIRResource(BaseFHIRResource, SyncResource["SyncFHIRClient"]):
     pass
 
 
-class AsyncFHIRResource(BaseFHIRResource, AsyncResource):
+class AsyncFHIRResource(BaseFHIRResource, AsyncResource["AsyncFHIRClient"]):
     pass
 
 
-class BaseFHIRReference(BaseReference, ABC):
+class BaseFHIRReference(Generic[TClient], BaseReference[TClient], ABC):
     @property
     def reference(self):
         return self["reference"]
@@ -52,6 +56,8 @@ class BaseFHIRReference(BaseReference, ABC):
         if self.is_local:
             return self.reference.split("/", 1)[1]
 
+        return None
+
     @property
     def resource_type(self):
         """
@@ -60,40 +66,100 @@ class BaseFHIRReference(BaseReference, ABC):
         if self.is_local:
             return self.reference.split("/", 1)[0]
 
+        return None
+
     @property
     def is_local(self):
         return self.reference.count("/") == 1
 
 
-class SyncFHIRReference(BaseFHIRReference, SyncReference):
+class SyncFHIRReference(BaseFHIRReference["SyncFHIRClient"], SyncReference["SyncFHIRClient"]):
     pass
 
 
-class AsyncFHIRReference(BaseFHIRReference, AsyncReference):
+class AsyncFHIRReference(BaseFHIRReference["AsyncFHIRClient"], AsyncReference["AsyncFHIRClient"]):
     pass
 
 
 class SyncFHIRClient(SyncClient):
-    searchset_class = SyncFHIRSearchSet
-    resource_class = SyncFHIRResource
-
-    def reference(self, resource_type=None, id=None, reference=None, **kwargs):
+    def reference(self, resource_type=None, id=None, reference=None, **kwargs):  # noqa: A002
         if resource_type and id:
-            reference = "{0}/{1}".format(resource_type, id)
+            reference = f"{resource_type}/{id}"
 
         if not reference:
-            raise TypeError("Arguments `resource_type` and `id` or `reference` " "are required")
+            raise TypeError("Arguments `resource_type` and `id` or `reference` are required")
         return SyncFHIRReference(self, reference=reference, **kwargs)
+
+    @overload
+    def resource(self, resource_type: str, **kwargs) -> SyncFHIRResource:
+        ...
+
+    @overload
+    def resource(self, resource_type: type[TResource], **kwargs) -> TResource:
+        ...
+
+    def resource(
+        self, resource_type: Union[str, type[TResource]], **kwargs
+    ) -> Union[SyncFHIRResource, TResource]:
+        if isinstance(resource_type, str):
+            return SyncFHIRResource(self, resource_type=resource_type, **kwargs)
+
+        return resource_type(**kwargs)
+
+    @overload
+    def resources(self, resource_type: str) -> SyncFHIRSearchSet[SyncFHIRResource]:
+        ...
+
+    @overload
+    def resources(self, resource_type: type[TResource]) -> SyncFHIRSearchSet[TResource]:
+        ...
+
+    def resources(
+        self, resource_type: Union[str, type[TResource]]
+    ) -> Union[SyncFHIRSearchSet[TResource], SyncFHIRSearchSet[SyncFHIRResource]]:
+        return SyncFHIRSearchSet(self, resource_type=resource_type)
 
 
 class AsyncFHIRClient(AsyncClient):
-    searchset_class = AsyncFHIRSearchSet
-    resource_class = AsyncFHIRResource
-
-    def reference(self, resource_type=None, id=None, reference=None, **kwargs):
+    def reference(
+        self,
+        resource_type: Union[str, None] = None,
+        id: Union[str, None] = None,  # noqa: A002
+        reference: Union[str, None] = None,
+        **kwargs,
+    ):
         if resource_type and id:
-            reference = "{0}/{1}".format(resource_type, id)
+            reference = f"{resource_type}/{id}"
 
         if not reference:
-            raise TypeError("Arguments `resource_type` and `id` or `reference` " "are required")
+            raise TypeError("Arguments `resource_type` and `id` or `reference` are required")
         return AsyncFHIRReference(self, reference=reference, **kwargs)
+
+    @overload
+    def resource(self, resource_type: str, **kwargs) -> AsyncFHIRResource:
+        ...
+
+    @overload
+    def resource(self, resource_type: type[TResource], **kwargs) -> TResource:
+        ...
+
+    def resource(
+        self, resource_type: Union[str, type[TResource]], **kwargs
+    ) -> Union[AsyncFHIRResource, TResource]:
+        if isinstance(resource_type, str):
+            return AsyncFHIRResource(self, resource_type, **kwargs)
+
+        return resource_type(**kwargs)
+
+    @overload
+    def resources(self, resource_type: str) -> AsyncFHIRSearchSet[AsyncFHIRResource]:
+        ...
+
+    @overload
+    def resources(self, resource_type: type[TResource]) -> AsyncFHIRSearchSet[TResource]:
+        ...
+
+    def resources(
+        self, resource_type: Union[str, type[TResource]]
+    ) -> Union[AsyncFHIRSearchSet[TResource], AsyncFHIRSearchSet[AsyncFHIRResource]]:
+        return AsyncFHIRSearchSet(self, resource_type)

@@ -16,6 +16,7 @@ from fhirpy.base.utils import AttrDict
 from fhirpy.lib import SyncFHIRReference, SyncFHIRResource
 
 from .config import FHIR_SERVER_AUTHORIZATION, FHIR_SERVER_URL
+from .types import HumanName, Identifier, Patient
 from .utils import MockRequestsResponse
 
 
@@ -183,6 +184,26 @@ class TestLibSyncCase:
             self.client.resources("Patient").search(identifier="other").patch(patient_to_patch)
 
     def test_patch_with_params__one_match(self):
+        patient = self.create_resource("Patient", id="patient", active=True)
+
+        patched_patient = (
+            self.client.resources("Patient")
+            .search(identifier="fhirpy")
+            .patch(identifier=self.identifier, name=[{"text": "Indiana Jones"}])
+        )
+        assert patched_patient.id == patient.id
+        assert patched_patient.get_by_path(["meta", "versionId"]) != patient.get_by_path(
+            ["meta", "versionId"]
+        )
+        assert patched_patient.get_by_path(["name", 0, "text"]) == "Indiana Jones"
+
+        patient.refresh()
+        assert patched_patient.get_by_path(["meta", "versionId"]) == patient.get_by_path(
+            ["meta", "versionId"]
+        )
+        assert patient.active is True
+
+    def test_patch_with_params__one_match_deprecated(self):
         patient = self.create_resource("Patient", id="patient", active=True)
 
         patient_to_patch = self.client.resource(
@@ -685,7 +706,7 @@ class TestLibSyncCase:
         test_practitioner = appointment.participant[1].actor.to_resource()
         assert test_practitioner
 
-    async def test_references_in_resource(self):
+    def test_references_in_resource(self):
         patient = self.create_resource("Patient", name=[{"text": "John First"}])
         practitioner = self.create_resource("Practitioner", name=[{"text": "Jack"}])
         appointment = self.client.resource(
@@ -710,6 +731,105 @@ class TestLibSyncCase:
         assert isinstance(test_appointment.participant[1], AttrDict)
         test_practitioner = test_appointment.participant[1].actor.to_resource()
         assert test_practitioner
+
+    def test_types_fetch_all(self):
+        patients_count = 18
+        name = "Jack Johnson J"
+        patient_ids = self.create_test_patients(patients_count, name)
+        patient_set = self.client.resources(Patient).search(name=name).limit(5)
+
+        patients = patient_set.fetch_all()
+
+        received_ids = {p.id for p in patients}
+        assert len(received_ids) == patients_count
+        assert patient_ids == received_ids
+        assert isinstance(patients[0], Patient)
+
+    def test_typed_fetch(self):
+        patients_count = 18
+        limit = 5
+        name = "Jack Johnson J"
+        self.create_test_patients(patients_count, name)
+        patient_set = self.client.resources(Patient).search(name=name).limit(limit)
+
+        patients = patient_set.fetch()
+
+        received_ids = {p.id for p in patients}
+        assert len(received_ids) == limit
+        assert isinstance(patients[0], Patient)
+
+    def test_typed_get(self):
+        name = "Jack Johnson J"
+        self.create_test_patients(1, name)
+        patient_set = self.client.resources(Patient).search(name=name)
+
+        patient = patient_set.get()
+
+        assert isinstance(patient, Patient)
+
+    def test_typed_first(self):
+        name = "Jack Johnson J"
+        self.create_test_patients(1, name)
+        patient_set = self.client.resources(Patient).search(name=name)
+
+        patient = patient_set.first()
+
+        assert isinstance(patient, Patient)
+
+    def test_typed_get_or_create(self):
+        name = "Jack Johnson J"
+        self.create_test_patients(1, name)
+        new_patient = Patient(
+            name=[HumanName(text=name)],
+            identifier=[Identifier(system="url", value="value"), Identifier(**self.identifier[0])],
+        )
+
+        patient, created = (
+            self.client.resources(Patient).search(name=name).get_or_create(new_patient)
+        )
+
+        assert created is False
+        assert isinstance(patient, Patient)
+        assert patient.identifier[0].system == self.identifier[0]["system"]
+        assert patient.identifier[0].value == self.identifier[0]["value"]
+
+    def test_typed_update(self):
+        name = "Jack Johnson J"
+        self.create_test_patients(1, name)
+        new_patient = Patient(
+            name=[HumanName(text=name)],
+            identifier=[Identifier(system="url", value="value"), Identifier(**self.identifier[0])],
+        )
+
+        patient, created = self.client.resources(Patient).search(name=name).update(new_patient)
+
+        assert created is False
+        assert isinstance(patient, Patient)
+        assert patient.identifier[0].system == "url"
+        assert patient.identifier[0].value == "value"
+        assert patient.identifier[1].system == self.identifier[0]["system"]
+        assert patient.identifier[1].value == self.identifier[0]["value"]
+
+    def test_typed_patch(self):
+        name = "Jack Johnson J"
+        self.create_test_patients(1, name)
+
+        patient = (
+            self.client.resources(Patient)
+            .search(name=name)
+            .patch(
+                identifier=[
+                    Identifier(system="url", value="value"),
+                    Identifier(**self.identifier[0]),
+                ],
+            )
+        )
+
+        assert isinstance(patient, Patient)
+        assert patient.identifier[0].system == "url"
+        assert patient.identifier[0].value == "value"
+        assert patient.identifier[1].system == self.identifier[0]["system"]
+        assert patient.identifier[1].value == self.identifier[0]["value"]
 
 
 def test_requests_config():

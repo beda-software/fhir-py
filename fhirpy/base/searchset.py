@@ -2,12 +2,17 @@ import copy
 import datetime
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from typing import Generic, Union
 
 import pytz
 
-from fhirpy.base.resource import BaseResource, BaseReference
+from fhirpy.base.client import TClient
+from fhirpy.base.exceptions import (
+    InvalidResponse,
+)
+from fhirpy.base.resource import BaseReference, BaseResource, TResource
+from fhirpy.base.resource_protocol import get_resource_type_from_class
 from fhirpy.base.utils import chunks, encode_params
-from fhirpy.base.exceptions import InvalidResponse
 
 FHIR_DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 FHIR_DATE_FORMAT = "%Y-%m-%d"
@@ -56,13 +61,13 @@ def transform_value(value):
 
 
 class Raw:
-    kwargs = {}
+    kwargs: dict
 
     def __init__(self, **kwargs):
         self.kwargs = kwargs
 
 
-def SQ(*args, **kwargs):
+def SQ(*args, **kwargs):  # noqa: N802
     """
     Builds search query
 
@@ -131,8 +136,8 @@ def SQ(*args, **kwargs):
 
     res = defaultdict(list)
     for key, value in kwargs.items():
-        value = value if isinstance(value, list) else [value]
-        value = [transform_value(sub_value) for sub_value in value]
+        value = value if isinstance(value, list) else [value]  # noqa: PLW2901
+        value = [transform_value(sub_value) for sub_value in value]  # noqa: PLW2901
 
         key_parts = key.split("__")
 
@@ -153,15 +158,15 @@ def SQ(*args, **kwargs):
 
         if op:
             if op in param_ops:
-                param = "{0}:{1}".format(param, transform_param(op))
+                param = f"{param}:{transform_param(op)}"
             elif op in value_ops:
-                value = ["{0}{1}".format(op, sub_value) for sub_value in value]
+                value = [f"{op}{sub_value}" for sub_value in value]  # noqa: PLW2901
         res[transform_param(param)].extend(value)
 
     for arg in args:
         if isinstance(arg, Raw):
             for key, value in arg.kwargs.items():
-                value = value if isinstance(value, list) else [value]
+                value = value if isinstance(value, list) else [value]  # noqa: PLW2901
                 res[key].extend(value)
         else:
             raise ValueError("Can't handle args without Raw() wrapper")
@@ -169,40 +174,53 @@ def SQ(*args, **kwargs):
     return res
 
 
-class AbstractSearchSet(ABC):
-    client = None
-    resource_type = None
-    params = None
+class AbstractSearchSet(Generic[TClient, TResource], ABC):
+    client: TClient
+    resource_type: str
+    custom_resource_class: Union[type[TResource], None]
+    params: dict
 
-    def __init__(self, client, resource_type, params=None):
+    def __init__(
+        self,
+        client: TClient,
+        resource_type: Union[type[TResource], str],
+        params: Union[dict, None] = None,
+    ):
         self.client = client
-        self.resource_type = resource_type
+        self.resource_type = (
+            resource_type
+            if isinstance(resource_type, str)
+            else get_resource_type_from_class(resource_type)
+        )
+        self.custom_resource_class = None if isinstance(resource_type, str) else resource_type
         self.params = defaultdict(list, params or {})
 
-    def _dict_to_resource(self, data):
+    def _dict_to_resource(self, data) -> TResource:
+        if self.custom_resource_class and self.resource_type == data["resourceType"]:
+            return self.custom_resource_class(**data)
         return self.client.resource(data["resourceType"], **data)
 
-    @abstractmethod  # pragma: no cover
+    @abstractmethod
     def fetch(self):
         pass
 
-    @abstractmethod  # pragma: no cover
+    @abstractmethod
     def fetch_raw(self):
         pass
 
-    @abstractmethod  # pragma: no cover
+    @abstractmethod
     def fetch_all(self):
         pass
 
-    @abstractmethod  # pragma: no cover
-    def get(self, id):
+    @abstractmethod
+    def get(self, id):  # noqa: A002
         pass
 
-    @abstractmethod  # pragma: no cover
+    @abstractmethod
     def count(self):
         pass
 
-    @abstractmethod  # pragma: no cover
+    @abstractmethod
     def first(self):
         pass
 
@@ -215,30 +233,34 @@ class AbstractSearchSet(ABC):
         pass
 
     @abstractmethod
-    def patch(self, resource):
+    def patch(self, _resource, **kwargs):
         pass
 
     def clone(self, override=False, **kwargs):
         new_params = copy.deepcopy(self.params)
         for key, value in kwargs.items():
             if not isinstance(value, list):
-                value = [value]
+                value = [value]  # noqa: PLW2901
 
             if override:
                 new_params[key] = value
             else:
                 new_params[key].extend(value)
 
-        return self.__class__(self.client, self.resource_type, new_params)
+        return self.__class__(
+            self.client,
+            self.custom_resource_class if self.custom_resource_class else self.resource_type,
+            new_params,
+        )
 
     def elements(self, *attrs, exclude=False):
         attrs = set(attrs)
         if not exclude:
             attrs |= {"id", "resourceType"}
-        attrs = [attr for attr in attrs]
+        attrs = list(attrs)
 
         return self.clone(
-            _elements="{0}{1}".format("-" if exclude else "", ",".join(attrs)),
+            _elements="{}{}".format("-" if exclude else "", ",".join(attrs)),
             override=True,
         )
 
@@ -250,17 +272,17 @@ class AbstractSearchSet(ABC):
                 "'AuditEvent', 'entity', user='id')`"
             )
 
-        key_part = ":".join(["_has:{0}".format(":".join(pair)) for pair in chunks(args, 2)])
+        key_part = ":".join(["_has:{}".format(":".join(pair)) for pair in chunks(args, 2)])
 
         return self.clone(
             **{":".join([key_part, key]): value for key, value in SQ(**kwargs).items()}
         )
 
-    def include(
+    def include(  # noqa: PLR0913
         self,
-        resource_type,
-        attr=None,
-        target_resource_type=None,
+        resource_type: str,
+        attr: Union[str, None] = None,
+        target_resource_type: Union[str, None] = None,
         *,
         recursive=False,
         iterate=False,
@@ -280,7 +302,7 @@ class AbstractSearchSet(ABC):
             value = "*"
         else:
             if not attr:
-                raise TypeError("You should provide attr " "(search parameter) argument")
+                raise TypeError("You should provide attr (search parameter) argument")
             value_params = [resource_type, attr]
             if target_resource_type:
                 value_params.append(target_resource_type)
@@ -289,7 +311,13 @@ class AbstractSearchSet(ABC):
         return self.clone(**{key: value})
 
     def revinclude(
-        self, resource_type, attr=None, target_resource_type=None, *, recursive=False, iterate=False
+        self,
+        resource_type: str,
+        attr: Union[str, None] = None,
+        target_resource_type: Union[str, None] = None,
+        *,
+        recursive=False,
+        iterate=False,
     ):
         return self.include(
             resource_type,
@@ -311,26 +339,22 @@ class AbstractSearchSet(ABC):
         return self.clone(_sort=sort_keys, override=True)
 
     def __str__(self):  # pragma: no cover
-        return "<{0} {1}?{2}>".format(
-            self.__class__.__name__, self.resource_type, encode_params(self.params)
-        )
+        return f"<{self.__class__.__name__} {self.resource_type}?{encode_params(self.params)}>"
 
     def __repr__(self):  # pragma: no cover
         return self.__str__()
 
-    def _get_bundle_resources(self, bundle_data):
+    def _get_bundle_resources(self, bundle_data) -> list[TResource]:
         bundle_resource_type = bundle_data.get("resourceType", None)
 
         if bundle_resource_type != "Bundle":
-            raise InvalidResponse(
-                "Expected to receive Bundle " "but {0} received".format(bundle_resource_type)
-            )
+            raise InvalidResponse(f"Expected to receive Bundle but {bundle_resource_type} received")
 
         resources_data = [res["resource"] for res in bundle_data.get("entry", [])]
 
         resources = []
         for data in resources_data:
             resource = self._dict_to_resource(data)
-            if resource.resource_type == self.resource_type:
+            if resource.resourceType == self.resource_type:
                 resources.append(resource)
         return resources

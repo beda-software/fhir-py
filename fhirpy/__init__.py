@@ -1,4 +1,4 @@
-from .lib import SyncFHIRClient, AsyncFHIRClient
+from .lib import AsyncFHIRClient, SyncFHIRClient
 
 __title__ = "fhir-py"
 __version__ = "1.4.2"
@@ -8,3 +8,6 @@ __copyright__ = "Copyright 2024 beda.software"
 
 # Version synonym
 VERSION = __version__
+
+
+__all__ = ["AsyncFHIRClient", "SyncFHIRClient"]

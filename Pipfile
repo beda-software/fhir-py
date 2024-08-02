@@ -5,6 +5,7 @@ name = "pypi"
 
 [packages]
 tomli = "*"
+typing-extensions = "*"
 
 [dev-packages]
 requests = "==2.31.0"
@@ -25,3 +26,4 @@ ruff = "*"
 autohooks-plugin-mypy = "*"
 autohooks-plugin-ruff = "*"
 autohooks-plugin-black = "*"
+pydantic = "*"

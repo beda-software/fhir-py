@@ -2,10 +2,8 @@ import json
 from math import ceil
 from typing import ClassVar
 from unittest.mock import ANY, Mock, patch
-from urllib.parse import parse_qs, urlparse
 
 import pytest
-from aiohttp import request
 
 from fhirpy import AsyncFHIRClient
 from fhirpy.base.exceptions import MultipleResourcesFound, OperationOutcome, ResourceNotFound
@@ -14,6 +12,7 @@ from fhirpy.lib import AsyncFHIRReference, AsyncFHIRResource
 from tests.utils import MockAiohttpResponse
 
 from .config import FHIR_SERVER_AUTHORIZATION, FHIR_SERVER_URL
+from .types import HumanName, Identifier, Patient
 
 
 class TestLibAsyncCase:
@@ -128,16 +127,18 @@ class TestLibAsyncCase:
 
         patient_to_save = self.client.resource("Patient", identifier=self.identifier)
         with pytest.raises(MultipleResourcesFound):
-            await self.client.resources("Patient").search(identifier="fhirpy").get_or_create(
-                patient_to_save
+            await (
+                self.client.resources("Patient")
+                .search(identifier="fhirpy")
+                .get_or_create(patient_to_save)
             )
         with pytest.raises(MultipleResourcesFound):
-            await self.client.resources("Patient").search(identifier="fhirpy").update(
-                patient_to_save
+            await (
+                self.client.resources("Patient").search(identifier="fhirpy").update(patient_to_save)
             )
         with pytest.raises(MultipleResourcesFound):
-            await self.client.resources("Patient").search(identifier="fhirpy").patch(
-                patient_to_save
+            await (
+                self.client.resources("Patient").search(identifier="fhirpy").patch(patient_to_save)
             )
 
     @pytest.mark.asyncio()
@@ -190,12 +191,33 @@ class TestLibAsyncCase:
             active=False,
         )
         with pytest.raises(ResourceNotFound):
-            await self.client.resources("Patient").search(identifier="other").patch(
-                patient_to_patch
+            await (
+                self.client.resources("Patient").search(identifier="other").patch(patient_to_patch)
             )
 
     @pytest.mark.asyncio()
     async def test_patch_with_params__one_match(self):
+        patient = await self.create_resource("Patient", id="patient", active=True)
+
+        patched_patient = await (
+            self.client.resources("Patient")
+            .search(identifier="fhirpy")
+            .patch(identifier=self.identifier, name=[{"text": "Indiana Jones"}])
+        )
+        assert patched_patient.id == patient.id
+        assert patched_patient.get_by_path(["meta", "versionId"]) != patient.get_by_path(
+            ["meta", "versionId"]
+        )
+        assert patched_patient.get_by_path(["name", 0, "text"]) == "Indiana Jones"
+
+        await patient.refresh()
+        assert patched_patient.get_by_path(["meta", "versionId"]) == patient.get_by_path(
+            ["meta", "versionId"]
+        )
+        assert patient.active is True
+
+    @pytest.mark.asyncio()
+    async def test_patch_with_params__one_match_deprecated(self):
         patient = await self.create_resource("Patient", id="patient", active=True)
 
         patient_to_patch = self.client.resource(
@@ -483,16 +505,14 @@ class TestLibAsyncCase:
         return patient_ids
 
     @pytest.mark.asyncio()
-    @pytest.mark.skip(reason="Need to mock aiohttp.ClientSession.request instead")
-    # TODO: fix once https://github.com/beda-software/fhir-py/issues/93 is done
     async def test_fetch_all(self):
         patients_count = 18
         name = "Jack Johnson J"
         patient_ids = await self.create_test_patients(patients_count, name)
         patient_set = self.client.resources("Patient").search(name=name).limit(5)
 
-        mocked_request = Mock(wraps=request)
-        with patch("aiohttp.request", mocked_request):
+        mocked_request = Mock(wraps=self.client._do_request)
+        with patch.object(self.client, "_do_request", mocked_request):
             patients = await patient_set.fetch_all()
 
         received_ids = {p.id for p in patients}
@@ -502,17 +522,14 @@ class TestLibAsyncCase:
 
         assert mocked_request.call_count == ceil(patients_count / 5)
 
-        first_call_args = mocked_request.call_args_list[0][0]
-        first_call_url = list(first_call_args)[1]
-        parsed = urlparse(first_call_url)
-        params = parse_qs(parsed.query)
-        path = parsed.path
-        assert "/Patient" in path
-        assert params == {"name": [name], "_count": ["5"]}
+        first_call_args, first_call_kwargs = mocked_request.call_args_list[0]
+        method, path = first_call_args
+        assert method == "get"
+        assert "Patient" in path
+        params = first_call_kwargs["params"]
+        assert params == {"name": [name], "_count": [5]}
 
     @pytest.mark.asyncio()
-    @pytest.mark.skip(reason="Need to mock aiohttp.ClientSession.request instead")
-    # TODO: fix once https://github.com/beda-software/fhir-py/issues/93 is done
     async def test_async_for_iterator(self):
         patients_count = 22
         name = "Rob Robinson R"
@@ -520,8 +537,8 @@ class TestLibAsyncCase:
         patient_set = self.client.resources("Patient").search(name=name).limit(3)
 
         received_ids = set()
-        mocked_request = Mock(wraps=request)
-        with patch("aiohttp.request", mocked_request):
+        mocked_request = Mock(wraps=self.client._do_request)
+        with patch.object(self.client, "_do_request", mocked_request):
             async for patient in patient_set:
                 received_ids.add(patient.id)
 
@@ -781,6 +798,114 @@ class TestLibAsyncCase:
         assert isinstance(test_appointment.participant[1], AttrDict)
         test_practitioner = await test_appointment.participant[1].actor.to_resource()
         assert test_practitioner
+
+    @pytest.mark.asyncio()
+    async def test_types_fetch_all(self):
+        patients_count = 18
+        name = "Jack Johnson J"
+        patient_ids = await self.create_test_patients(patients_count, name)
+        patient_set = self.client.resources(Patient).search(name=name).limit(5)
+
+        patients = await patient_set.fetch_all()
+
+        received_ids = {p.id for p in patients}
+        assert len(received_ids) == patients_count
+        assert patient_ids == received_ids
+        assert isinstance(patients[0], Patient)
+
+    @pytest.mark.asyncio()
+    async def test_typed_fetch(self):
+        patients_count = 18
+        limit = 5
+        name = "Jack Johnson J"
+        await self.create_test_patients(patients_count, name)
+        patient_set = self.client.resources(Patient).search(name=name).limit(limit)
+
+        patients = await patient_set.fetch()
+
+        received_ids = {p.id for p in patients}
+        assert len(received_ids) == limit
+        assert isinstance(patients[0], Patient)
+
+    @pytest.mark.asyncio()
+    async def test_typed_get(self):
+        name = "Jack Johnson J"
+        await self.create_test_patients(1, name)
+        patient_set = self.client.resources(Patient).search(name=name)
+
+        patient = await patient_set.get()
+
+        assert isinstance(patient, Patient)
+
+    @pytest.mark.asyncio()
+    async def test_typed_first(self):
+        name = "Jack Johnson J"
+        await self.create_test_patients(1, name)
+        patient_set = self.client.resources(Patient).search(name=name)
+
+        patient = await patient_set.first()
+
+        assert isinstance(patient, Patient)
+
+    @pytest.mark.asyncio()
+    async def test_typed_get_or_create(self):
+        name = "Jack Johnson J"
+        await self.create_test_patients(1, name)
+        new_patient = Patient(
+            name=[HumanName(text=name)],
+            identifier=[Identifier(system="url", value="value"), Identifier(**self.identifier[0])],
+        )
+
+        patient, created = (
+            await self.client.resources(Patient).search(name=name).get_or_create(new_patient)
+        )
+
+        assert created is False
+        assert isinstance(patient, Patient)
+        assert patient.identifier[0].system == self.identifier[0]["system"]
+        assert patient.identifier[0].value == self.identifier[0]["value"]
+
+    @pytest.mark.asyncio()
+    async def test_typed_update(self):
+        name = "Jack Johnson J"
+        await self.create_test_patients(1, name)
+        new_patient = Patient(
+            name=[HumanName(text=name)],
+            identifier=[Identifier(system="url", value="value"), Identifier(**self.identifier[0])],
+        )
+
+        patient, created = (
+            await self.client.resources(Patient).search(name=name).update(new_patient)
+        )
+
+        assert created is False
+        assert isinstance(patient, Patient)
+        assert patient.identifier[0].system == "url"
+        assert patient.identifier[0].value == "value"
+        assert patient.identifier[1].system == self.identifier[0]["system"]
+        assert patient.identifier[1].value == self.identifier[0]["value"]
+
+    @pytest.mark.asyncio()
+    async def test_typed_patch(self):
+        name = "Jack Johnson J"
+        await self.create_test_patients(1, name)
+
+        patient = (
+            await self.client.resources(Patient)
+            .search(name=name)
+            .patch(
+                identifier=[
+                    Identifier(system="url", value="value"),
+                    Identifier(**self.identifier[0]),
+                ],
+            )
+        )
+
+        assert isinstance(patient, Patient)
+        assert patient.identifier[0].system == "url"
+        assert patient.identifier[0].value == "value"
+        assert patient.identifier[1].system == self.identifier[0]["system"]
+        assert patient.identifier[1].value == self.identifier[0]["value"]
 
 
 @pytest.mark.asyncio()

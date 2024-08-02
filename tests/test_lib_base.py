@@ -6,6 +6,8 @@ from fhirpy import AsyncFHIRClient, SyncFHIRClient
 from fhirpy.base.utils import AttrDict, SearchList, parse_pagination_url, set_by_path
 from fhirpy.lib import BaseFHIRReference
 
+from .types import HumanName, Identifier, Patient
+
 
 @pytest.mark.parametrize("client", [SyncFHIRClient("mock"), AsyncFHIRClient("mock")])
 class TestLibBase:
@@ -217,3 +219,24 @@ class TestLibBase:
         assert patient["name"][0]["family"] == "Jackson"
         patient.name[0].given.append("Hellen")
         assert patient["name"][0]["given"] == ["Firstname", "Hellen"]
+
+    def test_pluggable_type_model_resource_instantiation(
+        self, client: Union[SyncFHIRClient, AsyncFHIRClient]
+    ):
+        patient = client.resource(
+            Patient,
+            **{
+                "resourceType": "Patient",
+                "id": "pid",
+                "identifier": [{"system": "url", "value": "value"}],
+                "name": [{"text": "Name"}],
+            },
+        )
+        assert isinstance(patient, Patient)
+        assert patient.resourceType == "Patient"
+        assert patient.id == "pid"
+        assert isinstance(patient.identifier[0], Identifier)
+        assert patient.identifier[0].system == "url"
+        assert patient.identifier[0].value == "value"
+        assert isinstance(patient.name[0], HumanName)
+        assert patient.name[0].text == "Name"
