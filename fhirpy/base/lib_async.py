@@ -9,8 +9,8 @@ import aiohttp
 
 from fhirpy.base.client import AbstractClient
 from fhirpy.base.exceptions import MultipleResourcesFound, OperationOutcome, ResourceNotFound
-from fhirpy.base.resource import BaseReference, BaseResource, get_resource_path, serialize_resource
-from fhirpy.base.resource_protocol import TResource, get_resource_type_from_class
+from fhirpy.base.resource import BaseReference, BaseResource, serialize_resource
+from fhirpy.base.resource_protocol import TResource, get_resource_path, get_resource_type_from_class
 from fhirpy.base.searchset import AbstractSearchSet
 from fhirpy.base.utils import AttrDict, get_by_path, parse_pagination_url
 

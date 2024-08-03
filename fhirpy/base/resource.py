@@ -4,7 +4,7 @@ from typing import Any, Generic, Union
 
 from fhirpy.base.client import TClient
 from fhirpy.base.exceptions import ResourceNotFound
-from fhirpy.base.resource_protocol import TResource
+from fhirpy.base.resource_protocol import TResource, get_resource_path
 from fhirpy.base.utils import convert_values, get_by_path, parse_path
 
 
@@ -255,16 +255,6 @@ def serialize_resource(resource: TResource) -> dict:
         return item, False
 
     return convert_values(dict(resource), convert_fn)
-
-
-def get_resource_path(resource: TResource) -> str:
-    if resource.id:
-        return f"{resource.resourceType}/{resource.id}"
-
-    if resource.resourceType == "Bundle":
-        return ""
-
-    return resource.resourceType
 
 
 def _is_serializable_dict_like(item):

@@ -27,3 +27,13 @@ def get_resource_type_from_class(cls: type[TResource]):
     raise NotImplementedError(
         f"Unsupported model {cls}. It should provide `resourceType` as class variable or as type annotation"
     )
+
+
+def get_resource_path(resource: TResource) -> str:
+    if resource.id:
+        return f"{resource.resourceType}/{resource.id}"
+
+    if resource.resourceType == "Bundle":
+        return ""
+
+    return resource.resourceType

@@ -3,18 +3,16 @@ import json
 import warnings
 from abc import ABC
 from collections.abc import Generator
-from json import JSONDecodeError
 from typing import Any, Generic, Literal, TypeVar, Union, overload
 
 import requests
 
-from build.lib.fhirpy.base.utils import AttrDict
 from fhirpy.base.client import AbstractClient
 from fhirpy.base.exceptions import MultipleResourcesFound, OperationOutcome, ResourceNotFound
-from fhirpy.base.resource import BaseReference, BaseResource, get_resource_path, serialize_resource
-from fhirpy.base.resource_protocol import TResource, get_resource_type_from_class
+from fhirpy.base.resource import BaseReference, BaseResource, serialize_resource
+from fhirpy.base.resource_protocol import TResource, get_resource_path, get_resource_type_from_class
 from fhirpy.base.searchset import AbstractSearchSet
-from fhirpy.base.utils import get_by_path, parse_pagination_url
+from fhirpy.base.utils import AttrDict, get_by_path, parse_pagination_url
 
 
 class SyncClient(AbstractClient, ABC):
@@ -185,7 +183,7 @@ class SyncClient(AbstractClient, ABC):
             if parsed_data["resourceType"] == "OperationOutcome":
                 raise OperationOutcome(resource=parsed_data)
             raise OperationOutcome(reason=raw_data)
-        except (KeyError, JSONDecodeError) as exc:
+        except (KeyError, json.JSONDecodeError) as exc:
             raise OperationOutcome(reason=raw_data) from exc
 
     def _fetch_resource(self, path, params=None):
