@@ -453,6 +453,14 @@ class TestLibSyncCase:
 
         assert patient.id is not None
 
+    def test_reference_delete(self):
+        patient = self.create_resource("Patient", id="patient")
+
+        patient.to_reference().delete()
+
+        with pytest.raises(ResourceNotFound):
+            self.get_search_set("Patient").search(_id="patient").get()
+
     def test_delete(self):
         patient = self.create_resource("Patient", id="patient")
         patient.delete()
@@ -776,6 +784,25 @@ class TestLibSyncCase:
         assert patient_instance_1_refreshed.active is True
         assert patient_instance_1_refreshed.birthDate == "1998-01-01"
         assert patient_instance_1_refreshed["name"] == new_name
+
+    def test_reference_patch(self):
+        patient = self.create_resource(
+            "Patient",
+            name=[{"text": "J London"}],
+            active=False,
+            birthDate="1998-01-01",
+        )
+        new_name = [
+            {
+                "text": "Jack London",
+                "family": "London",
+                "given": ["Jack"],
+            }
+        ]
+        patient.patch(active=True, name=new_name)
+        patient = patient.to_reference().to_resource()
+        assert patient["active"] is True
+        assert patient["name"] == new_name
 
     def test_update_without_id(self):
         patient = self.client.resource(

@@ -495,6 +495,15 @@ class TestLibAsyncCase:
         assert patient.id is not None
 
     @pytest.mark.asyncio()
+    async def test_reference_delete(self):
+        patient = await self.create_resource("Patient", id="patient")
+
+        await patient.to_reference().delete()
+
+        with pytest.raises(ResourceNotFound):
+            await self.get_search_set("Patient").search(_id="patient").get()
+
+    @pytest.mark.asyncio()
     async def test_delete(self):
         patient = await self.create_resource("Patient", id="patient")
         await patient.delete()

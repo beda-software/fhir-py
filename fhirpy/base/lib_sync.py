@@ -291,6 +291,12 @@ class SyncReference(Generic[TSyncClient], BaseReference[TSyncClient], ABC):
             **kwargs,
         )
 
+    def patch(self, **kwargs):
+        return self.__client__.patch(self.reference, **kwargs)
+
+    def delete(self):
+        return self.__client__.delete(self.reference)
+
 
 class SyncSearchSet(
     Generic[TSyncClient, TResource], AbstractSearchSet[TSyncClient, TResource], ABC

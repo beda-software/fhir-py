@@ -2,6 +2,7 @@
 * Add typehints for all methods
 * Add pluggable data model #126
 * Add client API for data model operations (CRUD)
+* Add reference helpers for delete and patch #103
 * BREAKING CHANGE: Changed internal module structure paths
   * It's private files structure, it should not affect the code that uses `fhirpy` and `fhirpy.base` imports
   * `SyncResource`/`SyncReference`/`SyncSearchSet` moved from `base.lib` to `base.lib_sync`

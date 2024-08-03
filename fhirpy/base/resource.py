@@ -212,6 +212,14 @@ class BaseReference(Generic[TClient], AbstractResource[TClient], ABC):
     def execute(self, operation, method=None, **kwargs):
         pass
 
+    @abstractmethod
+    def patch(self, **kwargs):
+        pass
+
+    @abstractmethod
+    def delete(self):
+        pass
+
     def to_reference(self, **kwargs):
         """
         Returns Reference instance for this reference

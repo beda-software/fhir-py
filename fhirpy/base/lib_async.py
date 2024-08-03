@@ -302,6 +302,12 @@ class AsyncReference(Generic[TAsyncClient], BaseReference[TAsyncClient], ABC):
             **kwargs,
         )
 
+    async def patch(self, **kwargs):
+        return await self.__client__.patch(self.reference, **kwargs)
+
+    async def delete(self):
+        return await self.__client__.delete(self.reference)
+
 
 class AsyncSearchSet(
     Generic[TAsyncClient, TResource], AbstractSearchSet[TAsyncClient, TResource], ABC
