@@ -65,7 +65,7 @@ You can test this library by interactive FHIR course in the repository [Aidbox/j
   - [serialize()](#serialize)
 - [Reference](#reference-1)
   - [Main class structure](#main-class-structure)
-  - [Acync client (based on _aiohttp_) – AsyncFHIRClient](#acync-client-based-on-_aiohttp_--asyncfhirclient)
+  - [Async client (based on _aiohttp_) – AsyncFHIRClient](#async-client-based-on-_aiohttp_--asyncfhirclient)
     - [Aiohttp request parameters](#aiohttp-request-parameters)
     - [AsyncFHIRResource](#asyncfhirresource)
     - [AsyncFHIRReference](#asyncfhirreference)
@@ -631,7 +631,7 @@ Both async and sync clients have identical sets of classes and methods.
 | Reference     | SyncFHIRReference   | AsyncFHIRReference   |
 
 
-## Acync client (based on _aiohttp_) – AsyncFHIRClient
+## Async client (based on _aiohttp_) – AsyncFHIRClient
 Import library:
 
 `from fhirpy import AsyncFHIRClient`
