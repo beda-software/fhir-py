@@ -235,7 +235,7 @@ class SyncResource(Generic[TSyncClient], BaseResource[TSyncClient], ABC):
     def delete(self):
         if not self.id:
             raise TypeError("Resource `id` is required for delete operation")
-        return self.client.delete(self.resource_type, self.id)
+        return self.client.delete(self)
 
     def refresh(self):
         data = self.client._do_request("get", self._get_path())

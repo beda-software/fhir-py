@@ -153,6 +153,17 @@ class TestLibSyncCase:
         with pytest.raises(TypeError):
             self.client.save(patient, fields=["identifier"])
 
+    def test_client_patch_specifying_reference(self):
+        patient = self.create_patient_model()
+        new_identifier = [*patient.identifier, Identifier(system="url", value="value")]
+
+        patched_patient = self.client.patch(
+            f"{patient.resourceType}/{patient.id}", identifier=new_identifier
+        )
+
+        assert isinstance(patched_patient, dict)
+        assert len(patched_patient["identifier"]) == 2  # noqa: PLR2004
+
     def test_client_patch_specifying_resource_type_str_and_id(self):
         patient = self.create_patient_model()
         new_identifier = [*patient.identifier, Identifier(system="url", value="value")]
@@ -194,6 +205,14 @@ class TestLibSyncCase:
 
         with pytest.raises(TypeError):
             self.client.patch(patient)
+
+    def test_client_delete_specifying_reference(self):
+        patient = self.create_patient_model()
+
+        self.client.delete(f"{patient.resourceType}/{patient.id}")
+
+        fetched_patient = self.client.resources(Patient).search(_id=patient.id).first()
+        assert fetched_patient is None
 
     def test_client_delete_specifying_resource_type_str_and_id(self):
         patient = self.create_patient_model()

@@ -40,20 +40,25 @@ def get_resource_path(resource: TResource) -> str:
 
 
 def get_resource_type_id_and_class(
-    resource_type_or_resource: Union[str, type[TResource], TResource],
+    resource_type_or_resource_or_ref: Union[str, type[TResource], TResource],
     id: Union[str, None],  # noqa: A002
 ) -> tuple[str, Union[str, None], Union[type[TResource], None]]:
-    if isinstance(resource_type_or_resource, str):
-        resource_type = resource_type_or_resource
-        resource_id = id
+    resource_id: Union[str, None]
+
+    if isinstance(resource_type_or_resource_or_ref, str):
+        if "/" in resource_type_or_resource_or_ref:
+            resource_type, resource_id = resource_type_or_resource_or_ref.split("/", 2)
+        else:
+            resource_type = resource_type_or_resource_or_ref
+            resource_id = id
         custom_resource_class = None
-    elif isinstance(resource_type_or_resource, type):
-        resource_type = get_resource_type_from_class(resource_type_or_resource)
+    elif isinstance(resource_type_or_resource_or_ref, type):
+        resource_type = get_resource_type_from_class(resource_type_or_resource_or_ref)
         resource_id = id
-        custom_resource_class = resource_type_or_resource
+        custom_resource_class = resource_type_or_resource_or_ref
     else:
-        resource_type = resource_type_or_resource.resourceType
-        resource_id = resource_type_or_resource.id
-        custom_resource_class = resource_type_or_resource.__class__
+        resource_type = resource_type_or_resource_or_ref.resourceType
+        resource_id = resource_type_or_resource_or_ref.id
+        custom_resource_class = resource_type_or_resource_or_ref.__class__
 
     return (resource_type, resource_id, custom_resource_class)

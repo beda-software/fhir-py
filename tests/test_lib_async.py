@@ -158,6 +158,18 @@ class TestLibAsyncCase:
             await self.client.save(patient, fields=["identifier"])
 
     @pytest.mark.asyncio()
+    async def test_client_patch_specifying_reference(self):
+        patient = await self.create_patient_model()
+        new_identifier = [*patient.identifier, Identifier(system="url", value="value")]
+
+        patched_patient = await self.client.patch(
+            f"{patient.resourceType}/{patient.id}", identifier=new_identifier
+        )
+
+        assert isinstance(patched_patient, dict)
+        assert len(patched_patient["identifier"]) == 2  # noqa: PLR2004
+
+    @pytest.mark.asyncio()
     async def test_client_patch_specifying_resource_type_str_and_id(self):
         patient = await self.create_patient_model()
         new_identifier = [*patient.identifier, Identifier(system="url", value="value")]
@@ -203,6 +215,15 @@ class TestLibAsyncCase:
 
         with pytest.raises(TypeError):
             await self.client.patch(patient)
+
+    @pytest.mark.asyncio()
+    async def test_client_delete_specifying_reference(self):
+        patient = await self.create_patient_model()
+
+        await self.client.delete(f"{patient.resourceType}/{patient.id}")
+
+        fetched_patient = await self.client.resources(Patient).search(_id=patient.id).first()
+        assert fetched_patient is None
 
     @pytest.mark.asyncio()
     async def test_client_delete_specifying_resource_type_str_and_id(self):
