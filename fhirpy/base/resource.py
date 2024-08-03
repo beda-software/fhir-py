@@ -4,7 +4,7 @@ from typing import Any, Generic, Union
 
 from fhirpy.base.client import TClient
 from fhirpy.base.exceptions import ResourceNotFound
-from fhirpy.base.resource_protocol import get_resource_path
+from fhirpy.base.resource_protocol import TReference, TResource, get_resource_path
 from fhirpy.base.utils import convert_values, get_by_path, parse_path
 
 
@@ -68,7 +68,7 @@ class AbstractResource(Generic[TClient], dict, ABC):
         pass
 
 
-class BaseResource(AbstractResource[TClient], ABC):
+class BaseResource(Generic[TClient, TResource, TReference], AbstractResource[TClient], ABC):
     def __init__(self, client: TClient, resource_type: str, **kwargs):
         def convert_fn(item):
             if isinstance(item, AbstractResource):
@@ -128,13 +128,11 @@ class BaseResource(AbstractResource[TClient], ABC):
     def refresh(self):
         pass
 
+    @abstractmethod
     def to_resource(self):
-        """
-        Returns Resource instance for this resource
-        """
-        return self
+        pass
 
-    def to_reference(self, **kwargs):
+    def to_reference(self, **kwargs) -> TReference:
         """
         Returns Reference instance for this resource
         """
@@ -197,7 +195,7 @@ class BaseResource(AbstractResource[TClient], ABC):
         return get_resource_path(self)
 
 
-class BaseReference(Generic[TClient], AbstractResource[TClient], ABC):
+class BaseReference(Generic[TClient, TResource, TReference], AbstractResource[TClient], ABC):
     def __str__(self):
         return f"<{self.__class__.__name__} {self.reference}>"
 
@@ -220,7 +218,7 @@ class BaseReference(Generic[TClient], AbstractResource[TClient], ABC):
     def delete(self):
         pass
 
-    def to_reference(self, **kwargs):
+    def to_reference(self, **kwargs) -> TReference:
         """
         Returns Reference instance for this reference
         """

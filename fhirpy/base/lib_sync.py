@@ -3,7 +3,7 @@ import json
 import warnings
 from abc import ABC
 from collections.abc import Generator
-from typing import Any, Generic, Literal, TypeVar, Union, overload
+from typing import Any, Generic, Literal, TypeVar, Union, cast, overload
 
 import requests
 
@@ -11,6 +11,7 @@ from fhirpy.base.client import AbstractClient
 from fhirpy.base.exceptions import MultipleResourcesFound, OperationOutcome, ResourceNotFound
 from fhirpy.base.resource import BaseReference, BaseResource, serialize
 from fhirpy.base.resource_protocol import (
+    TReference,
     TResource,
     get_resource_path,
     get_resource_type_id_and_class,
@@ -211,8 +212,14 @@ class SyncClient(AbstractClient, ABC):
 TSyncClient = TypeVar("TSyncClient", bound=SyncClient)
 
 
-class SyncResource(Generic[TSyncClient], BaseResource[TSyncClient], ABC):
-    def save(self, fields: Union[list[str], None] = None, search_params: Union[dict, None] = None):
+class SyncResource(
+    Generic[TSyncClient, TResource, TReference],
+    BaseResource[TSyncClient, TResource, TReference],
+    ABC,
+):
+    def save(
+        self, fields: Union[list[str], None] = None, search_params: Union[dict, None] = None
+    ) -> TResource:
         response_data = self.__client__.save(
             self, fields, _search_params=search_params, _as_dict=True
         )
@@ -223,30 +230,42 @@ class SyncResource(Generic[TSyncClient], BaseResource[TSyncClient], ABC):
                 **self.__client__.resource(resource_type, **response_data)
             )
 
+        return cast(TResource, self)
+
     def create(self, **kwargs):
         self.save(search_params=kwargs)
-        return self
 
-    def update(self):
+        return cast(TResource, self)
+
+    def update(self) -> TResource:  # type: ignore
         if not self.id:
             raise TypeError("Resource `id` is required for update operation")
         self.save()
 
-    def patch(self, **kwargs):
+        return cast(TResource, self)
+
+    def patch(self, **kwargs) -> TResource:
         super(BaseResource, self).update(**kwargs)
-        self.save(fields=kwargs.keys())
+        self.save(fields=list(kwargs.keys()))
+
+        return cast(TResource, self)
 
     def delete(self):
         if not self.id:
             raise TypeError("Resource `id` is required for delete operation")
         return self.__client__.delete(self)
 
-    def refresh(self):
+    def refresh(self) -> TResource:
         data = self.__client__._do_request("get", self._get_path())
         super(BaseResource, self).clear()
         super(BaseResource, self).update(**data)
 
-    def is_valid(self, raise_exception=False):
+        return cast(TResource, self)
+
+    def to_resource(self) -> TResource:
+        return cast(TResource, self)
+
+    def is_valid(self, raise_exception=False) -> bool:
         data = self.__client__._do_request(
             "post", f"{self.resource_type}/$validate", data=self.serialize()
         )
@@ -271,8 +290,12 @@ class SyncResource(Generic[TSyncClient], BaseResource[TSyncClient], ABC):
         )
 
 
-class SyncReference(Generic[TSyncClient], BaseReference[TSyncClient], ABC):
-    def to_resource(self):
+class SyncReference(
+    Generic[TSyncClient, TResource, TReference],
+    BaseReference[TSyncClient, TResource, TReference],
+    ABC,
+):
+    def to_resource(self) -> TResource:
         """
         Returns Resource instance for this reference
         from fhir server otherwise.
@@ -291,8 +314,9 @@ class SyncReference(Generic[TSyncClient], BaseReference[TSyncClient], ABC):
             **kwargs,
         )
 
-    def patch(self, **kwargs):
-        return self.__client__.patch(self.reference, **kwargs)
+    def patch(self, **kwargs) -> TResource:
+        resource_data = self.__client__.patch(self.reference, **kwargs)
+        return self._dict_to_resource(resource_data)
 
     def delete(self):
         return self.__client__.delete(self.reference)

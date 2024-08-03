@@ -3,7 +3,7 @@ import json
 import warnings
 from abc import ABC
 from collections.abc import AsyncGenerator
-from typing import Any, Generic, Literal, TypeVar, Union, overload
+from typing import Any, Generic, Literal, TypeVar, Union, cast, overload
 
 import aiohttp
 
@@ -11,6 +11,7 @@ from fhirpy.base.client import AbstractClient
 from fhirpy.base.exceptions import MultipleResourcesFound, OperationOutcome, ResourceNotFound
 from fhirpy.base.resource import BaseReference, BaseResource, serialize
 from fhirpy.base.resource_protocol import (
+    TReference,
     TResource,
     get_resource_path,
     get_resource_type_id_and_class,
@@ -216,10 +217,14 @@ class AsyncClient(AbstractClient, ABC):
 TAsyncClient = TypeVar("TAsyncClient", bound=AsyncClient)
 
 
-class AsyncResource(Generic[TAsyncClient], BaseResource[TAsyncClient], ABC):
+class AsyncResource(
+    Generic[TAsyncClient, TResource, TReference],
+    BaseResource[TAsyncClient, TResource, TReference],
+    ABC,
+):
     async def save(
         self, fields: Union[list[str], None] = None, search_params: Union[dict, None] = None
-    ):
+    ) -> TResource:
         response_data = await self.__client__.save(
             self, fields=fields, _search_params=search_params, _as_dict=True
         )
@@ -231,33 +236,42 @@ class AsyncResource(Generic[TAsyncClient], BaseResource[TAsyncClient], ABC):
                 **self.__client__.resource(resource_type, **response_data)
             )
 
-    async def create(self, **kwargs):
-        await self.save(search_params=kwargs)
-        return self
+        return cast(TResource, self)
 
-    async def update(self):
+    async def create(self, **kwargs) -> TResource:
+        await self.save(search_params=kwargs)
+
+        return cast(TResource, self)
+
+    async def update(self) -> TResource:  # type: ignore
         if not self.id:
             raise TypeError("Resource `id` is required for update operation")
         await self.save()
 
-    async def patch(self, **kwargs):
+        return cast(TResource, self)
+
+    async def patch(self, **kwargs) -> TResource:
         super(BaseResource, self).update(**kwargs)
-        await self.save(fields=kwargs.keys())
+        await self.save(fields=list(kwargs.keys()))
+
+        return cast(TResource, self)
 
     async def delete(self):
         if not self.id:
             raise TypeError("Resource `id` is required for delete operation")
         return await self.__client__.delete(self)
 
-    async def refresh(self):
+    async def refresh(self) -> TResource:
         data = await self.__client__._do_request("get", self._get_path())
         super(BaseResource, self).clear()
         super(BaseResource, self).update(**data)
 
-    async def to_resource(self):
-        return super().to_resource()
+        return cast(TResource, self)
 
-    async def is_valid(self, raise_exception=False):
+    async def to_resource(self) -> TResource:
+        return cast(TResource, self)
+
+    async def is_valid(self, raise_exception=False) -> bool:
         data = await self.__client__._do_request(
             "post", f"{self.resource_type}/$validate", data=self.serialize()
         )
@@ -282,8 +296,12 @@ class AsyncResource(Generic[TAsyncClient], BaseResource[TAsyncClient], ABC):
         )
 
 
-class AsyncReference(Generic[TAsyncClient], BaseReference[TAsyncClient], ABC):
-    async def to_resource(self):
+class AsyncReference(
+    Generic[TAsyncClient, TResource, TReference],
+    BaseReference[TAsyncClient, TResource, TReference],
+    ABC,
+):
+    async def to_resource(self) -> TResource:
         """
         Returns Resource instance for this reference
         from fhir server otherwise.
@@ -302,8 +320,9 @@ class AsyncReference(Generic[TAsyncClient], BaseReference[TAsyncClient], ABC):
             **kwargs,
         )
 
-    async def patch(self, **kwargs):
-        return await self.__client__.patch(self.reference, **kwargs)
+    async def patch(self, **kwargs) -> TResource:
+        resource_data = await self.__client__.patch(self.reference, **kwargs)
+        return self._dict_to_resource(resource_data)
 
     async def delete(self):
         return await self.__client__.delete(self.reference)

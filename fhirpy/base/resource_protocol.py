@@ -11,6 +11,7 @@ class ResourceProtocol(Protocol):
 
 
 TResource = TypeVar("TResource", bound=ResourceProtocol)
+TReference = TypeVar("TReference")
 
 
 def get_resource_type_from_class(cls: type[TResource]):

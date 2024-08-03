@@ -3,7 +3,7 @@ from typing import Generic, Union, overload
 
 from fhirpy.base.client import TClient
 from fhirpy.base.resource import BaseReference, BaseResource
-from fhirpy.base.resource_protocol import TResource
+from fhirpy.base.resource_protocol import TReference, TResource
 
 from .base import (
     AsyncClient,
@@ -25,7 +25,9 @@ class AsyncFHIRSearchSet(Generic[TResource], AsyncSearchSet["AsyncFHIRClient", T
     pass
 
 
-class BaseFHIRResource(BaseResource, ABC):
+class BaseFHIRResource(
+    Generic[TClient, TResource, TReference], BaseResource[TClient, TResource, TReference], ABC
+):
     def is_reference(self, value):
         if not isinstance(value, dict):
             return False
@@ -35,15 +37,23 @@ class BaseFHIRResource(BaseResource, ABC):
         )
 
 
-class SyncFHIRResource(BaseFHIRResource, SyncResource["SyncFHIRClient"]):
+class SyncFHIRResource(
+    BaseFHIRResource["SyncFHIRClient", "SyncFHIRResource", "SyncFHIRReference"],
+    SyncResource["SyncFHIRClient", "SyncFHIRResource", "SyncFHIRReference"],
+):
     pass
 
 
-class AsyncFHIRResource(BaseFHIRResource, AsyncResource["AsyncFHIRClient"]):
+class AsyncFHIRResource(
+    BaseFHIRResource["AsyncFHIRClient", "AsyncFHIRResource", "AsyncFHIRReference"],
+    AsyncResource["AsyncFHIRClient", "AsyncFHIRResource", "AsyncFHIRReference"],
+):
     pass
 
 
-class BaseFHIRReference(Generic[TClient], BaseReference[TClient], ABC):
+class BaseFHIRReference(
+    Generic[TClient, TResource, TReference], BaseReference[TClient, TResource, TReference], ABC
+):
     @property
     def reference(self):
         return self["reference"]
@@ -73,11 +83,17 @@ class BaseFHIRReference(Generic[TClient], BaseReference[TClient], ABC):
         return self.reference.count("/") == 1
 
 
-class SyncFHIRReference(BaseFHIRReference["SyncFHIRClient"], SyncReference["SyncFHIRClient"]):
+class SyncFHIRReference(
+    BaseFHIRReference["SyncFHIRClient", "SyncFHIRResource", "SyncFHIRReference"],
+    SyncReference["SyncFHIRClient", "SyncFHIRResource", "SyncFHIRReference"],
+):
     pass
 
 
-class AsyncFHIRReference(BaseFHIRReference["AsyncFHIRClient"], AsyncReference["AsyncFHIRClient"]):
+class AsyncFHIRReference(
+    BaseFHIRReference["AsyncFHIRClient", "AsyncFHIRResource", "AsyncFHIRReference"],
+    AsyncReference["AsyncFHIRClient", "AsyncFHIRResource", "AsyncFHIRReference"],
+):
     pass
 
 
