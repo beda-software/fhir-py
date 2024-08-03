@@ -1,7 +1,8 @@
 [![build status](https://github.com/beda-software/fhir-py/actions/workflows/build.yaml/badge.svg)](https://github.com/beda-software/fhir-py/actions/workflows/build.yaml)
 [![codecov](https://codecov.io/gh/beda-software/fhir-py/branch/master/graph/badge.svg)](https://codecov.io/gh/beda-software/fhir-py)
 [![pypi](https://img.shields.io/pypi/v/fhirpy.svg)](https://pypi.org/project/fhirpy)
-[![Supported Python version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/release/python-380/)
+[![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
+[![Supported Python version](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/release/python-390/)
 
 # fhir-py
 async/sync FHIR client for python3.
@@ -47,21 +48,30 @@ You can test this library by interactive FHIR course in the repository [Aidbox/j
     - [Conditional patch](#conditional-patch)
     - [Conditional delete](#conditional-delete)
 - [Data models](#data-models)
+  - [Static typechecking](#static-typechecking)
   - [Resource instantiation](#resource-instantiation)
   - [CRUD client methods](#crud-client-methods)
+    - [Create](#create)
+    - [Update](#update)
+    - [Save](#save)
+    - [Patch](#patch)
+    - [Delete](#delete)
+    - [Read](#read)
 - [Resource and helper methods](#resource-and-helper-methods)
   - [Validate resource using operation $validate](#validate-resource-using-operation-validate)
   - [Accessing resource attributes](#accessing-resource-attributes)
   - [get_by_path(path, default=None)](#get_by_pathpath-defaultnone)
-  - [set_by_path(obj, path, value)](#set_by_pathpath)
+  - [set_by_path(obj, path, value)](#set_by_pathobj-path-value)
   - [serialize()](#serialize)
 - [Reference](#reference-1)
   - [Main class structure](#main-class-structure)
   - [Acync client (based on _aiohttp_) – AsyncFHIRClient](#acync-client-based-on-_aiohttp_--asyncfhirclient)
+    - [Aiohttp request parameters](#aiohttp-request-parameters)
     - [AsyncFHIRResource](#asyncfhirresource)
     - [AsyncFHIRReference](#asyncfhirreference)
     - [AsyncFHIRSearchSet](#asyncfhirsearchset)
   - [Sync client (based on _requests_) – SyncFHIRClient](#sync-client-based-on-_requests_--syncfhirclient)
+    - [Requests request parameters](#requests-request-parameters)
     - [SyncFHIRResource](#syncfhirresource)
     - [SyncFHIRReference](#syncfhirreference)
     - [SyncFHIRSearchSet](#syncfhirsearchset)
@@ -419,6 +429,10 @@ Third party typing data models might be used along with fhir-py.
 The typing data models should match [ResourceProtocol](https://github.com/beda-software/fhir-py/blob/master/fhirpy/base/resource_protocol.py#L5), e.g. have `resourceType` attribute, optional `id` and be iterable for serialization. 
 There's a third party repository [fhir-py-types](https://github.com/beda-software/fhir-py-types) that is written on top of pydantic models is fully compatible with fhir-py.
 
+## Static typechecking
+
+fhir-py uses typehints in the codebase and it statically checked by [mypy](https://github.com/python/mypy). Some interfaces that are described below designed in the way to properly infer the return value based on the model class.
+
 ## Resource instantiation
 
 To instantiate a resource, simply use type model constructor, e.g.
@@ -428,7 +442,7 @@ patient = Patient(name=[HumanName(text='Patient')])
 
 ## CRUD client methods
 
-Client class provides CRUD methods that works with typed models.
+Client class provides CRUD methods that designed to work with typed models.
 
 ### Create
 
@@ -520,7 +534,7 @@ await client.delete(patient)
 
 ### Read
 
-For fetching resources, SearchSet needs to be instantiated by passing the model class as the first argument
+For fetching resources, SearchSet needs to be instantiated using the model class as the first argument
 
 ```python
 ss = client.resources(Patient) # returns AsyncFHIRSearchSet[Patient]
