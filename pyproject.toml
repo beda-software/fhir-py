@@ -60,3 +60,10 @@ addopts = "-ra -q --color=yes --cov=fhirpy --cov-report=xml"
 testpaths = ["tests"]
 log_cli = true
 log_cli_level = "INFO"
+
+[tool.coverage.report]
+exclude_also = [
+    "def __repr__",
+    "@abstractmethod",
+    "^\\s*\\.\\.\\.\\s*$"
+]
