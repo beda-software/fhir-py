@@ -660,13 +660,36 @@ client = AsyncFHIRClient(
 
 Be careful and don't override other request values like `params`, `json`, `data`, `auth`, because it'll interfere with the way `fhir-py` works and lead to an incorrect behavior. 
 
+### AsyncFHIRClient
+
+provides:
+* .resource(resource_type, **kwargs) - instantiates resource AsyncFHIRResource
+* .reference(resource_type, id, **kwargs) - instantiates resource AsyncFHIRReference
+* .resources(resource_type: str) - instantiates AsyncFHIRSearchSet
+* .resources(resource_class: T) - instantiates AsyncFHIRSearchSet[T]
+* `async` .execute(operation, method='post', data=None, params=None) - returns a result of custom operation
+
+data model methods:
+* `async` .save(resource: T, fields=[]) - creates or updates or patches (with fields=[...]) T instance
+* `async` .create(resource: T) - creates T instance
+* `async` .update(resource: T) - updates T instance
+* `async` .patch(resource: T, **kwargs) - patches T instance
+* `async` .patch(resource_type: type[T], id, **kwargs) - patches instance by reference returning T instance
+* `async` .patch(reference: str, **kwargs) - patches instance by reference
+* `async` .patch(resource_type: str, id, **kwargs) - patches instance
+* `async` .delete(resource: T) - deletes T instance
+* `async` .delete(resource_type: type[T], id) - deletes resource
+* `async` .delete(reference: str) - deletes instance by reference
+* `async` .delete(resource_type: str, id) - deletes instance
+
 ### AsyncFHIRResource
 
 provides:
 * .serialize() - serializes resource
 * .get_by_path(path, default=None) – gets the value at path of resource
 * `async` .save(fields=[]) - creates or updates or patches (with fields=[...]) resource instance
-* `async` .update() - overrides resource instance
+* `async` .create() - creates resource instance
+* `async` .update() - updates resource instance
 * `async` .patch(**kwargs) - patches resource instance
 * `async` .delete() - deletes resource instance
 * `async` .refresh() - reloads resource from a server
@@ -693,11 +716,11 @@ provides:
 * `async` .fetch_all() - makes query to the server and returns a full list of `Resource` filtered by resource type
 * `async` .fetch_raw() - makes query to the server and returns a raw Bundle `Resource`
 * `async` .first() - returns `Resource` or None
-* `async` .get(id=None) - returns `Resource` or raises `ResourceNotFound` when no resource found or MultipleResourcesFound when more than one resource found (parameter 'id' is deprecated)
+* `async` .get() - returns `Resource` or raises `ResourceNotFound` when no resource found or MultipleResourcesFound when more than one resource found (parameter 'id' is deprecated)
 * `async` .count() - makes query to the server and returns the total number of resources that match the SearchSet
 * `async` .get_or_create(resource) - conditional create
 * `async` .update(resource) - conditional update
-* `async` .patch(resource) - conditional patch
+* `async` .patch(**kwargs) - conditional patch
 
 
 ## Sync client (based on _requests_) – SyncFHIRClient
