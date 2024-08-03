@@ -46,6 +46,9 @@ You can test this library by interactive FHIR course in the repository [Aidbox/j
     - [Conditional update](#conditional-update)
     - [Conditional patch](#conditional-patch)
     - [Conditional delete](#conditional-delete)
+- [Data models](#data-models)
+  - [Resource instantiation](#resource-instantiation)
+  - [CRUD client methods](#crud-client-methods)
 - [Resource and helper methods](#resource-and-helper-methods)
   - [Validate resource using operation $validate](#validate-resource-using-operation-validate)
   - [Accessing resource attributes](#accessing-resource-attributes)
@@ -409,6 +412,123 @@ response_data, status_code = await self.client.resources("Patient").search(ident
 # one match -> status_code = 200 'OK'
 # multiple matches -> status_code = 412 'MultipleResourcesFound' (implementation specific)
 ```
+
+# Data models
+
+Third party typing data models might be used along with fhir-py.
+The typing data models should match [ResourceProtocol](https://github.com/beda-software/fhir-py/blob/master/fhirpy/base/resource_protocol.py#L5), e.g. have `resourceType` attribute, optional `id` and be iterable for serialization. 
+There's a third party repository [fhir-py-types](https://github.com/beda-software/fhir-py-types) that is written on top of pydantic models is fully compatible with fhir-py.
+
+## Resource instantiation
+
+To instantiate a resource, simply use type model constructor, e.g.
+```python
+patient = Patient(name=[HumanName(text='Patient')])
+```
+
+## CRUD client methods
+
+Client class provides CRUD methods that works with typed models.
+
+### Create
+
+```python
+await client.create(patient) # returns Patient
+```
+
+### Update
+
+```python
+await client.create(existing_patient) # returns Patient
+```
+
+### Save
+
+Smart helper that creates or updated the resource based on having `id`
+
+```python
+await client.save(existing_patient) # returns Patient
+```
+
+Also it supports overriding specific fields using patch:
+
+```python
+await client.save(existing_patient, fields=['identifier']) # returns Patient
+```
+
+### Patch
+
+Patch accepts different syntaxes for patching, there're two syntaxes for general usage, without inferred types:
+
+* Patch using reference defined by separate resource type and id:
+
+```python
+await client.patch('Patient', 'id', name=[HumanName(text='Patient')]) # returns Any
+```
+
+* Patch using reference string:
+
+```python
+await client.patch('Patient/id', name=[HumanName(text='Patient')]) # returns Any
+```
+
+And two types that infers type:
+
+
+* Patch using model class and id
+
+
+```python
+await client.patch(Patient, 'id', name=[HumanName(text='Patient')]) # returns Patient
+```
+
+* Patch using model instance
+
+```python
+await client.patch(patient, name=[HumanName(text='Patient')]) # returns Patient
+```
+
+### Delete
+
+Delete accepts different syntaxes for resource deletion, there're also syntaxes similar to patch, but without output type because delete usually returns nothing.
+
+* Delete using reference defined by separate resource type and id:
+
+```python
+await client.delete('Patient', 'id') 
+```
+
+* Delete using reference string:
+
+```python
+await client.delete('Patient/id')
+```
+
+
+* Delete using model class and id
+
+
+```python
+await client.delete(Patient, 'id')
+```
+
+* Delete using model instance
+
+```python
+await client.delete(patient)
+```
+
+### Read
+
+For fetching resources, SearchSet needs to be instantiated by passing the model class as the first argument
+
+```python
+ss = client.resources(Patient) # returns AsyncFHIRSearchSet[Patient]
+await ss.fetch_all() # returns list[Patient]
+```
+
+In that case search set infers model type for all methods that described above in the sections about search sets, including data fetching and conditional CRUD.
+
 
 # Resource and helper methods
 
