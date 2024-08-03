@@ -8,8 +8,8 @@ import pytz
 
 from fhirpy.base.client import TClient
 from fhirpy.base.exceptions import InvalidResponse
-from fhirpy.base.resource import BaseReference, BaseResource, TResource
-from fhirpy.base.resource_protocol import get_resource_type_from_class
+from fhirpy.base.resource import BaseReference, BaseResource
+from fhirpy.base.resource_protocol import TResource, get_resource_type_from_class
 from fhirpy.base.utils import chunks, encode_params
 
 FHIR_DATE_TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"

@@ -9,8 +9,12 @@ import requests
 
 from fhirpy.base.client import AbstractClient
 from fhirpy.base.exceptions import MultipleResourcesFound, OperationOutcome, ResourceNotFound
-from fhirpy.base.resource import BaseReference, BaseResource, serialize_resource
-from fhirpy.base.resource_protocol import TResource, get_resource_path, get_resource_type_from_class
+from fhirpy.base.resource import BaseReference, BaseResource, serialize
+from fhirpy.base.resource_protocol import (
+    TResource,
+    get_resource_path,
+    get_resource_type_id_and_class,
+)
 from fhirpy.base.searchset import AbstractSearchSet
 from fhirpy.base.utils import AttrDict, get_by_path, parse_pagination_url
 
@@ -71,7 +75,7 @@ class SyncClient(AbstractClient, ABC):
         # _as_dict is a private api used internally
         _as_dict: bool = False,
     ) -> Union[TResource, Any]:
-        data = serialize_resource(resource)
+        data = serialize(resource)
         if fields:
             if not resource.id:
                 raise TypeError("Resource `id` is required for update operation")
@@ -98,40 +102,54 @@ class SyncClient(AbstractClient, ABC):
         return self.save(resource)
 
     @overload
-    def patch(self, resource_type: type[TResource], id: str, **kwargs) -> TResource:
+    def patch(self, resource_type_or_resource: TResource, id: None = None, **kwargs) -> TResource:
         ...
 
     @overload
-    def patch(self, resource_type: str, id: str, **kwargs) -> Any:
+    def patch(
+        self, resource_type_or_resource: type[TResource], id: Union[str, None] = None, **kwargs
+    ) -> TResource:
+        ...
+
+    @overload
+    def patch(self, resource_type_or_resource: str, id: Union[str, None] = None, **kwargs) -> Any:
         ...
 
     def patch(
         self,
-        resource_type: Union[str, type[TResource]],
-        id: str,  # noqa: A002
+        resource_type_or_resource: Union[str, type[TResource], TResource],
+        id: Union[str, None] = None,  # noqa: A002
         **kwargs,
     ) -> Union[TResource, Any]:
-        resource_type_str = (
-            resource_type
-            if isinstance(resource_type, str)
-            else get_resource_type_from_class(resource_type)
+        resource_type, resource_id, custom_resource_class = get_resource_type_id_and_class(
+            resource_type_or_resource, id
         )
-        custom_resource_class = None if isinstance(resource_type, str) else resource_type
 
-        response_data = self._do_request("patch", f"{resource_type_str}/{id}", data=kwargs)
+        if resource_id is None:
+            raise TypeError("Resource `id` is required for patch operation")
+
+        response_data = self._do_request(
+            "patch", f"{resource_type}/{resource_id}", data=serialize(kwargs)
+        )
 
         if custom_resource_class:
             return custom_resource_class(**response_data)
 
         return response_data
 
-    def delete(self, resource_type: Union[str, type[TResource]], id: str):  # noqa: A002
-        resource_type_str = (
-            resource_type
-            if isinstance(resource_type, str)
-            else get_resource_type_from_class(resource_type)
+    def delete(
+        self,
+        resource_type_or_resource: Union[str, type[TResource], TResource],
+        id: Union[str, None] = None,  # noqa: A002
+    ):
+        resource_type, resource_id, _ = get_resource_type_id_and_class(
+            resource_type_or_resource, id
         )
-        return self._do_request("delete", f"{resource_type_str}/{id}")
+
+        if resource_id is None:
+            raise TypeError("Resource `id` is required for delete operation")
+
+        return self._do_request("delete", f"{resource_type}/{resource_id}")
 
     @overload
     def _do_request(
@@ -327,7 +345,7 @@ class SyncSearchSet(
         response_data, status_code = self.client._do_request(
             "POST",
             self.resource_type,
-            serialize_resource(resource),
+            serialize(resource),
             self.params,
             returning_status=True,
         )
@@ -340,7 +358,7 @@ class SyncSearchSet(
         response_data, status_code = self.client._do_request(
             "PUT",
             self.resource_type,
-            serialize_resource(resource),
+            serialize(resource),
             self.params,
             returning_status=True,
         )
@@ -356,7 +374,7 @@ class SyncSearchSet(
                 stacklevel=2,
             )
 
-        data = serialize_resource(_resource if _resource is not None else kwargs)
+        data = serialize(_resource if _resource is not None else kwargs)
         response_data = self.client._do_request("PATCH", self.resource_type, data, self.params)
         return self._dict_to_resource(response_data)
 

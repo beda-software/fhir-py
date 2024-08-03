@@ -40,6 +40,208 @@ class TestLibAsyncCase:
             resource_type, identifier=self.identifier, **kwargs
         ).create()
 
+    async def create_patient_model(self):
+        patient = Patient(
+            name=[HumanName(text="My patient")],
+            identifier=[
+                Identifier(
+                    system=self.identifier[0]["system"],
+                    value=self.identifier[0]["system"],
+                )
+            ],
+        )
+        return await self.client.create(patient)
+
+    @pytest.mark.asyncio()
+    async def test_create_patient_model(self):
+        patient = await self.create_patient_model()
+
+        fetched_patient = await self.client.resources(Patient).search(_id=patient.id).first()
+
+        assert fetched_patient.id == patient.id
+
+    @pytest.mark.asyncio()
+    async def test_client_create(self):
+        patient = Patient(
+            name=[HumanName(text="My patient")],
+            identifier=[
+                Identifier(
+                    system=self.identifier[0]["system"],
+                    value=self.identifier[0]["system"],
+                )
+            ],
+        )
+        created_patient = await self.client.create(patient)
+
+        assert isinstance(created_patient, Patient)
+        assert created_patient.id is not None
+
+    @pytest.mark.asyncio()
+    async def test_client_update(self):
+        patient = await self.create_patient_model()
+        patient.identifier = [
+            *patient.identifier,
+            Identifier(system="url", value="value"),
+        ]
+
+        updated_patient = await self.client.update(patient)
+
+        assert isinstance(updated_patient, Patient)
+        assert updated_patient.id == patient.id
+        assert len(updated_patient.identifier) == 2  # noqa: PLR2004
+
+    @pytest.mark.asyncio()
+    async def test_client_update_fails_without_id(self):
+        patient = await self.create_patient_model()
+        patient.id = None
+
+        with pytest.raises(TypeError):
+            await self.client.update(patient)
+
+    @pytest.mark.asyncio()
+    async def test_client_save_new(self):
+        patient = Patient(
+            name=[HumanName(text="My patient")],
+            identifier=[
+                Identifier(
+                    system=self.identifier[0]["system"],
+                    value=self.identifier[0]["system"],
+                )
+            ],
+        )
+
+        created_patient = await self.client.save(patient)
+        assert isinstance(created_patient, Patient)
+        assert created_patient.id is not None
+
+    @pytest.mark.asyncio()
+    async def test_client_save_existing(self):
+        patient = await self.create_patient_model()
+        patient.identifier = [
+            *patient.identifier,
+            Identifier(system="url", value="value"),
+        ]
+
+        updated_patient = await self.client.save(patient)
+
+        assert isinstance(updated_patient, Patient)
+        assert updated_patient.id == patient.id
+        assert len(updated_patient.identifier) == 2  # noqa: PLR2004
+
+    @pytest.mark.asyncio()
+    async def test_client_save_partial_update(self):
+        patient = await self.create_patient_model()
+
+        patient.identifier = [
+            *patient.identifier,
+            Identifier(system="url", value="value"),
+        ]
+        patient.name[0].text = "New patient"
+
+        updated_patient = await self.client.save(patient, fields=["identifier"])
+
+        assert isinstance(updated_patient, Patient)
+        assert updated_patient.id == patient.id
+        assert len(updated_patient.identifier) == 2  # noqa: PLR2004
+        assert updated_patient.name[0].text == "My patient"
+
+    @pytest.mark.asyncio()
+    async def test_client_save_partial_update_fails_without_id(self):
+        patient = await self.create_patient_model()
+        patient.id = None
+
+        with pytest.raises(TypeError):
+            await self.client.save(patient, fields=["identifier"])
+
+    @pytest.mark.asyncio()
+    async def test_client_patch_specifying_resource_type_str_and_id(self):
+        patient = await self.create_patient_model()
+        new_identifier = [*patient.identifier, Identifier(system="url", value="value")]
+
+        patched_patient = await self.client.patch(
+            patient.resourceType, patient.id, identifier=new_identifier
+        )
+
+        assert isinstance(patched_patient, dict)
+        assert len(patched_patient["identifier"]) == 2  # noqa: PLR2004
+
+    @pytest.mark.asyncio()
+    async def test_client_patch_specifying_resource_type_type_and_id(self):
+        patient = await self.create_patient_model()
+        new_identifier = [*patient.identifier, Identifier(system="url", value="value")]
+
+        patched_patient = await self.client.patch(Patient, patient.id, identifier=new_identifier)
+
+        assert isinstance(patched_patient, Patient)
+        assert len(patched_patient.identifier) == 2  # noqa: PLR2004
+
+    @pytest.mark.asyncio()
+    async def test_client_patch_specifying_resource(self):
+        patient = await self.create_patient_model()
+        new_identifier = [*patient.identifier, Identifier(system="url", value="value")]
+
+        patched_patient = await self.client.patch(patient, identifier=new_identifier)
+
+        assert isinstance(patched_patient, Patient)
+        assert len(patched_patient.identifier) == 2  # noqa: PLR2004
+
+    @pytest.mark.asyncio()
+    async def test_client_patch_specifying_resource_type_fails_without_id(self):
+        patient = await self.create_patient_model()
+
+        with pytest.raises(TypeError):
+            await self.client.patch(patient.resourceType)
+
+    @pytest.mark.asyncio()
+    async def test_client_patch_specifying_resource_fails_without_id(self):
+        patient = await self.create_patient_model()
+        patient.id = None
+
+        with pytest.raises(TypeError):
+            await self.client.patch(patient)
+
+    @pytest.mark.asyncio()
+    async def test_client_delete_specifying_resource_type_str_and_id(self):
+        patient = await self.create_patient_model()
+
+        await self.client.delete(patient.resourceType, patient.id)
+
+        fetched_patient = await self.client.resources(Patient).search(_id=patient.id).first()
+        assert fetched_patient is None
+
+    @pytest.mark.asyncio()
+    async def test_client_delete_specifying_resource_type_type_and_id(self):
+        patient = await self.create_patient_model()
+
+        await self.client.delete(Patient, patient.id)
+
+        fetched_patient = await self.client.resources(Patient).search(_id=patient.id).first()
+        assert fetched_patient is None
+
+    @pytest.mark.asyncio()
+    async def test_client_delete_specifying_resource(self):
+        patient = await self.create_patient_model()
+
+        await self.client.delete(patient)
+
+        fetched_patient = await self.client.resources(Patient).search(_id=patient.id).first()
+        assert fetched_patient is None
+
+    @pytest.mark.asyncio()
+    async def test_client_delete_specifying_resource_type_fails_without_id(self):
+        patient = await self.create_patient_model()
+
+        with pytest.raises(TypeError):
+            await self.client.delete(patient.resourceType)
+
+    @pytest.mark.asyncio()
+    async def test_client_delete_specifying_resource_fails_without_id(self):
+        patient = await self.create_patient_model()
+        patient.id = None
+
+        with pytest.raises(TypeError):
+            await self.client.delete(patient)
+
     @pytest.mark.asyncio()
     async def test_create_patient(self):
         await self.create_resource("Patient", id="patient", name=[{"text": "My patient"}])

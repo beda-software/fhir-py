@@ -4,7 +4,7 @@ from typing import Any, Generic, Union
 
 from fhirpy.base.client import TClient
 from fhirpy.base.exceptions import ResourceNotFound
-from fhirpy.base.resource_protocol import TResource, get_resource_path
+from fhirpy.base.resource_protocol import get_resource_path
 from fhirpy.base.utils import convert_values, get_by_path, parse_path
 
 
@@ -50,7 +50,7 @@ class AbstractResource(Generic[TClient], dict, ABC):
         return super().setdefault(key, default)
 
     def serialize(self):
-        return serialize_resource(self)
+        return serialize(self)
 
     @property
     @abstractmethod
@@ -238,15 +238,15 @@ class BaseReference(Generic[TClient], AbstractResource[TClient], ABC):
         pass
 
 
-def serialize_resource(resource: TResource) -> dict:
+def serialize(resource: Any) -> dict:
     # TODO: make serialization pluggable
 
     def convert_fn(item):
         if isinstance(item, BaseResource):
-            return serialize_resource(item.to_reference()), True
+            return serialize(item.to_reference()), True
 
         if isinstance(item, BaseReference):
-            return serialize_resource(item), True
+            return serialize(item), True
 
         if _is_serializable_dict_like(item):
             # Handle dict-serializable structures like pydantic Model

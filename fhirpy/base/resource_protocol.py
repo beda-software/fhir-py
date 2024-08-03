@@ -37,3 +37,23 @@ def get_resource_path(resource: TResource) -> str:
         return ""
 
     return resource.resourceType
+
+
+def get_resource_type_id_and_class(
+    resource_type_or_resource: Union[str, type[TResource], TResource],
+    id: Union[str, None],  # noqa: A002
+) -> tuple[str, Union[str, None], Union[type[TResource], None]]:
+    if isinstance(resource_type_or_resource, str):
+        resource_type = resource_type_or_resource
+        resource_id = id
+        custom_resource_class = None
+    elif isinstance(resource_type_or_resource, type):
+        resource_type = get_resource_type_from_class(resource_type_or_resource)
+        resource_id = id
+        custom_resource_class = resource_type_or_resource
+    else:
+        resource_type = resource_type_or_resource.resourceType
+        resource_id = resource_type_or_resource.id
+        custom_resource_class = resource_type_or_resource.__class__
+
+    return (resource_type, resource_id, custom_resource_class)

@@ -65,11 +65,11 @@ class AbstractClient(ABC):
         pass
 
     @abstractmethod
-    def patch(self, resource_type, id, **kwargs):  # noqa: A002
+    def patch(self, resource_type_or_resource, id=None, **kwargs):  # noqa: A002
         pass
 
     @abstractmethod
-    def delete(self, resource_type, id):  # noqa: A002
+    def delete(self, resource_type_or_resource, id=None):  # noqa: A002
         pass
 
     @abstractmethod
