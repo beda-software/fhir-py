@@ -240,3 +240,18 @@ class TestLibBase:
         assert patient.identifier[0].value == "value"
         assert isinstance(patient.name[0], HumanName)
         assert patient.name[0].text == "Name"
+
+    def test_resource_resource_type_setter(self, client: Union[SyncFHIRClient, AsyncFHIRClient]):
+        patient = client.resource("Patient", id="p1")
+        patient.resourceType = "Patient"
+
+    def test_resource_id_setter(self, client: Union[SyncFHIRClient, AsyncFHIRClient]):
+        patient = client.resource("Patient")
+        patient.id = "p1"
+        assert patient.id == "p1"
+
+    def test_resource_str(self, client: Union[SyncFHIRClient, AsyncFHIRClient]):
+        assert "FHIRResource Patient/p1" in str(client.resource("Patient", id="p1"))
+
+    def test_reference_str(self, client: Union[SyncFHIRClient, AsyncFHIRClient]):
+        assert "FHIRReference Patient/p1" in str(client.reference("Patient", "p1"))

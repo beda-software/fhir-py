@@ -336,10 +336,10 @@ class AbstractSearchSet(Generic[TClient, TResource], ABC):
         sort_keys = ",".join(keys)
         return self.clone(_sort=sort_keys, override=True)
 
-    def __str__(self):  # pragma: no cover
+    def __str__(self):
         return f"<{self.__class__.__name__} {self.resource_type}?{encode_params(self.params)}>"
 
-    def __repr__(self):  # pragma: no cover
+    def __repr__(self):
         return self.__str__()
 
     def _get_bundle_resources(self, bundle_data) -> list[TResource]:

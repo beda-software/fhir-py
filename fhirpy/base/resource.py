@@ -165,21 +165,22 @@ class BaseResource(AbstractResource[TClient], ABC):
     def resource_type(self):
         return self["resourceType"]
 
-    # resourceType is needed to match ResourceProtocol
+    # mutable resourceType is needed to match ResourceProtocol
     @property
     def resourceType(self) -> str:  # noqa: N802
         return self["resourceType"]
 
     @resourceType.setter
-    def resourceType(self, value: str):  # noqa: N802
+    def resourceType(self, value: str):  # pragma: no cover # noqa: N802
         self["resourceType"] = value
 
+    # mutable id is needed to match ResourceProtocol
     @property
     def id(self):
         return self.get("id", None)
 
     @id.setter
-    def id(self, value):
+    def id(self, value):  # pragma: no cover
         self["id"] = value
 
     @property

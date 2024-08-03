@@ -182,7 +182,7 @@ def get_by_path(data, path, default=None):
                             matched_index = index
                             break
                     rv = None if matched_index == -1 else rv[matched_index]
-                else:  # pragma: no cover
+                else:
                     raise TypeError(
                         f"Can not lookup by {reprlib.repr(key)} in list. "
                         "Possible lookups are by int or by dict."

@@ -441,6 +441,12 @@ class TestLibSyncCase:
         with pytest.raises(ResourceNotFound):
             self.get_search_set("Patient").search(_id="patient").get()
 
+    def test_delete_without_id_failed(self):
+        patient = self.client.resource("Patient", **{})
+
+        with pytest.raises(TypeError):
+            patient.delete()
+
     def test_delete_with_params__no_match(self):
         self.create_resource("Patient", id="patient")
 

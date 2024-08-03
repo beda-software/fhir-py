@@ -21,10 +21,10 @@ def get_resource_type_from_class(cls: type[TResource]):
 
     try:
         return get_args(get_type_hints(cls)["resourceType"])[0]
-    except KeyError:
+    except KeyError:  # pragma: no cover
         pass
 
-    raise NotImplementedError(
+    raise NotImplementedError(  # pragma: no cover
         f"Unsupported model {cls}. It should provide `resourceType` as class variable or as type annotation"
     )
 

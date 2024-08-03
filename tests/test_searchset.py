@@ -162,3 +162,6 @@ class TestSearchSet:
         )
 
         assert search_set.params == {"inconsistent_search_param": ["ok"]}
+
+    def test_str(self, client: Union[SyncFHIRClient, AsyncFHIRClient]):
+        assert "FHIRSearchSet Patient?_id=id" in str(client.resources("Patient").search(_id="id"))

@@ -53,6 +53,10 @@ class TestLibAsyncCase:
         return await self.client.create(patient)
 
     @pytest.mark.asyncio()
+    async def test_client_str(self):
+        assert str(self.client) == f"<AsyncFHIRClient {self.URL}>"
+
+    @pytest.mark.asyncio()
     async def test_create_patient_model(self):
         patient = await self.create_patient_model()
 
@@ -476,6 +480,13 @@ class TestLibAsyncCase:
 
         with pytest.raises(ResourceNotFound):
             await self.get_search_set("Patient").search(_id="patient").get()
+
+    @pytest.mark.asyncio()
+    async def test_delete_without_id_failed(self):
+        patient = self.client.resource("Patient", **{})
+
+        with pytest.raises(TypeError):
+            await patient.delete()
 
     @pytest.mark.asyncio()
     async def test_delete_with_params__no_match(self):
