@@ -9,10 +9,10 @@ from fhirpy.base.utils import convert_values, get_by_path, parse_path
 
 
 class AbstractResource(Generic[TClient], dict, ABC):
-    client: TClient
+    __client__: TClient
 
     def __init__(self, client: TClient, **kwargs):
-        self.client = client
+        self.__client__ = client
 
         super().__init__(**kwargs)
 
@@ -32,7 +32,7 @@ class AbstractResource(Generic[TClient], dict, ABC):
         return self[key]
 
     def __setattr__(self, key, value):
-        reserved_keys = ["client"]
+        reserved_keys = ["__client__"]
         if key in reserved_keys:
             super().__setattr__(key, value)
         else:
@@ -141,7 +141,7 @@ class BaseResource(AbstractResource[TClient], ABC):
         if not self.reference:
             raise ResourceNotFound("Can not get reference to unsaved resource without id")
 
-        return self.client.reference(reference=self.reference, **kwargs)
+        return self.__client__.reference(reference=self.reference, **kwargs)
 
     @abstractmethod
     def is_reference(self, value):
@@ -216,10 +216,10 @@ class BaseReference(Generic[TClient], AbstractResource[TClient], ABC):
         """
         Returns Reference instance for this reference
         """
-        return self.client.reference(reference=self.reference, **kwargs)
+        return self.__client__.reference(reference=self.reference, **kwargs)
 
     def _dict_to_resource(self, data):
-        return self.client.resource(data["resourceType"], **data)
+        return self.__client__.resource(data["resourceType"], **data)
 
     @property
     @abstractmethod

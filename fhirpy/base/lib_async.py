@@ -220,14 +220,16 @@ class AsyncResource(Generic[TAsyncClient], BaseResource[TAsyncClient], ABC):
     async def save(
         self, fields: Union[list[str], None] = None, search_params: Union[dict, None] = None
     ):
-        response_data = await self.client.save(
+        response_data = await self.__client__.save(
             self, fields=fields, _search_params=search_params, _as_dict=True
         )
 
         if response_data:
             resource_type = self.resource_type
             super(BaseResource, self).clear()
-            super(BaseResource, self).update(**self.client.resource(resource_type, **response_data))
+            super(BaseResource, self).update(
+                **self.__client__.resource(resource_type, **response_data)
+            )
 
     async def create(self, **kwargs):
         await self.save(search_params=kwargs)
@@ -245,10 +247,10 @@ class AsyncResource(Generic[TAsyncClient], BaseResource[TAsyncClient], ABC):
     async def delete(self):
         if not self.id:
             raise TypeError("Resource `id` is required for delete operation")
-        return await self.client.delete(self)
+        return await self.__client__.delete(self)
 
     async def refresh(self):
-        data = await self.client._do_request("get", self._get_path())
+        data = await self.__client__._do_request("get", self._get_path())
         super(BaseResource, self).clear()
         super(BaseResource, self).update(**data)
 
@@ -256,7 +258,7 @@ class AsyncResource(Generic[TAsyncClient], BaseResource[TAsyncClient], ABC):
         return super().to_resource()
 
     async def is_valid(self, raise_exception=False):
-        data = await self.client._do_request(
+        data = await self.__client__._do_request(
             "post", f"{self.resource_type}/$validate", data=self.serialize()
         )
         if any(issue["severity"] in ["fatal", "error"] for issue in data["issue"]):
@@ -272,7 +274,7 @@ class AsyncResource(Generic[TAsyncClient], BaseResource[TAsyncClient], ABC):
         data: Union[dict, None] = None,
         params: Union[dict, None] = None,
     ) -> Any:
-        return await self.client._do_request(
+        return await self.__client__._do_request(
             method,
             f"{self._get_path()}/{operation}",
             data=data,
@@ -288,13 +290,13 @@ class AsyncReference(Generic[TAsyncClient], BaseReference[TAsyncClient], ABC):
         """
         if not self.is_local:
             raise ResourceNotFound("Can not resolve not local resource")
-        resource_data = await self.client._do_request("get", f"{self.resource_type}/{self.id}")
+        resource_data = await self.__client__._do_request("get", f"{self.resource_type}/{self.id}")
         return self._dict_to_resource(resource_data)
 
     async def execute(self, operation, method="post", **kwargs):
         if not self.is_local:
             raise ResourceNotFound("Can not execute on not local resource")
-        return await self.client._do_request(
+        return await self.__client__._do_request(
             method,
             f"{self.resource_type}/{self.id}/{operation}",
             **kwargs,

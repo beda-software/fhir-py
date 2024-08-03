@@ -213,11 +213,15 @@ TSyncClient = TypeVar("TSyncClient", bound=SyncClient)
 
 class SyncResource(Generic[TSyncClient], BaseResource[TSyncClient], ABC):
     def save(self, fields: Union[list[str], None] = None, search_params: Union[dict, None] = None):
-        response_data = self.client.save(self, fields, _search_params=search_params, _as_dict=True)
+        response_data = self.__client__.save(
+            self, fields, _search_params=search_params, _as_dict=True
+        )
         if response_data:
             resource_type = self.resource_type
             super(BaseResource, self).clear()
-            super(BaseResource, self).update(**self.client.resource(resource_type, **response_data))
+            super(BaseResource, self).update(
+                **self.__client__.resource(resource_type, **response_data)
+            )
 
     def create(self, **kwargs):
         self.save(search_params=kwargs)
@@ -235,15 +239,15 @@ class SyncResource(Generic[TSyncClient], BaseResource[TSyncClient], ABC):
     def delete(self):
         if not self.id:
             raise TypeError("Resource `id` is required for delete operation")
-        return self.client.delete(self)
+        return self.__client__.delete(self)
 
     def refresh(self):
-        data = self.client._do_request("get", self._get_path())
+        data = self.__client__._do_request("get", self._get_path())
         super(BaseResource, self).clear()
         super(BaseResource, self).update(**data)
 
     def is_valid(self, raise_exception=False):
-        data = self.client._do_request(
+        data = self.__client__._do_request(
             "post", f"{self.resource_type}/$validate", data=self.serialize()
         )
         if any(issue["severity"] in ["fatal", "error"] for issue in data["issue"]):
@@ -259,7 +263,7 @@ class SyncResource(Generic[TSyncClient], BaseResource[TSyncClient], ABC):
         data: Union[dict, None] = None,
         params: Union[dict, None] = None,
     ) -> Any:
-        return self.client._do_request(
+        return self.__client__._do_request(
             method,
             f"{self._get_path()}/{operation}",
             data=data,
@@ -275,13 +279,13 @@ class SyncReference(Generic[TSyncClient], BaseReference[TSyncClient], ABC):
         """
         if not self.is_local:
             raise ResourceNotFound("Can not resolve not local resource")
-        resource_data = self.client._do_request("get", f"{self.resource_type}/{self.id}")
+        resource_data = self.__client__._do_request("get", f"{self.resource_type}/{self.id}")
         return self._dict_to_resource(resource_data)
 
     def execute(self, operation, method="post", **kwargs):
         if not self.is_local:
             raise ResourceNotFound("Can not execute on not local resource")
-        return self.client._do_request(
+        return self.__client__._do_request(
             method,
             f"{self.resource_type}/{self.id}/{operation}",
             **kwargs,
