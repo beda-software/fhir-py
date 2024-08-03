@@ -431,7 +431,7 @@ There's a third party repository [fhir-py-types](https://github.com/beda-softwar
 
 ## Static typechecking
 
-fhir-py uses typehints in the codebase and it statically checked by [mypy](https://github.com/python/mypy). Some interfaces that are described below designed in the way to properly infer the return value based on the model class.
+fhir-py uses typehints in the codebase and it statically checked by [mypy](https://github.com/python/mypy). Some interfaces that are described below designed in the way to properly infer the return type based on the model class or instance.
 
 ## Resource instantiation
 
