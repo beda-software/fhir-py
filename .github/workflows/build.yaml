@@ -10,10 +10,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - python-version: 3.8
           - python-version: 3.9
           - python-version: "3.10"
           - python-version: "3.11"
+          - python-version: "3.12"
     env:
       PYTHON: ${{ matrix.python-version }}
       AIDBOX_LICENSE: ${{ secrets.AIDBOX_LICENSE}}
