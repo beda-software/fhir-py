@@ -453,7 +453,7 @@ await client.create(patient) # returns Patient
 ### Update
 
 ```python
-await client.create(existing_patient) # returns Patient
+await client.create(patient) # returns Patient
 ```
 
 ### Save
@@ -461,13 +461,13 @@ await client.create(existing_patient) # returns Patient
 Smart helper that creates or updated the resource based on having `id`
 
 ```python
-await client.save(existing_patient) # returns Patient
+await client.save(patient) # returns Patient
 ```
 
 Also it supports overriding specific fields using patch:
 
 ```python
-await client.save(existing_patient, fields=['identifier']) # returns Patient
+await client.save(patient, fields=['identifier']) # returns Patient
 ```
 
 ### Patch
