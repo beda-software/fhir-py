@@ -1,3 +1,17 @@
+## 1.5.0
+* Add typings for all methods
+* Add pluggable data model #126
+* Add client API for data model operations (CRUD)
+* Changed internal module structure paths
+  * These are not breaking changes because it's not a public API
+  * `SyncResource`/`SyncReference`/`SyncSearchSet` moved from `base.lib` to `base.lib_sync`
+  * `AsyncResource`/`AsyncReference`/`AsyncSearchSet` moved from `base.lib` to `base.lib_async`
+  * `SyncClient` moved from `base.lib` to `base.lib_sync`
+  * `AsyncClient` moved from `base.lib` to `base.lib_async`
+  * `AbstractClient` moved from `base.lib` to `base.client`
+* Deprecate conditional patch with resource argument, use kwargs instead
+* Bump aiohttp to 3.9.2
+
 ## 1.4.2
 * Conditional delete @pavlushkin
 

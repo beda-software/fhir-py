@@ -1,11 +1,12 @@
 import reprlib
-from urllib.parse import urlencode, quote, parse_qs, urlparse
+from urllib.parse import parse_qs, quote, urlencode, urlparse
+
 from yarl import URL
 
 
 class AttrDict(dict):
     def __init__(self, *args, **kwargs):
-        super(AttrDict, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.__dict__ = self
 
     def get_by_path(self, path, default=None):
@@ -19,15 +20,15 @@ class SearchList(list):
         return get_by_path(self, keys, default)
 
 
-def chunks(l, n):
+def chunks(lst, n):
     """
     Yield successive n-sized chunks from l
 
     >>> list(chunks([1, 2, 3, 4], 2))
     [[1, 2], [3, 4]]
     """
-    for i in range(0, len(l), n):
-        yield l[i : i + n]
+    for i in range(0, len(lst), n):
+        yield lst[i : i + n]
 
 
 def unique_everseen(seq):
@@ -132,10 +133,10 @@ def parse_path(path):
     """
     if isinstance(path, str):
         return [int(key) if key.isdigit() else key for key in path.split(".")]
-    elif isinstance(path, list):
+    if isinstance(path, list):
         return path
-    else:  # pragma: no cover
-        raise TypeError("Path must be or a dotted string or a list")
+
+    raise TypeError("Path must be or a dotted string or a list")
 
 
 def get_by_path(data, path, default=None):
@@ -177,17 +178,14 @@ def get_by_path(data, path, default=None):
                 elif isinstance(key, dict):
                     matched_index = -1
                     for index, item in enumerate(rv):
-                        if all([item.get(k, None) == v for k, v in key.items()]):
+                        if all(item.get(k, None) == v for k, v in key.items()):
                             matched_index = index
                             break
-                    if matched_index == -1:
-                        rv = None
-                    else:
-                        rv = rv[matched_index]
-                else:  # pragma: no cover
+                    rv = None if matched_index == -1 else rv[matched_index]
+                else:
                     raise TypeError(
-                        "Can not lookup by {0} in list. "
-                        "Possible lookups are by int or by dict.".format(reprlib.repr(key))
+                        f"Can not lookup by {reprlib.repr(key)} in list. "
+                        "Possible lookups are by int or by dict."
                     )
             else:
                 rv = rv[key]
@@ -203,9 +201,9 @@ def set_by_path(obj, path, value):
 
     for index, part in enumerate(path):
         if isinstance(cursor, dict) and part not in cursor:
-            nextpart = (path + [last_part])[index + 1]
+            nextpart = ([*path, last_part])[index + 1]
             try:
-                nnextpart = (path + [last_part])[index + 2]
+                nnextpart = ([*path, last_part])[index + 2]
             except IndexError:
                 nnextpart = ""
 

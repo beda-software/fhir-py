@@ -1,26 +1,29 @@
 import json
-from unittest.mock import patch, ANY
+from typing import ClassVar
+from unittest.mock import ANY, patch
 
 import pytest
 import responses
 
 from fhirpy import SyncFHIRClient
-from fhirpy.base.utils import AttrDict
-from fhirpy.lib import SyncFHIRResource, SyncFHIRReference
 from fhirpy.base.exceptions import (
-    ResourceNotFound,
-    OperationOutcome,
-    MultipleResourcesFound,
     InvalidResponse,
+    MultipleResourcesFound,
+    OperationOutcome,
+    ResourceNotFound,
 )
-from .config import FHIR_SERVER_URL, FHIR_SERVER_AUTHORIZATION
+from fhirpy.base.utils import AttrDict
+from fhirpy.lib import SyncFHIRReference, SyncFHIRResource
+
+from .config import FHIR_SERVER_AUTHORIZATION, FHIR_SERVER_URL
+from .types import HumanName, Identifier, Patient
 from .utils import MockRequestsResponse
 
 
 class TestLibSyncCase:
     URL = FHIR_SERVER_URL
     client = None
-    identifier = [{"system": "http://example.com/env", "value": "fhirpy"}]
+    identifier: ClassVar = [{"system": "http://example.com/env", "value": "fhirpy"}]
 
     @classmethod
     def get_search_set(cls, resource_type):
@@ -28,7 +31,7 @@ class TestLibSyncCase:
 
     @classmethod
     @pytest.fixture(autouse=True)
-    def clearDb(cls):
+    def _clear_db(cls):
         for resource_type in ["Patient", "Practitioner"]:
             search_set = cls.get_search_set(resource_type)
             for item in search_set:
@@ -44,6 +47,209 @@ class TestLibSyncCase:
 
     def create_resource(self, resource_type, **kwargs):
         return self.client.resource(resource_type, identifier=self.identifier, **kwargs).create()
+
+    def create_patient_model(self):
+        patient = Patient(
+            name=[HumanName(text="My patient")],
+            identifier=[
+                Identifier(
+                    system=self.identifier[0]["system"],
+                    value=self.identifier[0]["system"],
+                )
+            ],
+        )
+        return self.client.create(patient)
+
+    def test_create_patient_model(self):
+        patient = self.create_patient_model()
+
+        fetched_patient = self.client.resources(Patient).search(_id=patient.id).first()
+
+        assert fetched_patient.id == patient.id
+
+    def test_client_create(self):
+        patient = Patient(
+            name=[HumanName(text="My patient")],
+            identifier=[
+                Identifier(
+                    system=self.identifier[0]["system"],
+                    value=self.identifier[0]["system"],
+                )
+            ],
+        )
+        created_patient = self.client.create(patient)
+
+        assert isinstance(created_patient, Patient)
+        assert created_patient.id is not None
+
+    def test_client_update(self):
+        patient = self.create_patient_model()
+        patient.identifier = [
+            *patient.identifier,
+            Identifier(system="url", value="value"),
+        ]
+
+        updated_patient = self.client.update(patient)
+
+        assert isinstance(updated_patient, Patient)
+        assert updated_patient.id == patient.id
+        assert len(updated_patient.identifier) == 2  # noqa: PLR2004
+
+    def test_client_update_fails_without_id(self):
+        patient = self.create_patient_model()
+        patient.id = None
+
+        with pytest.raises(TypeError):
+            self.client.update(patient)
+
+    def test_client_save_new(self):
+        patient = Patient(
+            name=[HumanName(text="My patient")],
+            identifier=[
+                Identifier(
+                    system=self.identifier[0]["system"],
+                    value=self.identifier[0]["system"],
+                )
+            ],
+        )
+
+        created_patient = self.client.save(patient)
+        assert isinstance(created_patient, Patient)
+        assert created_patient.id is not None
+
+    def test_client_save_existing(self):
+        patient = self.create_patient_model()
+        patient.identifier = [
+            *patient.identifier,
+            Identifier(system="url", value="value"),
+        ]
+
+        updated_patient = self.client.save(patient)
+
+        assert isinstance(updated_patient, Patient)
+        assert updated_patient.id == patient.id
+        assert len(updated_patient.identifier) == 2  # noqa: PLR2004
+
+    def test_client_save_partial_update(self):
+        patient = self.create_patient_model()
+
+        patient.identifier = [
+            *patient.identifier,
+            Identifier(system="url", value="value"),
+        ]
+        patient.name[0].text = "New patient"
+
+        updated_patient = self.client.save(patient, fields=["identifier"])
+
+        assert isinstance(updated_patient, Patient)
+        assert updated_patient.id == patient.id
+        assert len(updated_patient.identifier) == 2  # noqa: PLR2004
+        assert updated_patient.name[0].text == "My patient"
+
+    def test_client_save_partial_update_fails_without_id(self):
+        patient = self.create_patient_model()
+        patient.id = None
+
+        with pytest.raises(TypeError):
+            self.client.save(patient, fields=["identifier"])
+
+    def test_client_patch_specifying_reference(self):
+        patient = self.create_patient_model()
+        new_identifier = [*patient.identifier, Identifier(system="url", value="value")]
+
+        patched_patient = self.client.patch(
+            f"{patient.resourceType}/{patient.id}", identifier=new_identifier
+        )
+
+        assert isinstance(patched_patient, dict)
+        assert len(patched_patient["identifier"]) == 2  # noqa: PLR2004
+
+    def test_client_patch_specifying_resource_type_str_and_id(self):
+        patient = self.create_patient_model()
+        new_identifier = [*patient.identifier, Identifier(system="url", value="value")]
+
+        patched_patient = self.client.patch(
+            patient.resourceType, patient.id, identifier=new_identifier
+        )
+
+        assert isinstance(patched_patient, dict)
+        assert len(patched_patient["identifier"]) == 2  # noqa: PLR2004
+
+    def test_client_patch_specifying_resource_type_type_and_id(self):
+        patient = self.create_patient_model()
+        new_identifier = [*patient.identifier, Identifier(system="url", value="value")]
+
+        patched_patient = self.client.patch(Patient, patient.id, identifier=new_identifier)
+
+        assert isinstance(patched_patient, Patient)
+        assert len(patched_patient.identifier) == 2  # noqa: PLR2004
+
+    def test_client_patch_specifying_resource(self):
+        patient = self.create_patient_model()
+        new_identifier = [*patient.identifier, Identifier(system="url", value="value")]
+
+        patched_patient = self.client.patch(patient, identifier=new_identifier)
+
+        assert isinstance(patched_patient, Patient)
+        assert len(patched_patient.identifier) == 2  # noqa: PLR2004
+
+    def test_client_patch_specifying_resource_type_fails_without_id(self):
+        patient = self.create_patient_model()
+
+        with pytest.raises(TypeError):
+            self.client.patch(patient.resourceType)
+
+    def test_client_patch_specifying_resource_fails_without_id(self):
+        patient = self.create_patient_model()
+        patient.id = None
+
+        with pytest.raises(TypeError):
+            self.client.patch(patient)
+
+    def test_client_delete_specifying_reference(self):
+        patient = self.create_patient_model()
+
+        self.client.delete(f"{patient.resourceType}/{patient.id}")
+
+        fetched_patient = self.client.resources(Patient).search(_id=patient.id).first()
+        assert fetched_patient is None
+
+    def test_client_delete_specifying_resource_type_str_and_id(self):
+        patient = self.create_patient_model()
+
+        self.client.delete(patient.resourceType, patient.id)
+
+        fetched_patient = self.client.resources(Patient).search(_id=patient.id).first()
+        assert fetched_patient is None
+
+    def test_client_delete_specifying_resource_type_type_and_id(self):
+        patient = self.create_patient_model()
+
+        self.client.delete(Patient, patient.id)
+
+        fetched_patient = self.client.resources(Patient).search(_id=patient.id).first()
+        assert fetched_patient is None
+
+    def test_client_delete_specifying_resource(self):
+        patient = self.create_patient_model()
+
+        self.client.delete(patient)
+
+        fetched_patient = self.client.resources(Patient).search(_id=patient.id).first()
+        assert fetched_patient is None
+
+    def test_client_delete_specifying_resource_type_fails_without_id(self):
+        patient = self.create_patient_model()
+
+        with pytest.raises(TypeError):
+            self.client.delete(patient.resourceType)
+
+    def test_client_delete_specifying_resource_fails_without_id(self):
+        patient = self.create_patient_model()
+        patient.id = None
+
+        with pytest.raises(TypeError):
+            self.client.delete(patient)
 
     def test_create_patient(self):
         self.create_resource("Patient", id="patient", name=[{"text": "My patient"}])
@@ -183,6 +389,26 @@ class TestLibSyncCase:
     def test_patch_with_params__one_match(self):
         patient = self.create_resource("Patient", id="patient", active=True)
 
+        patched_patient = (
+            self.client.resources("Patient")
+            .search(identifier="fhirpy")
+            .patch(identifier=self.identifier, name=[{"text": "Indiana Jones"}])
+        )
+        assert patched_patient.id == patient.id
+        assert patched_patient.get_by_path(["meta", "versionId"]) != patient.get_by_path(
+            ["meta", "versionId"]
+        )
+        assert patched_patient.get_by_path(["name", 0, "text"]) == "Indiana Jones"
+
+        patient.refresh()
+        assert patched_patient.get_by_path(["meta", "versionId"]) == patient.get_by_path(
+            ["meta", "versionId"]
+        )
+        assert patient.active is True
+
+    def test_patch_with_params__one_match_deprecated(self):
+        patient = self.create_resource("Patient", id="patient", active=True)
+
         patient_to_patch = self.client.resource(
             "Patient", identifier=self.identifier, name=[{"text": "Indiana Jones"}]
         )
@@ -234,13 +460,19 @@ class TestLibSyncCase:
         with pytest.raises(ResourceNotFound):
             self.get_search_set("Patient").search(_id="patient").get()
 
+    def test_delete_without_id_failed(self):
+        patient = self.client.resource("Patient", **{})
+
+        with pytest.raises(TypeError):
+            patient.delete()
+
     def test_delete_with_params__no_match(self):
         self.create_resource("Patient", id="patient")
 
         _, status_code = self.client.resources("Patient").search(identifier="other").delete()
 
         self.get_search_set("Patient").search(_id="patient").get()
-        assert status_code == 204
+        assert status_code == 204  # noqa: PLR2004
 
     def test_delete_with_params__one_match(self):
         patient = self.client.resource(
@@ -254,7 +486,7 @@ class TestLibSyncCase:
 
         with pytest.raises(ResourceNotFound):
             self.get_search_set("Patient").search(_id="patient").get()
-        assert status_code == 200
+        assert status_code == 200  # noqa: PLR2004
 
     def test_delete_with_params__multiple_matches(self):
         self.create_resource("Patient", id="patient-1")
@@ -407,7 +639,7 @@ class TestLibSyncCase:
         assert bundle.resourceType == "Bundle"
         for entry in bundle.entry:
             assert isinstance(entry.resource, SyncFHIRResource)
-        assert len(bundle.entry) == 2
+        assert len(bundle.entry) == 2  # noqa: PLR2004
 
     def create_test_patients(self, count=10, name="Not Rare Name"):
         bundle = {
@@ -439,7 +671,7 @@ class TestLibSyncCase:
 
         patients = patient_set.fetch_all()
 
-        received_ids = set(p.id for p in patients)
+        received_ids = {p.id for p in patients}
 
         assert len(received_ids) == patients_count
         assert patient_ids == received_ids
@@ -560,8 +792,8 @@ class TestLibSyncCase:
             patient.update()
         with pytest.raises(TypeError):
             patient.patch(active=True, name=new_name)
+        patient["name"] = new_name
         with pytest.raises(TypeError):
-            patient["name"] = new_name
             patient.save(fields=["name"])
         patient.save()
 
@@ -683,7 +915,7 @@ class TestLibSyncCase:
         test_practitioner = appointment.participant[1].actor.to_resource()
         assert test_practitioner
 
-    async def test_references_in_resource(self):
+    def test_references_in_resource(self):
         patient = self.create_resource("Patient", name=[{"text": "John First"}])
         practitioner = self.create_resource("Practitioner", name=[{"text": "Jack"}])
         appointment = self.client.resource(
@@ -708,6 +940,105 @@ class TestLibSyncCase:
         assert isinstance(test_appointment.participant[1], AttrDict)
         test_practitioner = test_appointment.participant[1].actor.to_resource()
         assert test_practitioner
+
+    def test_types_fetch_all(self):
+        patients_count = 18
+        name = "Jack Johnson J"
+        patient_ids = self.create_test_patients(patients_count, name)
+        patient_set = self.client.resources(Patient).search(name=name).limit(5)
+
+        patients = patient_set.fetch_all()
+
+        received_ids = {p.id for p in patients}
+        assert len(received_ids) == patients_count
+        assert patient_ids == received_ids
+        assert isinstance(patients[0], Patient)
+
+    def test_typed_fetch(self):
+        patients_count = 18
+        limit = 5
+        name = "Jack Johnson J"
+        self.create_test_patients(patients_count, name)
+        patient_set = self.client.resources(Patient).search(name=name).limit(limit)
+
+        patients = patient_set.fetch()
+
+        received_ids = {p.id for p in patients}
+        assert len(received_ids) == limit
+        assert isinstance(patients[0], Patient)
+
+    def test_typed_get(self):
+        name = "Jack Johnson J"
+        self.create_test_patients(1, name)
+        patient_set = self.client.resources(Patient).search(name=name)
+
+        patient = patient_set.get()
+
+        assert isinstance(patient, Patient)
+
+    def test_typed_first(self):
+        name = "Jack Johnson J"
+        self.create_test_patients(1, name)
+        patient_set = self.client.resources(Patient).search(name=name)
+
+        patient = patient_set.first()
+
+        assert isinstance(patient, Patient)
+
+    def test_typed_get_or_create(self):
+        name = "Jack Johnson J"
+        self.create_test_patients(1, name)
+        new_patient = Patient(
+            name=[HumanName(text=name)],
+            identifier=[Identifier(system="url", value="value"), Identifier(**self.identifier[0])],
+        )
+
+        patient, created = (
+            self.client.resources(Patient).search(name=name).get_or_create(new_patient)
+        )
+
+        assert created is False
+        assert isinstance(patient, Patient)
+        assert patient.identifier[0].system == self.identifier[0]["system"]
+        assert patient.identifier[0].value == self.identifier[0]["value"]
+
+    def test_typed_update(self):
+        name = "Jack Johnson J"
+        self.create_test_patients(1, name)
+        new_patient = Patient(
+            name=[HumanName(text=name)],
+            identifier=[Identifier(system="url", value="value"), Identifier(**self.identifier[0])],
+        )
+
+        patient, created = self.client.resources(Patient).search(name=name).update(new_patient)
+
+        assert created is False
+        assert isinstance(patient, Patient)
+        assert patient.identifier[0].system == "url"
+        assert patient.identifier[0].value == "value"
+        assert patient.identifier[1].system == self.identifier[0]["system"]
+        assert patient.identifier[1].value == self.identifier[0]["value"]
+
+    def test_typed_patch(self):
+        name = "Jack Johnson J"
+        self.create_test_patients(1, name)
+
+        patient = (
+            self.client.resources(Patient)
+            .search(name=name)
+            .patch(
+                identifier=[
+                    Identifier(system="url", value="value"),
+                    Identifier(**self.identifier[0]),
+                ],
+            )
+        )
+
+        assert isinstance(patient, Patient)
+        assert patient.identifier[0].system == "url"
+        assert patient.identifier[0].value == "value"
+        assert patient.identifier[1].system == self.identifier[0]["system"]
+        assert patient.identifier[1].value == self.identifier[0]["value"]
 
 
 def test_requests_config():
