@@ -83,8 +83,8 @@ class SyncClient(AbstractClient, ABC):
         fields: Union[list, None] = None,
         *,
         _search_params: Union[dict, None] = None,
-        _as_dict: Literal[True] = True,
-    ) -> Any:
+        _as_dict: Literal[False] = False,
+    ) -> TResource:
         ...
 
     @overload
@@ -94,8 +94,8 @@ class SyncClient(AbstractClient, ABC):
         fields: Union[list, None] = None,
         *,
         _search_params: Union[dict, None] = None,
-        _as_dict: Literal[False] = False,
-    ) -> TResource:
+        _as_dict: Literal[True] = True,
+    ) -> Any:
         ...
 
     def save(

@@ -1,3 +1,6 @@
+## 2.0.2
+* Fix client.save type inference for TResource
+
 ## 2.0.1
 * Fix backward compatibility for client resource/resources
 
