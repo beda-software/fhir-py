@@ -2,7 +2,7 @@ import copy
 import datetime
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Generic, Union
+from typing import Generic, Self, Union
 
 import pytz
 
@@ -244,7 +244,7 @@ class AbstractSearchSet(Generic[TClient, TResource], ABC):
     def patch(self, _resource, **kwargs):
         pass
 
-    def clone(self, override=False, **kwargs):
+    def clone(self, override=False, **kwargs) -> Self:
         new_params = copy.deepcopy(self.params)
         for key, value in kwargs.items():
             if not isinstance(value, list):
@@ -261,18 +261,18 @@ class AbstractSearchSet(Generic[TClient, TResource], ABC):
             new_params,
         )
 
-    def elements(self, *attrs, exclude=False):
-        attrs = set(attrs)
+    def elements(self, *attrs, exclude=False) -> Self:
+        attrs_set = set(attrs)
         if not exclude:
-            attrs |= {"id", "resourceType"}
-        attrs = list(attrs)
+            attrs_set |= {"id", "resourceType"}
+        attrs_list = list(attrs_set)
 
         return self.clone(
-            _elements="{}{}".format("-" if exclude else "", ",".join(attrs)),
+            _elements="{}{}".format("-" if exclude else "", ",".join(attrs_list)),
             override=True,
         )
 
-    def has(self, *args, **kwargs):
+    def has(self, *args, **kwargs) -> Self:
         if len(args) % 2 != 0:
             raise TypeError(
                 "You should pass even size of arguments, for example: "
@@ -295,7 +295,7 @@ class AbstractSearchSet(Generic[TClient, TResource], ABC):
         recursive=False,
         iterate=False,
         reverse=False,
-    ):
+    ) -> Self:
         key_params = ["_revinclude" if reverse else "_include"]
 
         if iterate:
@@ -326,7 +326,7 @@ class AbstractSearchSet(Generic[TClient, TResource], ABC):
         *,
         recursive=False,
         iterate=False,
-    ):
+    ) -> Self:
         return self.include(
             resource_type,
             attr=attr,
@@ -336,20 +336,20 @@ class AbstractSearchSet(Generic[TClient, TResource], ABC):
             reverse=True,
         )
 
-    def search(self, *args, **kwargs):
+    def search(self, *args, **kwargs) -> Self:
         return self.clone(**SQ(*args, **kwargs))
 
-    def limit(self, limit):
+    def limit(self, limit) -> Self:
         return self.clone(_count=limit, override=True)
 
-    def sort(self, *keys):
+    def sort(self, *keys) -> Self:
         sort_keys = ",".join(keys)
         return self.clone(_sort=sort_keys, override=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"<{self.__class__.__name__} {self.resource_type}?{encode_params(self.params)}>"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__str__()
 
     def _get_bundle_resources(self, bundle_data) -> list[TResource]:

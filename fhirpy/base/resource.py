@@ -88,10 +88,10 @@ class BaseResource(Generic[TClient, TResource, TReference], AbstractResource[TCl
             },
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"<{self.__class__.__name__} {self._get_path()}>"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__str__()
 
     def __setitem__(self, key, value):

@@ -35,10 +35,10 @@ class AbstractClient(ABC):
         self.authorization = authorization
         self.extra_headers = extra_headers
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"<{self.__class__.__name__} {self.url}>"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.__str__()
 
     @abstractmethod

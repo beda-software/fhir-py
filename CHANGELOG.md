@@ -1,3 +1,6 @@
+## 2.0.3
+* Fix typings for mypy for SearchSet
+
 ## 2.0.2
 * Fix client.save type inference for TResource
 
