@@ -266,8 +266,8 @@ class SyncResource(
         return cast(TResource, self)
 
     def is_valid(self, raise_exception=False) -> bool:
-        data = self.__client__._do_request(
-            "post", f"{self.resource_type}/$validate", data=self.serialize()
+        data = self.__client__.execute(
+            f"{self.resource_type}/$validate", method="post", data=self.serialize()
         )
         if any(issue["severity"] in ["fatal", "error"] for issue in data["issue"]):
             if raise_exception:
@@ -282,9 +282,9 @@ class SyncResource(
         data: Union[dict, None] = None,
         params: Union[dict, None] = None,
     ) -> Any:
-        return self.__client__._do_request(
-            method,
+        return self.__client__.execute(
             f"{self._get_path()}/{operation}",
+            method=method,
             data=data,
             params=params,
         )
@@ -302,16 +302,26 @@ class SyncReference(
         """
         if not self.is_local:
             raise ResourceNotFound("Can not resolve not local resource")
-        resource_data = self.__client__._do_request("get", f"{self.resource_type}/{self.id}")
+        resource_data = self.__client__.execute(
+            f"{self.resource_type}/{self.id}",
+            method="get",
+        )
         return self._dict_to_resource(resource_data)
 
-    def execute(self, operation, method="post", **kwargs):
+    def execute(
+        self,
+        operation,
+        method="post",
+        data: Union[dict, None] = None,
+        params: Union[dict, None] = None,
+    ):
         if not self.is_local:
             raise ResourceNotFound("Can not execute on not local resource")
-        return self.__client__._do_request(
-            method,
+        return self.__client__.execute(
             f"{self.resource_type}/{self.id}/{operation}",
-            **kwargs,
+            method=method,
+            data=data,
+            params=params,
         )
 
     def patch(self, **kwargs) -> TResource:
@@ -325,6 +335,20 @@ class SyncReference(
 class SyncSearchSet(
     Generic[TSyncClient, TResource], AbstractSearchSet[TSyncClient, TResource], ABC
 ):
+    def execute(
+        self,
+        operation: str,
+        method: str = "post",
+        data: Union[dict, None] = None,
+        params: Union[dict, None] = None,
+    ) -> Any:
+        return self.client.execute(
+            f"{self.resource_type}/{operation}",
+            method=method,
+            data=data,
+            params=params,
+        )
+
     def fetch(self) -> list[TResource]:
         bundle_data = self.client._fetch_resource(self.resource_type, self.params)
 
@@ -377,7 +401,7 @@ class SyncSearchSet(
     def get_or_create(self, resource: TResource) -> tuple[TResource, int]:
         assert resource.resourceType == self.resource_type
         response_data, status_code = self.client._do_request(
-            "POST",
+            "post",
             self.resource_type,
             serialize(resource),
             self.params,
@@ -390,7 +414,7 @@ class SyncSearchSet(
         # accordingly to the https://build.fhir.org/http.html#cond-update
         assert resource.resourceType == self.resource_type
         response_data, status_code = self.client._do_request(
-            "PUT",
+            "put",
             self.resource_type,
             serialize(resource),
             self.params,
@@ -409,12 +433,12 @@ class SyncSearchSet(
             )
 
         data = serialize(_resource if _resource is not None else kwargs)
-        response_data = self.client._do_request("PATCH", self.resource_type, data, self.params)
+        response_data = self.client._do_request("patch", self.resource_type, data, self.params)
         return self._dict_to_resource(response_data)
 
     def delete(self) -> Any:
         return self.client._do_request(
-            "DELETE", self.resource_type, params=self.params, returning_status=True
+            "delete", self.resource_type, params=self.params, returning_status=True
         )
 
     def __iter__(self) -> Generator[TResource, None, None]:

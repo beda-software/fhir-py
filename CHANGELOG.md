@@ -15,6 +15,7 @@
   * It's a private API, there's a small chance that it should not affect the code
 * Deprecate conditional patch with resource argument, use kwargs instead
 * Fix pickling error for BaseResource instances #77
+* Add .execute for search set #74
 
 ## 1.4.2
 * Conditional delete @pavlushkin

@@ -863,6 +863,34 @@ class TestLibSyncCase:
         assert response["total"] == 1
         assert response["entry"][0]["resource"]["id"] == observation["id"]
 
+    def test_searchset_execute_lastn(self):
+        patient = self.create_resource("Patient", name=[{"text": "John First"}])
+        observation = self.create_resource(
+            "Observation",
+            status="registered",
+            subject=patient,
+            category=[
+                {
+                    "coding": [
+                        {
+                            "code": "vital-signs",
+                            "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                            "display": "Vital Signs",
+                        }
+                    ]
+                }
+            ],
+            code={"coding": [{"code": "10000-8", "system": "http://loinc.org"}]},
+        )
+        response = self.client.resources("Observation").execute(
+            "$lastn",
+            method="get",
+            params={"patient": f"Patient/{patient.id}", "category": "vital-signs"},
+        )
+        assert response["resourceType"] == "Bundle"
+        assert response["total"] == 1
+        assert response["entry"][0]["resource"]["id"] == observation["id"]
+
     def test_resource_execute_lastn(self):
         patient = self.create_resource("Patient", name=[{"text": "John First"}])
         observation = self.create_resource(

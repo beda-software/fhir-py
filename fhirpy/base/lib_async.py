@@ -272,8 +272,8 @@ class AsyncResource(
         return cast(TResource, self)
 
     async def is_valid(self, raise_exception=False) -> bool:
-        data = await self.__client__._do_request(
-            "post", f"{self.resource_type}/$validate", data=self.serialize()
+        data = await self.__client__.execute(
+            f"{self.resource_type}/$validate", method="post", data=self.serialize()
         )
         if any(issue["severity"] in ["fatal", "error"] for issue in data["issue"]):
             if raise_exception:
@@ -288,9 +288,9 @@ class AsyncResource(
         data: Union[dict, None] = None,
         params: Union[dict, None] = None,
     ) -> Any:
-        return await self.__client__._do_request(
-            method,
+        return await self.__client__.execute(
             f"{self._get_path()}/{operation}",
+            method,
             data=data,
             params=params,
         )
@@ -308,16 +308,22 @@ class AsyncReference(
         """
         if not self.is_local:
             raise ResourceNotFound("Can not resolve not local resource")
-        resource_data = await self.__client__._do_request("get", f"{self.resource_type}/{self.id}")
+        resource_data = await self.__client__.execute(
+            f"{self.resource_type}/{self.id}", method="get"
+        )
         return self._dict_to_resource(resource_data)
 
-    async def execute(self, operation, method="post", **kwargs):
+    async def execute(
+        self,
+        operation,
+        method="post",
+        data: Union[dict, None] = None,
+        params: Union[dict, None] = None,
+    ):
         if not self.is_local:
             raise ResourceNotFound("Can not execute on not local resource")
-        return await self.__client__._do_request(
-            method,
-            f"{self.resource_type}/{self.id}/{operation}",
-            **kwargs,
+        return await self.__client__.execute(
+            f"{self.resource_type}/{self.id}/{operation}", method=method, data=data, params=params
         )
 
     async def patch(self, **kwargs) -> TResource:
@@ -331,6 +337,20 @@ class AsyncReference(
 class AsyncSearchSet(
     Generic[TAsyncClient, TResource], AbstractSearchSet[TAsyncClient, TResource], ABC
 ):
+    async def execute(
+        self,
+        operation: str,
+        method: str = "post",
+        data: Union[dict, None] = None,
+        params: Union[dict, None] = None,
+    ) -> Any:
+        return await self.client.execute(
+            f"{self.resource_type}/{operation}",
+            method=method,
+            data=data,
+            params=params,
+        )
+
     async def fetch(self) -> list[TResource]:
         bundle_data = await self.client._fetch_resource(self.resource_type, self.params)
 
@@ -383,7 +403,7 @@ class AsyncSearchSet(
     async def get_or_create(self, resource: TResource) -> tuple[TResource, bool]:
         assert resource.resourceType == self.resource_type
         response_data, status_code = await self.client._do_request(
-            "POST",
+            "post",
             self.resource_type,
             serialize(resource),
             self.params,
@@ -396,7 +416,7 @@ class AsyncSearchSet(
         # accordingly to the https://build.fhir.org/http.html#cond-update
         assert resource.resourceType == self.resource_type
         response_data, status_code = await self.client._do_request(
-            "PUT",
+            "put",
             self.resource_type,
             serialize(resource),
             self.params,
@@ -420,7 +440,7 @@ class AsyncSearchSet(
 
     async def delete(self) -> Any:
         return await self.client._do_request(
-            "DELETE", self.resource_type, params=self.params, returning_status=True
+            "delete", self.resource_type, params=self.params, returning_status=True
         )
 
     async def __aiter__(self) -> AsyncGenerator[TResource, None]:

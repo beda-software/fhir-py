@@ -207,7 +207,13 @@ class BaseReference(Generic[TClient, TResource, TReference], AbstractResource[TC
         pass
 
     @abstractmethod
-    def execute(self, operation, method=None, **kwargs):
+    def execute(
+        self,
+        operation,
+        method=None,
+        data: Union[dict, None] = None,
+        params: Union[dict, None] = None,
+    ):
         pass
 
     @abstractmethod

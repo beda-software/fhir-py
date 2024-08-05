@@ -199,6 +199,16 @@ class AbstractSearchSet(Generic[TClient, TResource], ABC):
         return self.client.resource(data["resourceType"], **data)
 
     @abstractmethod
+    def execute(
+        self,
+        path: str,
+        method: str = "post",
+        data: Union[dict, None] = None,
+        params: Union[dict, None] = None,
+    ):
+        pass
+
+    @abstractmethod
     def fetch(self):
         pass
 
