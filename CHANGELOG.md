@@ -13,7 +13,6 @@
 * BREAKING CHANGE: Rename AbstractResource `client` to `__client__` #59
   * It's private API, it's a small chance that it affects the code
 * Deprecate conditional patch with resource argument, use kwargs instead
-* Bump aiohttp to 3.9.2
 
 ## 1.4.2
 * Conditional delete @pavlushkin
