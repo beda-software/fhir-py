@@ -1,3 +1,4 @@
+import warnings
 from abc import ABC, abstractmethod
 from typing import Any, TypeVar, Union
 
@@ -13,6 +14,16 @@ class AbstractClient(ABC):
     url: str
     authorization: Union[str, None]
     extra_headers: Union[dict, None]
+
+    # Deprecated
+    @property  # pragma: no cover
+    def searchset_class(self):
+        raise NotImplementedError()
+
+    # Deprecated
+    @property  # pragma: no cover
+    def resource_class(self):
+        raise NotImplementedError()
 
     def __init__(
         self,
@@ -34,13 +45,27 @@ class AbstractClient(ABC):
     def reference(self, resource_type=None, id=None, reference=None, **kwargs):  # noqa: A002
         pass
 
-    @abstractmethod
-    def resource(self, resource_type, **kwargs):
-        pass
+    def resource(self, resource_type, **kwargs):  # pragma: no cover
+        warnings.warn(
+            "class var `resource_class` is deprecated "
+            "and will be removed in future versions. "
+            "Please redefine `resource` method of client",
+            DeprecationWarning,
+            stacklevel=2,
+        )
 
-    @abstractmethod
-    def resources(self, resource_type):
-        pass
+        return self.resource_class(self, resource_type=resource_type, **kwargs)
+
+    def resources(self, resource_type):  # pragma: no cover
+        warnings.warn(
+            "class var `searchset_class` is deprecated "
+            "and will be removed in future versions. "
+            "Please redefine `resource` method of client",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+
+        return self.searchset_class(self, resource_type=resource_type)
 
     @abstractmethod
     def execute(

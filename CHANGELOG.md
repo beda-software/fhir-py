@@ -1,3 +1,6 @@
+## 2.0.1
+* Fix backward compatibility for client resource/resources
+
 ## 2.0.0
 * Add typehints for all methods
 * Add pluggable data model #126
