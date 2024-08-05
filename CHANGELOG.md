@@ -10,9 +10,11 @@
   * `SyncClient` moved from `fhirpy.base.lib` to `fhirpy.base.lib_sync`
   * `AsyncClient` moved from `fhirpy.base.lib` to `fhirpy.base.lib_async`
   * `AbstractClient` moved from `fhirpy.base.lib` to `fhirpy.base.client`
+  * `BaseResource`/`BaseReference` are available as part of public exports
 * BREAKING CHANGE: Rename AbstractResource `client` to `__client__` #59
   * It's a private API, there's a small chance that it should not affect the code
 * Deprecate conditional patch with resource argument, use kwargs instead
+* Fix pickling error for BaseResource instances #77
 
 ## 1.4.2
 * Conditional delete @pavlushkin
