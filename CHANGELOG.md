@@ -4,14 +4,14 @@
 * Add client API for data model operations (CRUD)
 * Add reference helpers for delete and patch #103
 * BREAKING CHANGE: Changed internal module structure paths
-  * It's private files structure, it should not affect the code that uses `fhirpy` and `fhirpy.base` imports
+  * There are private files structure, it should not affect the code that uses `fhirpy` and `fhirpy.base` public exports
   * `SyncResource`/`SyncReference`/`SyncSearchSet` moved from `base.lib` to `base.lib_sync`
   * `AsyncResource`/`AsyncReference`/`AsyncSearchSet` moved from `fhirpy.base.lib` to `fhirpy.base.lib_async`
   * `SyncClient` moved from `fhirpy.base.lib` to `fhirpy.base.lib_sync`
   * `AsyncClient` moved from `fhirpy.base.lib` to `fhirpy.base.lib_async`
   * `AbstractClient` moved from `fhirpy.base.lib` to `fhirpy.base.client`
 * BREAKING CHANGE: Rename AbstractResource `client` to `__client__` #59
-  * It's private API, it's a small chance that it affects the code
+  * It's a private API, there's a small chance that it should not affect the code
 * Deprecate conditional patch with resource argument, use kwargs instead
 
 ## 1.4.2
