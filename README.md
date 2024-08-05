@@ -534,7 +534,13 @@ await client.delete(patient)
 
 ### Read
 
-For fetching resources, SearchSet needs to be instantiated using the model class as the first argument
+For fetching single resource by resourceType and id:
+
+```python
+ss = await client.get(Patient, 'id') # returns Patient
+```
+
+For fetching multiple resources, SearchSet needs to be instantiated using the model class as the first argument
 
 ```python
 ss = client.resources(Patient) # returns AsyncFHIRSearchSet[Patient]
@@ -648,18 +654,20 @@ Returns an instance of the connection to the server which provides:
 * `async` .execute(path, method='post', data=None, params=None) - returns a result of FHIR operation
 
 data model methods:
+* `async` .get(resource_type: type[T], id) - returns T instance by resourceType/id
+* `async` .get(resource_type: str, id) - gets instance by resourceType/id
+* `async` .get(reference: str) - gets instance by reference
 * `async` .save(resource: T, fields=[]) - creates or updates or patches (with fields=[...]) T instance
 * `async` .create(resource: T) - creates T instance
 * `async` .update(resource: T) - updates T instance
 * `async` .patch(resource: T, **kwargs) - patches T instance
-* `async` .patch(resource_type: type[T], id, **kwargs) - patches instance by reference returning T instance
+* `async` .patch(resource_type: type[T], id, **kwargs) - patches instance by resourceType/id and returns T instance
+* `async` .patch(resource_type: str, id, **kwargs) - patches instance by resourceType/id 
 * `async` .patch(reference: str, **kwargs) - patches instance by reference
-* `async` .patch(resource_type: str, id, **kwargs) - patches instance
 * `async` .delete(resource: T) - deletes T instance
-* `async` .delete(resource_type: type[T], id) - deletes resource
+* `async` .delete(resource_type: type[T], id) - deletes resource by resourceType/id 
+* `async` .delete(resource_type: str, id) - deletes instance by resourceType/id 
 * `async` .delete(reference: str) - deletes instance by reference
-* `async` .delete(resource_type: str, id) - deletes instance
-
 
 ### Aiohttp request parameters
 Sometimes you need more control over the way http request is made and provide additional aiohttp [session's request](https://docs.aiohttp.org/en/stable/client_reference.html#aiohttp.ClientSession.request) parameters like `ssl`, `proxy`, `cookies`, `timeout` etc. It's possible by providing `aiohttp_config` dict for `AsyncFHIRClient`:

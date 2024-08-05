@@ -53,6 +53,10 @@ class AbstractClient(ABC):
         pass
 
     @abstractmethod
+    def get(self, resource_type_or_resource, id=None):  # noqa: A002
+        pass
+
+    @abstractmethod
     def save(self, resource, fields):
         pass
 

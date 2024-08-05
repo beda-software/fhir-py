@@ -153,6 +153,33 @@ class TestLibSyncCase:
         with pytest.raises(TypeError):
             self.client.save(patient, fields=["identifier"])
 
+    def test_client_get_specifying_reference(self):
+        patient = self.create_patient_model()
+
+        fetched_patient = self.client.get(f"{patient.resourceType}/{patient.id}")
+
+        assert isinstance(fetched_patient, dict)
+
+    def test_client_get_specifying_resource_type_str_and_id(self):
+        patient = self.create_patient_model()
+
+        fetched_patient = self.client.get(patient.resourceType, patient.id)
+
+        assert isinstance(fetched_patient, dict)
+
+    def test_client_get_specifying_resource_type_type_and_id(self):
+        patient = self.create_patient_model()
+
+        fetched_patient = self.client.get(Patient, patient.id)
+
+        assert isinstance(fetched_patient, Patient)
+
+    def test_client_get_specifying_resource_type_fails_without_id(self):
+        patient = self.create_patient_model()
+
+        with pytest.raises(TypeError):
+            self.client.get(patient.resourceType)
+
     def test_client_patch_specifying_reference(self):
         patient = self.create_patient_model()
         new_identifier = [*patient.identifier, Identifier(system="url", value="value")]

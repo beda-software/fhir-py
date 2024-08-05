@@ -44,6 +44,39 @@ class SyncClient(AbstractClient, ABC):
         return self._do_request(method, path, data=data, params=params)
 
     @overload
+    def get(self, resource_type_or_resource: TResource, id: None = None) -> TResource:
+        ...
+
+    @overload
+    def get(
+        self, resource_type_or_resource: type[TResource], id: Union[str, None] = None
+    ) -> TResource:
+        ...
+
+    @overload
+    def get(self, resource_type_or_resource: str, id: Union[str, None] = None) -> Any:
+        ...
+
+    def get(
+        self,
+        resource_type_or_resource: Union[str, type[TResource], TResource],
+        id: Union[str, None] = None,  # noqa: A002
+    ) -> Union[TResource, Any]:
+        resource_type, resource_id, custom_resource_class = get_resource_type_id_and_class(
+            resource_type_or_resource, id
+        )
+
+        if resource_id is None:
+            raise TypeError("Resource `id` is required for get operation")
+
+        response_data = self._do_request("get", f"{resource_type}/{resource_id}")
+
+        if custom_resource_class:
+            return custom_resource_class(**response_data)
+
+        return response_data
+
+    @overload
     def save(
         self,
         resource: TResource,

@@ -158,6 +158,37 @@ class TestLibAsyncCase:
             await self.client.save(patient, fields=["identifier"])
 
     @pytest.mark.asyncio()
+    async def test_client_get_specifying_reference(self):
+        patient = await self.create_patient_model()
+
+        fetched_patient = await self.client.get(f"{patient.resourceType}/{patient.id}")
+
+        assert isinstance(fetched_patient, dict)
+
+    @pytest.mark.asyncio()
+    async def test_client_get_specifying_resource_type_str_and_id(self):
+        patient = await self.create_patient_model()
+
+        fetched_patient = await self.client.get(patient.resourceType, patient.id)
+
+        assert isinstance(fetched_patient, dict)
+
+    @pytest.mark.asyncio()
+    async def test_client_get_specifying_resource_type_type_and_id(self):
+        patient = await self.create_patient_model()
+
+        fetched_patient = await self.client.get(Patient, patient.id)
+
+        assert isinstance(fetched_patient, Patient)
+
+    @pytest.mark.asyncio()
+    async def test_client_get_specifying_resource_type_fails_without_id(self):
+        patient = await self.create_patient_model()
+
+        with pytest.raises(TypeError):
+            await self.client.get(patient.resourceType)
+
+    @pytest.mark.asyncio()
     async def test_client_patch_specifying_reference(self):
         patient = await self.create_patient_model()
         new_identifier = [*patient.identifier, Identifier(system="url", value="value")]
