@@ -1,3 +1,6 @@
+## 2.0.4
+* Fix support for 3.9+ #129
+
 ## 2.0.3
 * Fix typings for mypy for SearchSet
 

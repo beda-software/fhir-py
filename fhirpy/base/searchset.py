@@ -2,9 +2,10 @@ import copy
 import datetime
 from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import Generic, Self, Union
+from typing import Generic, Union
 
 import pytz
+from typing_extensions import Self
 
 from fhirpy.base.client import TClient
 from fhirpy.base.exceptions import InvalidResponse
