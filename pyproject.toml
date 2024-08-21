@@ -10,7 +10,7 @@ license = { file = "LICENSE.md" }
 keywords = ["fhir"]
 dynamic = ["version"]
 authors = [{ name = "beda.software", email = "fhirpy@beda.software" }]
-dependencies = ["requests>=2.25.1", "aiohttp>=3.6.3", "pytz"]
+dependencies = ["requests>=2.25.1", "aiohttp>=3.6.3", "pytz", "typing-extensions"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Environment :: Web Environment",

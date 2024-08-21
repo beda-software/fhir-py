@@ -1,3 +1,6 @@
+## 2.0.5
+* Fix support for 3.9+ by adding missing typing-extensios as dependency #129
+
 ## 2.0.4
 * Fix support for 3.9+ #129
 
