@@ -109,7 +109,7 @@ class AsyncClient(AbstractClient, ABC):
         # _as_dict is a private api used internally
         _as_dict: bool = False,
     ) -> Union[TResource, Any]:
-        data = serialize(resource)
+        data = serialize(resource, drop_dict_null_values=fields is None)
         if fields:
             if not resource.id:
                 raise TypeError("Resource `id` is required for update operation")
@@ -287,13 +287,9 @@ class AsyncResource(
 
     async def patch(self, **kwargs) -> TResource:
         if not self.id:
-            raise TypeError("Resource `id` is required for delete operation")
+            raise TypeError("Resource `id` is required for patch operation")
         super(BaseResource, self).update(**kwargs)
-        response_data = await self.__client__.patch(self.reference, **kwargs)
-
-        resource_type = self.resource_type
-        super(BaseResource, self).clear()
-        super(BaseResource, self).update(**self.__client__.resource(resource_type, **response_data))
+        await self.save(fields=list(kwargs.keys()))
 
         return cast(TResource, self)
 

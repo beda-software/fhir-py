@@ -135,20 +135,26 @@ class TestLibAsyncCase:
 
     @pytest.mark.asyncio()
     async def test_client_save_partial_update(self):
-        patient = await self.create_patient_model()
+        patient = await self.create_patient_model(
+            managingOrganization=Reference(reference="urn:organization")
+        )
 
         patient.identifier = [
             *patient.identifier,
             Identifier(system="url", value="value"),
         ]
         patient.name[0].text = "New patient"
+        patient.managingOrganization = None
 
-        updated_patient = await self.client.save(patient, fields=["identifier"])
+        updated_patient = await self.client.save(
+            patient, fields=["identifier", "managingOrganization"]
+        )
 
         assert isinstance(updated_patient, Patient)
         assert updated_patient.id == patient.id
         assert len(updated_patient.identifier) == 2  # noqa: PLR2004
         assert updated_patient.name[0].text == "My patient"
+        assert updated_patient.managingOrganization is None
 
     @pytest.mark.asyncio()
     async def test_client_save_partial_update_fails_without_id(self):
@@ -408,7 +414,7 @@ class TestLibAsyncCase:
             )
 
     @pytest.mark.asyncio()
-    async def test_update_with_params__no_match(self):
+    async def test_conditional_update__no_match(self):
         patient = await self.create_resource("Patient", id="patient", active=True)
 
         patient_to_update = self.client.resource(
@@ -427,7 +433,7 @@ class TestLibAsyncCase:
         assert created is True
 
     @pytest.mark.asyncio()
-    async def test_update_with_params__one_match(self):
+    async def test_conditional_update__one_match(self):
         patient = await self.create_resource("Patient", id="patient", active=True)
 
         patient_to_update = self.client.resource(
@@ -450,7 +456,7 @@ class TestLibAsyncCase:
         assert patient.get("active") is None
 
     @pytest.mark.asyncio()
-    async def test_patch_with_params__no_match(self):
+    async def test_conditional_patch__no_match(self):
         patient_to_patch = self.client.resource(
             "Patient",
             identifier=[{"system": "http://example.com/env", "value": "other"}, self.identifier[0]],
@@ -462,7 +468,7 @@ class TestLibAsyncCase:
             )
 
     @pytest.mark.asyncio()
-    async def test_patch_with_params__one_match(self):
+    async def test_conditional_patch__one_match(self):
         patient = await self.create_resource(
             "Patient",
             id="patient",
@@ -494,7 +500,7 @@ class TestLibAsyncCase:
         assert patient.get("managingOrganization") is None
 
     @pytest.mark.asyncio()
-    async def test_patch_with_params__one_match_deprecated(self):
+    async def test_conditional_patch__one_match_deprecated(self):
         patient = await self.create_resource("Patient", id="patient", active=True)
 
         patient_to_patch = self.client.resource(
@@ -569,7 +575,7 @@ class TestLibAsyncCase:
             await patient.delete()
 
     @pytest.mark.asyncio()
-    async def test_delete_with_params__no_match(self):
+    async def test_conditional_delete__no_match(self):
         await self.create_resource("Patient", id="patient")
 
         _, status_code = await self.client.resources("Patient").search(identifier="other").delete()
@@ -578,7 +584,7 @@ class TestLibAsyncCase:
         assert status_code == 204  # noqa: PLR2004
 
     @pytest.mark.asyncio()
-    async def test_delete_with_params__one_match(self):
+    async def test_conditional_delete__one_match(self):
         patient = self.client.resource(
             "Patient",
             id="patient",
@@ -595,7 +601,7 @@ class TestLibAsyncCase:
         assert status_code == 200  # noqa: PLR2004
 
     @pytest.mark.asyncio()
-    async def test_delete_with_params__multiple_matches(self):
+    async def test_conditional_delete__multiple_matches(self):
         await self.create_resource("Patient", id="patient-1")
         await self.create_resource("Patient", id="patient-2")
 
@@ -859,18 +865,42 @@ class TestLibAsyncCase:
             active=False,
             birthDate="1998-01-01",
             name=[{"text": "Abc"}],
+            managingOrganization={"reference": "urn:organization"},
         )
         patient["gender"] = "male"
         patient["birthDate"] = "1998-02-02"
         patient["active"] = True
         patient["name"] = [{"text": "Bcd"}]
-        await patient.save(fields=["gender", "birthDate"])
+        patient["managingOrganization"] = None
+        await patient.save(fields=["gender", "birthDate", "managingOrganization"])
 
         patient_refreshed = await patient.to_reference().to_resource()
         assert patient_refreshed["gender"] == patient["gender"]
         assert patient_refreshed["birthDate"] == patient["birthDate"]
         assert patient_refreshed["active"] is False
         assert patient_refreshed["name"] == [{"text": "Abc"}]
+        assert patient_refreshed.get("managingOrganization") is None
+
+    @pytest.mark.asyncio()
+    async def test_update_patch_without_id(self):
+        patient = self.client.resource(
+            "Patient", identifier=self.identifier, name=[{"text": "J London"}]
+        )
+        new_name = [
+            {
+                "text": "Jack London",
+                "family": "London",
+                "given": ["Jack"],
+            }
+        ]
+        with pytest.raises(TypeError):
+            await patient.update()
+        with pytest.raises(TypeError):
+            await patient.patch(active=True, name=new_name)
+        patient["name"] = new_name
+        with pytest.raises(TypeError):
+            await patient.save(fields=["name"])
+        await patient.save()
 
     @pytest.mark.asyncio()
     async def test_update(self):
@@ -917,27 +947,6 @@ class TestLibAsyncCase:
         assert patient_instance_1_refreshed.birthDate == "1998-01-01"
         assert patient_instance_1_refreshed["name"] == new_name
         assert patient_instance_1_refreshed.get("managingOrganization") is None
-
-    @pytest.mark.asyncio()
-    async def test_update_without_id(self):
-        patient = self.client.resource(
-            "Patient", identifier=self.identifier, name=[{"text": "J London"}]
-        )
-        new_name = [
-            {
-                "text": "Jack London",
-                "family": "London",
-                "given": ["Jack"],
-            }
-        ]
-        with pytest.raises(TypeError):
-            await patient.update()
-        with pytest.raises(TypeError):
-            await patient.patch(active=True, name=new_name)
-        patient["name"] = new_name
-        with pytest.raises(TypeError):
-            await patient.save(fields=["name"])
-        await patient.save()
 
     @pytest.mark.asyncio()
     async def test_refresh(self):

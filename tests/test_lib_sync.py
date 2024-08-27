@@ -132,20 +132,24 @@ class TestLibSyncCase:
         assert len(updated_patient.identifier) == 2  # noqa: PLR2004
 
     def test_client_save_partial_update(self):
-        patient = self.create_patient_model()
+        patient = self.create_patient_model(
+            managingOrganization=Reference(reference="urn:organization")
+        )
 
         patient.identifier = [
             *patient.identifier,
             Identifier(system="url", value="value"),
         ]
         patient.name[0].text = "New patient"
+        patient.managingOrganization = None
 
-        updated_patient = self.client.save(patient, fields=["identifier"])
+        updated_patient = self.client.save(patient, fields=["identifier", "managingOrganization"])
 
         assert isinstance(updated_patient, Patient)
         assert updated_patient.id == patient.id
         assert len(updated_patient.identifier) == 2  # noqa: PLR2004
         assert updated_patient.name[0].text == "My patient"
+        assert updated_patient.managingOrganization is None
 
     def test_client_save_partial_update_fails_without_id(self):
         patient = self.create_patient_model()
@@ -372,7 +376,7 @@ class TestLibSyncCase:
         with pytest.raises(MultipleResourcesFound):
             self.client.resources("Patient").search(identifier="fhirpy").patch(patient_to_save)
 
-    def test_update_with_params__no_match(self):
+    def test_conditional_update__no_match(self):
         patient = self.create_resource("Patient", id="patient", active=True)
 
         patient_to_update = self.client.resource(
@@ -390,7 +394,7 @@ class TestLibSyncCase:
         assert new_patient.active is False
         assert created is True
 
-    def test_update_with_params__one_match(self):
+    def test_conditional_update__one_match(self):
         patient = self.create_resource("Patient", id="patient", active=True)
 
         patient_to_update = self.client.resource(
@@ -412,7 +416,7 @@ class TestLibSyncCase:
         )
         assert patient.get("active") is None
 
-    def test_patch_with_params__no_match(self):
+    def test_conditional_patch__no_match(self):
         patient_to_patch = self.client.resource(
             "Patient",
             identifier=[{"system": "http://example.com/env", "value": "other"}, self.identifier[0]],
@@ -421,7 +425,7 @@ class TestLibSyncCase:
         with pytest.raises(ResourceNotFound):
             self.client.resources("Patient").search(identifier="other").patch(patient_to_patch)
 
-    def test_patch_with_params__one_match(self):
+    def test_conditional_patch__one_match(self):
         patient = self.create_resource(
             "Patient",
             id="patient",
@@ -452,7 +456,7 @@ class TestLibSyncCase:
         assert patient.active is True
         assert patient.get("managingOrganization") is None
 
-    def test_patch_with_params__one_match_deprecated(self):
+    def test_conditional_patch__one_match_deprecated(self):
         patient = self.create_resource("Patient", id="patient", active=True)
 
         patient_to_patch = self.client.resource(
@@ -520,7 +524,7 @@ class TestLibSyncCase:
         with pytest.raises(TypeError):
             patient.delete()
 
-    def test_delete_with_params__no_match(self):
+    def test_conditional_delete__no_match(self):
         self.create_resource("Patient", id="patient")
 
         _, status_code = self.client.resources("Patient").search(identifier="other").delete()
@@ -528,7 +532,7 @@ class TestLibSyncCase:
         self.get_search_set("Patient").search(_id="patient").get()
         assert status_code == 204  # noqa: PLR2004
 
-    def test_delete_with_params__one_match(self):
+    def test_conditional_delete__one_match(self):
         patient = self.client.resource(
             "Patient",
             id="patient",
@@ -542,7 +546,7 @@ class TestLibSyncCase:
             self.get_search_set("Patient").search(_id="patient").get()
         assert status_code == 200  # noqa: PLR2004
 
-    def test_delete_with_params__multiple_matches(self):
+    def test_conditional_delete__multiple_matches(self):
         self.create_resource("Patient", id="patient-1")
         self.create_resource("Patient", id="patient-2")
 
@@ -776,18 +780,41 @@ class TestLibSyncCase:
             active=False,
             birthDate="1998-01-01",
             name=[{"text": "Abc"}],
+            managingOrganization={"reference": "urn:organization"},
         )
         patient["gender"] = "male"
         patient["birthDate"] = "1998-02-02"
         patient["active"] = True
         patient["name"] = [{"text": "Bcd"}]
-        patient.save(fields=["gender", "birthDate"])
+        patient["managingOrganization"] = None
+        patient.save(fields=["gender", "birthDate", "managingOrganization"])
 
         patient_refreshed = patient.to_reference().to_resource()
         assert patient_refreshed["gender"] == patient["gender"]
         assert patient_refreshed["birthDate"] == patient["birthDate"]
         assert patient_refreshed["active"] is False
         assert patient_refreshed["name"] == [{"text": "Abc"}]
+        assert patient_refreshed.get("managingOrganization") is None
+
+    def test_update_patch_without_id(self):
+        patient = self.client.resource(
+            "Patient", identifier=self.identifier, name=[{"text": "J London"}]
+        )
+        new_name = [
+            {
+                "text": "Jack London",
+                "family": "London",
+                "given": ["Jack"],
+            }
+        ]
+        with pytest.raises(TypeError):
+            patient.update()
+        with pytest.raises(TypeError):
+            patient.patch(active=True, name=new_name)
+        patient["name"] = new_name
+        with pytest.raises(TypeError):
+            patient.save(fields=["name"])
+        patient.save()
 
     def test_update(self):
         patient_id = "patient_to_update"
@@ -851,26 +878,6 @@ class TestLibSyncCase:
         patient = patient.to_reference().to_resource()
         assert patient["active"] is True
         assert patient["name"] == new_name
-
-    def test_update_without_id(self):
-        patient = self.client.resource(
-            "Patient", identifier=self.identifier, name=[{"text": "J London"}]
-        )
-        new_name = [
-            {
-                "text": "Jack London",
-                "family": "London",
-                "given": ["Jack"],
-            }
-        ]
-        with pytest.raises(TypeError):
-            patient.update()
-        with pytest.raises(TypeError):
-            patient.patch(active=True, name=new_name)
-        patient["name"] = new_name
-        with pytest.raises(TypeError):
-            patient.save(fields=["name"])
-        patient.save()
 
     def test_refresh(self):
         patient_id = "refresh-patient-id"

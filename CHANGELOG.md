@@ -1,3 +1,7 @@
+## 2.0.7
+
+* Preserve null values for resource in save() with fields passed
+
 ## 2.0.6
 
 * Fix type inference for client.resource
