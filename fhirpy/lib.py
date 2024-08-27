@@ -107,11 +107,11 @@ class SyncFHIRClient(SyncClient):
         return SyncFHIRReference(self, reference=reference, **kwargs)
 
     @overload
-    def resource(self, resource_type: str, **kwargs) -> SyncFHIRResource:
+    def resource(self, resource_type: type[TResource], **kwargs) -> TResource:
         ...
 
     @overload
-    def resource(self, resource_type: type[TResource], **kwargs) -> TResource:
+    def resource(self, resource_type: str, **kwargs) -> SyncFHIRResource:
         ...
 
     def resource(
@@ -152,11 +152,11 @@ class AsyncFHIRClient(AsyncClient):
         return AsyncFHIRReference(self, reference=reference, **kwargs)
 
     @overload
-    def resource(self, resource_type: str, **kwargs) -> AsyncFHIRResource:
+    def resource(self, resource_type: type[TResource], **kwargs) -> TResource:
         ...
 
     @overload
-    def resource(self, resource_type: type[TResource], **kwargs) -> TResource:
+    def resource(self, resource_type: str, **kwargs) -> AsyncFHIRResource:
         ...
 
     def resource(

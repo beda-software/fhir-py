@@ -251,7 +251,7 @@ class BaseReference(Generic[TClient, TResource, TReference], AbstractResource[TC
         pass
 
 
-def serialize(resource: Any) -> dict:
+def serialize(resource: Any, drop_dict_null_values=True) -> dict:
     # TODO: make serialization pluggable
 
     def convert_fn(item):
@@ -263,11 +263,17 @@ def serialize(resource: Any) -> dict:
 
         if _is_serializable_dict_like(item):
             # Handle dict-serializable structures like pydantic Model
+            if drop_dict_null_values:
+                return _remove_dict_null_values(dict(item)), False
             return dict(item), False
 
         return item, False
 
     return convert_values(dict(resource), convert_fn)
+
+
+def _remove_dict_null_values(d: dict):
+    return {key: value for key, value in d.items() if value is not None}
 
 
 def _is_serializable_dict_like(item):

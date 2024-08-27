@@ -167,7 +167,9 @@ class AsyncClient(AbstractClient, ABC):
             raise TypeError("Resource `id` is required for patch operation")
 
         response_data = await self._do_request(
-            "patch", f"{resource_type}/{resource_id}", data=serialize(kwargs)
+            "patch",
+            f"{resource_type}/{resource_id}",
+            data=serialize(kwargs, drop_dict_null_values=False),
         )
 
         if custom_resource_class:
@@ -284,15 +286,21 @@ class AsyncResource(
         return cast(TResource, self)
 
     async def patch(self, **kwargs) -> TResource:
+        if not self.id:
+            raise TypeError("Resource `id` is required for delete operation")
         super(BaseResource, self).update(**kwargs)
-        await self.save(fields=list(kwargs.keys()))
+        response_data = await self.__client__.patch(self.reference, **kwargs)
+
+        resource_type = self.resource_type
+        super(BaseResource, self).clear()
+        super(BaseResource, self).update(**self.__client__.resource(resource_type, **response_data))
 
         return cast(TResource, self)
 
     async def delete(self):
         if not self.id:
             raise TypeError("Resource `id` is required for delete operation")
-        return await self.__client__.delete(self)
+        return await self.__client__.delete(self.reference)
 
     async def refresh(self) -> TResource:
         data = await self.__client__._do_request("get", self._get_path())
@@ -465,7 +473,9 @@ class AsyncSearchSet(
             DeprecationWarning,
             stacklevel=2,
         )
-        data = serialize(_resource if _resource is not None else kwargs)
+        data = serialize(
+            _resource if _resource is not None else kwargs, drop_dict_null_values=False
+        )
         response_data = await self.client._do_request(
             "PATCH", self.resource_type, data, self.params
         )

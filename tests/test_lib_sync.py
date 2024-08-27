@@ -16,7 +16,7 @@ from fhirpy.base.utils import AttrDict
 from fhirpy.lib import SyncFHIRReference, SyncFHIRResource
 
 from .config import FHIR_SERVER_AUTHORIZATION, FHIR_SERVER_URL
-from .types import HumanName, Identifier, Patient
+from .types import HumanName, Identifier, Patient, Reference
 from .utils import MockRequestsResponse
 
 
@@ -48,7 +48,7 @@ class TestLibSyncCase:
     def create_resource(self, resource_type, **kwargs):
         return self.client.resource(resource_type, identifier=self.identifier, **kwargs).create()
 
-    def create_patient_model(self):
+    def create_patient_model(self, **kwargs):
         patient = Patient(
             name=[HumanName(text="My patient")],
             identifier=[
@@ -57,6 +57,7 @@ class TestLibSyncCase:
                     value=self.identifier[0]["system"],
                 )
             ],
+            **kwargs,
         )
         return self.client.create(patient)
 
@@ -181,15 +182,22 @@ class TestLibSyncCase:
             self.client.get(patient.resourceType)
 
     def test_client_patch_specifying_reference(self):
-        patient = self.create_patient_model()
+        patient = self.create_patient_model(
+            managingOrganization=Reference(reference="urn:organization")
+        )
         new_identifier = [*patient.identifier, Identifier(system="url", value="value")]
 
         patched_patient = self.client.patch(
-            f"{patient.resourceType}/{patient.id}", identifier=new_identifier
+            f"{patient.resourceType}/{patient.id}",
+            identifier=new_identifier,
+            managingOrganization=None,
         )
 
         assert isinstance(patched_patient, dict)
         assert len(patched_patient["identifier"]) == 2  # noqa: PLR2004
+        assert patched_patient["name"] == [{"text": "My patient"}]
+        assert patched_patient.get("managingOrganization") is None
+        assert patched_patient["id"] == patient.id
 
     def test_client_patch_specifying_resource_type_str_and_id(self):
         patient = self.create_patient_model()
@@ -414,24 +422,35 @@ class TestLibSyncCase:
             self.client.resources("Patient").search(identifier="other").patch(patient_to_patch)
 
     def test_patch_with_params__one_match(self):
-        patient = self.create_resource("Patient", id="patient", active=True)
+        patient = self.create_resource(
+            "Patient",
+            id="patient",
+            active=True,
+            managingOrganization={"reference": "urn:organization"},
+        )
 
         patched_patient = (
             self.client.resources("Patient")
             .search(identifier="fhirpy")
-            .patch(identifier=self.identifier, name=[{"text": "Indiana Jones"}])
+            .patch(
+                identifier=self.identifier,
+                name=[{"text": "Indiana Jones"}],
+                managingOrganization=None,
+            )
         )
         assert patched_patient.id == patient.id
         assert patched_patient.get_by_path(["meta", "versionId"]) != patient.get_by_path(
             ["meta", "versionId"]
         )
         assert patched_patient.get_by_path(["name", 0, "text"]) == "Indiana Jones"
+        assert patched_patient.get("managingOrganization") is None
 
         patient.refresh()
         assert patched_patient.get_by_path(["meta", "versionId"]) == patient.get_by_path(
             ["meta", "versionId"]
         )
         assert patient.active is True
+        assert patient.get("managingOrganization") is None
 
     def test_patch_with_params__one_match_deprecated(self):
         patient = self.create_resource("Patient", id="patient", active=True)
@@ -795,6 +814,7 @@ class TestLibSyncCase:
             name=[{"text": "J London"}],
             active=False,
             birthDate="1998-01-01",
+            managingOrganization={"reference": "urn:organization"},
         )
         new_name = [
             {
@@ -804,13 +824,14 @@ class TestLibSyncCase:
             }
         ]
         patient_instance_2 = self.client.resource("Patient", id=patient_id, birthDate="2001-01-01")
-        patient_instance_2.patch(active=True, name=new_name)
+        patient_instance_2.patch(active=True, name=new_name, managingOrganization=None)
         patient_instance_1_refreshed = patient_instance_1.to_reference().to_resource()
 
         assert patient_instance_1_refreshed.serialize() == patient_instance_2.serialize()
         assert patient_instance_1_refreshed.active is True
         assert patient_instance_1_refreshed.birthDate == "1998-01-01"
         assert patient_instance_1_refreshed["name"] == new_name
+        assert patient_instance_1_refreshed.get("managingOrganization") is None
 
     def test_reference_patch(self):
         patient = self.create_resource(

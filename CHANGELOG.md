@@ -1,3 +1,9 @@
+## 2.0.6
+
+* Fix type inference for client.resource
+* Remove null values from dict for save/create/update
+* Preserve null values in dict for patch
+
 ## 2.0.5
 * Fix support for 3.9+ by adding missing typing-extensios as dependency #129
 

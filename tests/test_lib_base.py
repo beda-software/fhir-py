@@ -3,6 +3,7 @@ from typing import Union
 import pytest
 
 from fhirpy import AsyncFHIRClient, SyncFHIRClient
+from fhirpy.base.resource import serialize
 from fhirpy.base.utils import AttrDict, SearchList, parse_pagination_url, set_by_path
 from fhirpy.lib import BaseFHIRReference
 
@@ -18,6 +19,17 @@ class TestLibBase:
         assert reference_copy.serialize() == {
             "reference": "Patient/p1",
             "display": "patient",
+        }
+
+    def test_serialize_with_dict_null_values(self, client: Union[SyncFHIRClient, AsyncFHIRClient]):
+        patient = client.resource(
+            "Patient",
+            id="patient",
+            managingOrganization=None,
+        )
+        assert patient.serialize() == {
+            "resourceType": "Patient",
+            "id": "patient",
         }
 
     def test_serialize(self, client: Union[SyncFHIRClient, AsyncFHIRClient]):
@@ -240,6 +252,24 @@ class TestLibBase:
         assert patient.identifier[0].value == "value"
         assert isinstance(patient.name[0], HumanName)
         assert patient.name[0].text == "Name"
+
+    def test_pluggable_type_model_serialize_with_dict_null_values(
+        self, client: Union[SyncFHIRClient, AsyncFHIRClient]
+    ):
+        patient = client.resource(
+            Patient,
+            **{
+                "resourceType": "Patient",
+                "identifier": [{"system": "url", "value": "value"}],
+                "name": [{"text": "Name"}],
+                "managingOrganization": None,
+            },
+        )
+        assert serialize(patient) == {
+            "resourceType": "Patient",
+            "identifier": [{"system": "url", "value": "value"}],
+            "name": [{"text": "Name"}],
+        }
 
     def test_resource_resource_type_setter(self, client: Union[SyncFHIRClient, AsyncFHIRClient]):
         patient = client.resource("Patient", id="p1")

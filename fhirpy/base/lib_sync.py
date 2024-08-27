@@ -163,7 +163,9 @@ class SyncClient(AbstractClient, ABC):
             raise TypeError("Resource `id` is required for patch operation")
 
         response_data = self._do_request(
-            "patch", f"{resource_type}/{resource_id}", data=serialize(kwargs)
+            "patch",
+            f"{resource_type}/{resource_id}",
+            data=serialize(kwargs, drop_dict_null_values=False),
         )
 
         if custom_resource_class:
@@ -278,15 +280,21 @@ class SyncResource(
         return cast(TResource, self)
 
     def patch(self, **kwargs) -> TResource:
+        if not self.id:
+            raise TypeError("Resource `id` is required for delete operation")
         super(BaseResource, self).update(**kwargs)
-        self.save(fields=list(kwargs.keys()))
+        response_data = self.__client__.patch(self.reference, **kwargs)
+
+        resource_type = self.resource_type
+        super(BaseResource, self).clear()
+        super(BaseResource, self).update(**self.__client__.resource(resource_type, **response_data))
 
         return cast(TResource, self)
 
     def delete(self):
         if not self.id:
             raise TypeError("Resource `id` is required for delete operation")
-        return self.__client__.delete(self)
+        return self.__client__.delete(self.reference)
 
     def refresh(self) -> TResource:
         data = self.__client__._do_request("get", self._get_path())
@@ -465,7 +473,9 @@ class SyncSearchSet(
                 stacklevel=2,
             )
 
-        data = serialize(_resource if _resource is not None else kwargs)
+        data = serialize(
+            _resource if _resource is not None else kwargs, drop_dict_null_values=False
+        )
         response_data = self.client._do_request("patch", self.resource_type, data, self.params)
         return self._dict_to_resource(response_data)
 

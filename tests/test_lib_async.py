@@ -12,7 +12,7 @@ from fhirpy.lib import AsyncFHIRReference, AsyncFHIRResource
 from tests.utils import MockAiohttpResponse
 
 from .config import FHIR_SERVER_AUTHORIZATION, FHIR_SERVER_URL
-from .types import HumanName, Identifier, Patient
+from .types import HumanName, Identifier, Patient, Reference
 
 
 class TestLibAsyncCase:
@@ -40,7 +40,7 @@ class TestLibAsyncCase:
             resource_type, identifier=self.identifier, **kwargs
         ).create()
 
-    async def create_patient_model(self):
+    async def create_patient_model(self, **kwargs):
         patient = Patient(
             name=[HumanName(text="My patient")],
             identifier=[
@@ -49,6 +49,7 @@ class TestLibAsyncCase:
                     value=self.identifier[0]["system"],
                 )
             ],
+            **kwargs,
         )
         return await self.client.create(patient)
 
@@ -190,15 +191,22 @@ class TestLibAsyncCase:
 
     @pytest.mark.asyncio()
     async def test_client_patch_specifying_reference(self):
-        patient = await self.create_patient_model()
+        patient = await self.create_patient_model(
+            managingOrganization=Reference(reference="urn:organization")
+        )
         new_identifier = [*patient.identifier, Identifier(system="url", value="value")]
 
         patched_patient = await self.client.patch(
-            f"{patient.resourceType}/{patient.id}", identifier=new_identifier
+            f"{patient.resourceType}/{patient.id}",
+            identifier=new_identifier,
+            managingOrganization=None,
         )
 
         assert isinstance(patched_patient, dict)
         assert len(patched_patient["identifier"]) == 2  # noqa: PLR2004
+        assert patched_patient["name"] == [{"text": "My patient"}]
+        assert patched_patient.get("managingOrganization") is None
+        assert patched_patient["id"] == patient.id
 
     @pytest.mark.asyncio()
     async def test_client_patch_specifying_resource_type_str_and_id(self):
@@ -455,24 +463,35 @@ class TestLibAsyncCase:
 
     @pytest.mark.asyncio()
     async def test_patch_with_params__one_match(self):
-        patient = await self.create_resource("Patient", id="patient", active=True)
+        patient = await self.create_resource(
+            "Patient",
+            id="patient",
+            active=True,
+            managingOrganization={"reference": "urn:organization"},
+        )
 
         patched_patient = await (
             self.client.resources("Patient")
             .search(identifier="fhirpy")
-            .patch(identifier=self.identifier, name=[{"text": "Indiana Jones"}])
+            .patch(
+                identifier=self.identifier,
+                name=[{"text": "Indiana Jones"}],
+                managingOrganization=None,
+            )
         )
         assert patched_patient.id == patient.id
         assert patched_patient.get_by_path(["meta", "versionId"]) != patient.get_by_path(
             ["meta", "versionId"]
         )
         assert patched_patient.get_by_path(["name", 0, "text"]) == "Indiana Jones"
+        assert patched_patient.get("managingOrganization") is None
 
         await patient.refresh()
         assert patched_patient.get_by_path(["meta", "versionId"]) == patient.get_by_path(
             ["meta", "versionId"]
         )
         assert patient.active is True
+        assert patient.get("managingOrganization") is None
 
     @pytest.mark.asyncio()
     async def test_patch_with_params__one_match_deprecated(self):
@@ -880,6 +899,7 @@ class TestLibAsyncCase:
             name=[{"text": "J London"}],
             active=False,
             birthDate="1998-01-01",
+            managingOrganization={"reference": "urn:organization"},
         )
         new_name = [
             {
@@ -889,13 +909,14 @@ class TestLibAsyncCase:
             }
         ]
         patient_instance_2 = self.client.resource("Patient", id=patient_id, birthDate="2001-01-01")
-        await patient_instance_2.patch(active=True, name=new_name)
+        await patient_instance_2.patch(active=True, name=new_name, managingOrganization=None)
         patient_instance_1_refreshed = await patient_instance_1.to_reference().to_resource()
 
         assert patient_instance_1_refreshed.serialize() == patient_instance_2.serialize()
         assert patient_instance_1_refreshed.active is True
         assert patient_instance_1_refreshed.birthDate == "1998-01-01"
         assert patient_instance_1_refreshed["name"] == new_name
+        assert patient_instance_1_refreshed.get("managingOrganization") is None
 
     @pytest.mark.asyncio()
     async def test_update_without_id(self):
