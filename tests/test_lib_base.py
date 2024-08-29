@@ -32,6 +32,25 @@ class TestLibBase:
             "id": "patient",
         }
 
+    def test_serialize_with_empty_array(self, client: Union[SyncFHIRClient, AsyncFHIRClient]):
+        patient = client.resource("Patient", id="patient", generalPractitioner=[])
+        assert patient.serialize() == {
+            "resourceType": "Patient",
+            "id": "patient",
+        }
+
+    def test_serialize_with_empty_dict(self, client: Union[SyncFHIRClient, AsyncFHIRClient]):
+        patient = client.resource(
+            "Patient",
+            id="patient",
+            name=[{"given": ["Name"], "_given": [{}], "text": "Name", "_text": {}}],
+        )
+        assert patient.serialize() == {
+            "resourceType": "Patient",
+            "id": "patient",
+            "name": [{"given": ["Name"], "_given": [None], "text": "Name"}],
+        }
+
     def test_serialize(self, client: Union[SyncFHIRClient, AsyncFHIRClient]):
         practitioner1 = client.resource("Practitioner", id="pr1")
         practitioner2 = client.resource("Practitioner", id="pr2")

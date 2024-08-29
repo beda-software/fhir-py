@@ -111,7 +111,7 @@ class AsyncClient(AbstractClient, ABC):
         # _as_dict is a private api used internally
         _as_dict: bool = False,
     ) -> Union[TResource, Any]:
-        data = serialize(self.dump(resource), drop_dict_null_values=fields is None)
+        data = serialize(self.dump(resource), remove_nulls=fields is None)
         if fields:
             if not resource.id:
                 raise TypeError("Resource `id` is required for update operation")
@@ -171,7 +171,7 @@ class AsyncClient(AbstractClient, ABC):
         response_data = await self._do_request(
             "patch",
             f"{resource_type}/{resource_id}",
-            data=serialize(self.dump(kwargs), drop_dict_null_values=False),
+            data=serialize(self.dump(kwargs), remove_nulls=False),
         )
 
         if custom_resource_class:
@@ -473,7 +473,7 @@ class AsyncSearchSet(
         )
         data = serialize(
             self.client.dump(_resource if _resource is not None else kwargs),
-            drop_dict_null_values=False,
+            remove_nulls=False,
         )
         response_data = await self.client._do_request(
             "PATCH", self.resource_type, data, self.params

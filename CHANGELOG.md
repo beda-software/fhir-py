@@ -1,3 +1,7 @@
+## 2.0.9
+
+* Update serializer with removing empty dicts/lists and transforming empty dicts into nulls in lists
+
 ## 2.0.8
 
 * Add experimental pluggable client-level dump function
