@@ -1,3 +1,7 @@
+## 2.0.8
+
+* Add experimental pluggable client-level dump function
+
 ## 2.0.7
 
 * Preserve null values for resource in save() with fields passed

@@ -253,6 +253,7 @@ class BaseReference(Generic[TClient, TResource, TReference], AbstractResource[TC
 
 def serialize(resource: Any, drop_dict_null_values=True) -> dict:
     # TODO: make serialization pluggable
+    # TODO: add empty dict/array cleanup
 
     def convert_fn(item):
         if isinstance(item, BaseResource):
