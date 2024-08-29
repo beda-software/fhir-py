@@ -5,7 +5,13 @@ from typing import Any, Generic, Union
 from fhirpy.base.client import TClient
 from fhirpy.base.exceptions import ResourceNotFound
 from fhirpy.base.resource_protocol import TReference, TResource, get_resource_path
-from fhirpy.base.utils import convert_values, get_by_path, parse_path
+from fhirpy.base.utils import (
+    clean_empty_values,
+    convert_values,
+    get_by_path,
+    parse_path,
+    remove_nulls_from_dicts,
+)
 
 
 class AbstractResource(Generic[TClient], dict, ABC):
@@ -251,13 +257,7 @@ class BaseReference(Generic[TClient, TResource, TReference], AbstractResource[TC
         pass
 
 
-def serialize(resource: Any, remove_nulls=True) -> dict:
-    """
-    * empty dicts/lists are always removed
-    * nulls are removed only for dicts if `remove_nulls` is set
-    * in lists empty dicts are transformed into nulls because nulls are used for alignment
-    """
-
+def serialize(resource: Any, drop_nulls_from_dicts=True) -> dict:
     def convert_fn(item):
         if isinstance(item, BaseResource):
             return serialize(item.to_reference()), True
@@ -267,40 +267,16 @@ def serialize(resource: Any, remove_nulls=True) -> dict:
 
         if _is_serializable_dict_like(item):
             # Handle dict-serializable structures like pydantic Model
-            item = _remove_dict_empty_values(dict(item))
-
-            if remove_nulls:
-                return _remove_nulls(item), False
-            return item, False
-
-        if isinstance(item, list):
-            return _transform_list_empty_values_to_null(item), False
+            return dict(item), False
 
         return item, False
 
-    return convert_values(dict(resource), convert_fn)
+    converted_values = convert_values(dict(resource), convert_fn)
 
+    if drop_nulls_from_dicts:
+        converted_values = remove_nulls_from_dicts(converted_values)
 
-def _remove_dict_empty_values(d: dict):
-    return {key: value for key, value in d.items() if not _is_empty(value)}
-
-
-def _transform_list_empty_values_to_null(d: list):
-    return [None if _is_empty(value) else value for value in d]
-
-
-def _remove_nulls(d: dict):
-    return {key: value for key, value in d.items() if not _is_null(value)}
-
-
-def _is_empty(d: Any):
-    if isinstance(d, (dict, list)):
-        return not d
-    return False
-
-
-def _is_null(d: Any):
-    return d is None
+    return clean_empty_values(converted_values)
 
 
 def _is_serializable_dict_like(item):

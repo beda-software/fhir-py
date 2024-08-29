@@ -1,4 +1,5 @@
 import reprlib
+from typing import Any
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 from yarl import URL
@@ -218,3 +219,34 @@ def set_by_path(obj, path, value):
 
 def remove_prefix(s, prefix):
     return s[len(prefix) :] if s.startswith(prefix) else s
+
+
+def clean_empty_values(data: Any):
+    if isinstance(data, dict):
+        cleaned_dict = {k: clean_empty_values(v) for k, v in data.items()}
+        return {k: v for k, v in cleaned_dict.items() if not _is_empty(v)}
+
+    if isinstance(data, list):
+        return [clean_empty_values(item) if not _is_empty(item) else None for item in data]
+
+    return data
+
+
+def _is_empty(d: Any):
+    if isinstance(d, (dict, list)):
+        return not d
+    return False
+
+
+def remove_nulls_from_dicts(data: Any):
+    if isinstance(data, dict):
+        return {k: remove_nulls_from_dicts(v) for k, v in data.items() if not _is_null(v)}
+
+    if isinstance(data, list):
+        return [remove_nulls_from_dicts(item) for item in data]
+
+    return data
+
+
+def _is_null(d: Any):
+    return d is None

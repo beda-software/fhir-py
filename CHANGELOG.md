@@ -1,3 +1,7 @@
+## 2.0.10
+
+* Update serializer with recursive cleaning and removing null values
+
 ## 2.0.9
 
 * Update serializer with removing empty dicts/lists and transforming empty dicts into nulls in lists

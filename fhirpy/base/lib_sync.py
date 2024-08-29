@@ -111,7 +111,7 @@ class SyncClient(AbstractClient, ABC):
         # _as_dict is a private api used internally
         _as_dict: bool = False,
     ) -> Union[TResource, Any]:
-        data = serialize(self.dump(resource), remove_nulls=fields is None)
+        data = serialize(self.dump(resource), drop_nulls_from_dicts=fields is None)
         if fields:
             if not resource.id:
                 raise TypeError("Resource `id` is required for update operation")
@@ -167,7 +167,7 @@ class SyncClient(AbstractClient, ABC):
         response_data = self._do_request(
             "patch",
             f"{resource_type}/{resource_id}",
-            data=serialize(self.dump(kwargs), remove_nulls=False),
+            data=serialize(self.dump(kwargs), drop_nulls_from_dicts=False),
         )
 
         if custom_resource_class:
@@ -473,7 +473,7 @@ class SyncSearchSet(
 
         data = serialize(
             self.client.dump(_resource if _resource is not None else kwargs),
-            remove_nulls=False,
+            drop_nulls_from_dicts=False,
         )
         response_data = self.client._do_request("patch", self.resource_type, data, self.params)
         return self._dict_to_resource(response_data)
