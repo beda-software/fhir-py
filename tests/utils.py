@@ -1,3 +1,8 @@
+from typing import Any
+
+from pydantic import BaseModel
+
+
 class MockAiohttpResponse:
     def __init__(self, text, status):
         self._text = text
@@ -18,3 +23,10 @@ class MockRequestsResponse:
         # self.json_data = json_data
         self.status_code = status_code
         self.content = text
+
+
+def dump_resource(d: Any) -> dict:
+    if isinstance(d, BaseModel):
+        return d.model_dump()
+
+    return dict(d)

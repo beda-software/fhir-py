@@ -13,6 +13,7 @@ from tests.utils import MockAiohttpResponse
 
 from .config import FHIR_SERVER_AUTHORIZATION, FHIR_SERVER_URL
 from .types import HumanName, Identifier, Patient, Reference
+from .utils import dump_resource
 
 
 class TestLibAsyncCase:
@@ -33,7 +34,9 @@ class TestLibAsyncCase:
 
     @classmethod
     def setup_class(cls):
-        cls.client = AsyncFHIRClient(cls.URL, authorization=FHIR_SERVER_AUTHORIZATION)
+        cls.client = AsyncFHIRClient(
+            cls.URL, authorization=FHIR_SERVER_AUTHORIZATION, dump_resource=dump_resource
+        )
 
     async def create_resource(self, resource_type, **kwargs):
         return await self.client.resource(
@@ -204,7 +207,7 @@ class TestLibAsyncCase:
 
         patched_patient = await self.client.patch(
             f"{patient.resourceType}/{patient.id}",
-            identifier=new_identifier,
+            identifier=[x.model_dump(exclude_none=True) for x in new_identifier],
             managingOrganization=None,
         )
 
@@ -220,7 +223,9 @@ class TestLibAsyncCase:
         new_identifier = [*patient.identifier, Identifier(system="url", value="value")]
 
         patched_patient = await self.client.patch(
-            patient.resourceType, patient.id, identifier=new_identifier
+            patient.resourceType,
+            patient.id,
+            identifier=[x.model_dump(exclude_none=True) for x in new_identifier],
         )
 
         assert isinstance(patched_patient, dict)
@@ -231,7 +236,11 @@ class TestLibAsyncCase:
         patient = await self.create_patient_model()
         new_identifier = [*patient.identifier, Identifier(system="url", value="value")]
 
-        patched_patient = await self.client.patch(Patient, patient.id, identifier=new_identifier)
+        patched_patient = await self.client.patch(
+            Patient,
+            patient.id,
+            identifier=[x.model_dump(exclude_none=True) for x in new_identifier],
+        )
 
         assert isinstance(patched_patient, Patient)
         assert len(patched_patient.identifier) == 2  # noqa: PLR2004
@@ -241,7 +250,9 @@ class TestLibAsyncCase:
         patient = await self.create_patient_model()
         new_identifier = [*patient.identifier, Identifier(system="url", value="value")]
 
-        patched_patient = await self.client.patch(patient, identifier=new_identifier)
+        patched_patient = await self.client.patch(
+            patient, identifier=[x.model_dump(exclude_none=True) for x in new_identifier]
+        )
 
         assert isinstance(patched_patient, Patient)
         assert len(patched_patient.identifier) == 2  # noqa: PLR2004
@@ -1228,8 +1239,11 @@ class TestLibAsyncCase:
             .search(name=name)
             .patch(
                 identifier=[
-                    Identifier(system="url", value="value"),
-                    Identifier(**self.identifier[0]),
+                    x.model_dump(exclude_none=True)
+                    for x in [
+                        Identifier(system="url", value="value"),
+                        Identifier(**self.identifier[0]),
+                    ]
                 ],
             )
         )

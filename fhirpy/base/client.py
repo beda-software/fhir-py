@@ -1,5 +1,6 @@
 import warnings
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from typing import Any, TypeVar, Union
 
 from yarl import URL
@@ -14,6 +15,7 @@ class AbstractClient(ABC):
     url: str
     authorization: Union[str, None]
     extra_headers: Union[dict, None]
+    dump_resource: Callable[[Any], Any]
 
     # Deprecated
     @property  # pragma: no cover
@@ -30,10 +32,17 @@ class AbstractClient(ABC):
         url: str,
         authorization: Union[str, None] = None,
         extra_headers: Union[dict, None] = None,
+        *,
+        dump_resource: Callable[[Any], dict] = lambda x: dict(x),
     ):
+        """
+        dump kwarg is a function that is called for all CRUD operations.
+        It's needed for custom typing model like pydantic
+        """
         self.url = url
         self.authorization = authorization
         self.extra_headers = extra_headers
+        self.dump_resource = dump_resource
 
     def __str__(self) -> str:
         return f"<{self.__class__.__name__} {self.url}>"

@@ -1,3 +1,15 @@
+## 2.0.11
+
+* Rename dump to dump_resource
+* Get rid of built-in dumping for dict-like structure
+* Get rid of built-in dumping for patch
+* Some breaking changes here, but the functional was introduced recently 
+that's why the version is not increased according to semver
+  * Migration guide for pydantic-users:
+  * Pass `dump_resource=lambda d: d.model_dump()`
+  * Manually dump your models for patch
+
+
 ## 2.0.10
 
 * Update serializer with recursive cleaning and removing null values

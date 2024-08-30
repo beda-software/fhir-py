@@ -29,12 +29,12 @@ class SyncClient(AbstractClient, ABC):
         authorization: Union[str, None] = None,
         extra_headers: Union[dict, None] = None,
         requests_config: Union[dict, None] = None,
-        dump: Callable[[Any], Any] = lambda x: x,
+        *,
+        dump_resource: Callable[[Any], dict] = lambda x: dict(x),
     ):
         self.requests_config = requests_config or {}
-        self.dump = dump
 
-        super().__init__(url, authorization, extra_headers)
+        super().__init__(url, authorization, extra_headers, dump_resource=dump_resource)
 
     def execute(
         self,
@@ -111,7 +111,7 @@ class SyncClient(AbstractClient, ABC):
         # _as_dict is a private api used internally
         _as_dict: bool = False,
     ) -> Union[TResource, Any]:
-        data = serialize(self.dump(resource), drop_nulls_from_dicts=fields is None)
+        data = serialize(self.dump_resource(resource), drop_nulls_from_dicts=fields is None)
         if fields:
             if not resource.id:
                 raise TypeError("Resource `id` is required for update operation")
@@ -167,7 +167,7 @@ class SyncClient(AbstractClient, ABC):
         response_data = self._do_request(
             "patch",
             f"{resource_type}/{resource_id}",
-            data=serialize(self.dump(kwargs), drop_nulls_from_dicts=False),
+            data=serialize(kwargs, drop_nulls_from_dicts=False),
         )
 
         if custom_resource_class:
@@ -442,7 +442,7 @@ class SyncSearchSet(
         response_data, status_code = self.client._do_request(
             "post",
             self.resource_type,
-            serialize(self.client.dump(resource)),
+            serialize(self.client.dump_resource(resource)),
             self.params,
             returning_status=True,
         )
@@ -455,7 +455,7 @@ class SyncSearchSet(
         response_data, status_code = self.client._do_request(
             "put",
             self.resource_type,
-            serialize(self.client.dump(resource)),
+            serialize(self.client.dump_resource(resource)),
             self.params,
             returning_status=True,
         )
@@ -472,7 +472,7 @@ class SyncSearchSet(
             )
 
         data = serialize(
-            self.client.dump(_resource if _resource is not None else kwargs),
+            self.client.dump_resource(_resource) if _resource is not None else kwargs,
             drop_nulls_from_dicts=False,
         )
         response_data = self.client._do_request("patch", self.resource_type, data, self.params)

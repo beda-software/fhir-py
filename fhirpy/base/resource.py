@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Sequence
 from typing import Any, Generic, Union
 
 from fhirpy.base.client import TClient
@@ -265,10 +264,6 @@ def serialize(resource: Any, drop_nulls_from_dicts=True) -> dict:
         if isinstance(item, BaseReference):
             return serialize(item), True
 
-        if _is_serializable_dict_like(item):
-            # Handle dict-serializable structures like pydantic Model
-            return dict(item), False
-
         return item, False
 
     converted_values = convert_values(dict(resource), convert_fn)
@@ -277,25 +272,3 @@ def serialize(resource: Any, drop_nulls_from_dicts=True) -> dict:
         converted_values = remove_nulls_from_dicts(converted_values)
 
     return clean_empty_values(converted_values)
-
-
-def _is_serializable_dict_like(item):
-    """
-    >>> _is_serializable_dict_like({})
-    True
-    >>> _is_serializable_dict_like([])
-    False
-    >>> _is_serializable_dict_like(())
-    False
-    >>> _is_serializable_dict_like(set())
-    False
-    >>> _is_serializable_dict_like("string")
-    False
-    >>> _is_serializable_dict_like(42)
-    False
-    >>> _is_serializable_dict_like(True)
-    False
-    >>> _is_serializable_dict_like(None)
-    False
-    """
-    return isinstance(item, Iterable) and not isinstance(item, (Sequence, set))

@@ -3,14 +3,20 @@ from typing import Union
 import pytest
 
 from fhirpy import AsyncFHIRClient, SyncFHIRClient
-from fhirpy.base.resource import serialize
 from fhirpy.base.utils import AttrDict, SearchList, parse_pagination_url, set_by_path
 from fhirpy.lib import BaseFHIRReference
 
 from .types import HumanName, Identifier, Patient
+from .utils import dump_resource
 
 
-@pytest.mark.parametrize("client", [SyncFHIRClient("mock"), AsyncFHIRClient("mock")])
+@pytest.mark.parametrize(
+    "client",
+    [
+        SyncFHIRClient("mock", dump_resource=dump_resource),
+        AsyncFHIRClient("mock", dump_resource=dump_resource),
+    ],
+)
 class TestLibBase:
     def test_to_reference_for_reference(self, client: Union[SyncFHIRClient, AsyncFHIRClient]):
         reference = client.reference("Patient", "p1")
@@ -271,24 +277,6 @@ class TestLibBase:
         assert patient.identifier[0].value == "value"
         assert isinstance(patient.name[0], HumanName)
         assert patient.name[0].text == "Name"
-
-    def test_pluggable_type_model_serialize_with_dict_null_values(
-        self, client: Union[SyncFHIRClient, AsyncFHIRClient]
-    ):
-        patient = client.resource(
-            Patient,
-            **{
-                "resourceType": "Patient",
-                "identifier": [{"system": "url", "value": "value"}],
-                "name": [{"text": "Name"}],
-                "managingOrganization": None,
-            },
-        )
-        assert serialize(patient) == {
-            "resourceType": "Patient",
-            "identifier": [{"system": "url", "value": "value"}],
-            "name": [{"text": "Name"}],
-        }
 
     def test_resource_resource_type_setter(self, client: Union[SyncFHIRClient, AsyncFHIRClient]):
         patient = client.resource("Patient", id="p1")

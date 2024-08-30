@@ -17,7 +17,7 @@ from fhirpy.lib import SyncFHIRReference, SyncFHIRResource
 
 from .config import FHIR_SERVER_AUTHORIZATION, FHIR_SERVER_URL
 from .types import HumanName, Identifier, Patient, Reference
-from .utils import MockRequestsResponse
+from .utils import MockRequestsResponse, dump_resource
 
 
 class TestLibSyncCase:
@@ -43,6 +43,7 @@ class TestLibSyncCase:
             cls.URL,
             authorization=FHIR_SERVER_AUTHORIZATION,
             extra_headers={"Access-Control-Allow-Origin": "*"},
+            dump_resource=dump_resource,
         )
 
     def create_resource(self, resource_type, **kwargs):
@@ -193,7 +194,7 @@ class TestLibSyncCase:
 
         patched_patient = self.client.patch(
             f"{patient.resourceType}/{patient.id}",
-            identifier=new_identifier,
+            identifier=[x.model_dump(exclude_none=True) for x in new_identifier],
             managingOrganization=None,
         )
 
@@ -208,7 +209,9 @@ class TestLibSyncCase:
         new_identifier = [*patient.identifier, Identifier(system="url", value="value")]
 
         patched_patient = self.client.patch(
-            patient.resourceType, patient.id, identifier=new_identifier
+            patient.resourceType,
+            patient.id,
+            identifier=[x.model_dump(exclude_none=True) for x in new_identifier],
         )
 
         assert isinstance(patched_patient, dict)
@@ -218,7 +221,11 @@ class TestLibSyncCase:
         patient = self.create_patient_model()
         new_identifier = [*patient.identifier, Identifier(system="url", value="value")]
 
-        patched_patient = self.client.patch(Patient, patient.id, identifier=new_identifier)
+        patched_patient = self.client.patch(
+            Patient,
+            patient.id,
+            identifier=[x.model_dump(exclude_none=True) for x in new_identifier],
+        )
 
         assert isinstance(patched_patient, Patient)
         assert len(patched_patient.identifier) == 2  # noqa: PLR2004
@@ -227,7 +234,9 @@ class TestLibSyncCase:
         patient = self.create_patient_model()
         new_identifier = [*patient.identifier, Identifier(system="url", value="value")]
 
-        patched_patient = self.client.patch(patient, identifier=new_identifier)
+        patched_patient = self.client.patch(
+            patient, identifier=[x.model_dump(exclude_none=True) for x in new_identifier]
+        )
 
         assert isinstance(patched_patient, Patient)
         assert len(patched_patient.identifier) == 2  # noqa: PLR2004
@@ -1138,8 +1147,11 @@ class TestLibSyncCase:
             .search(name=name)
             .patch(
                 identifier=[
-                    Identifier(system="url", value="value"),
-                    Identifier(**self.identifier[0]),
+                    x.model_dump(exclude_none=True)
+                    for x in [
+                        Identifier(system="url", value="value"),
+                        Identifier(**self.identifier[0]),
+                    ]
                 ],
             )
         )

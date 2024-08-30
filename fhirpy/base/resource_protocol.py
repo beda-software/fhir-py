@@ -1,13 +1,9 @@
-from collections.abc import Iterator
 from typing import Any, Protocol, TypeVar, Union, get_args, get_type_hints
 
 
 class ResourceProtocol(Protocol):
     resourceType: Any  # noqa: N815
     id: Union[str, None]
-
-    def __iter__(self) -> Iterator:
-        ...
 
 
 TResource = TypeVar("TResource", bound=ResourceProtocol)
