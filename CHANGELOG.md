@@ -1,3 +1,7 @@
+## 2.0.12
+
+* Fix fetch_raw for custom resource class
+
 ## 2.0.11
 
 * Rename dump to dump_resource

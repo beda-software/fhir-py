@@ -398,8 +398,8 @@ class SyncSearchSet(
         data = self.client._fetch_resource(self.resource_type, self.params)
         data_resource_type = data.get("resourceType", None)
 
-        if data_resource_type == "Bundle":
-            for item in data["entry"]:
+        if data_resource_type == "Bundle" and not self.custom_resource_class:
+            for item in data.get("entry", []):
                 item.resource = self._dict_to_resource(item.resource)
 
         return data

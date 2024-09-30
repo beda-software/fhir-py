@@ -708,6 +708,15 @@ class TestLibSyncCase:
             assert isinstance(entry.resource, SyncFHIRResource)
         assert len(bundle.entry) == 2  # noqa: PLR2004
 
+    def test_typed_fetch_raw(self):
+        self.create_resource("Patient", name=[{"text": "RareName"}])
+        self.create_resource("Patient", name=[{"text": "RareName"}])
+        bundle = self.client.resources(Patient).search(name="RareName").fetch_raw()
+        assert bundle.resourceType == "Bundle"
+        for entry in bundle.entry:
+            assert not isinstance(entry.resource, SyncFHIRResource)
+        assert len(bundle.entry) == 2  # noqa: PLR2004
+
     def create_test_patients(self, count=10, name="Not Rare Name"):
         bundle = {
             "type": "transaction",

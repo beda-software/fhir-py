@@ -792,6 +792,16 @@ class TestLibAsyncCase:
             assert isinstance(entry.resource, AsyncFHIRResource)
         assert len(bundle.entry) == 2  # noqa: PLR2004
 
+    @pytest.mark.asyncio()
+    async def test_typed_fetch_raw(self):
+        await self.create_resource("Patient", name=[{"text": "RareName"}])
+        await self.create_resource("Patient", name=[{"text": "RareName"}])
+        bundle = await self.client.resources(Patient).search(name="RareName").fetch_raw()
+        assert bundle.resourceType == "Bundle"
+        for entry in bundle.entry:
+            assert not isinstance(entry.resource, AsyncFHIRResource)
+        assert len(bundle.entry) == 2  # noqa: PLR2004
+
     async def create_test_patients(self, count=10, name="Not Rare Name"):
         bundle = {
             "type": "transaction",
