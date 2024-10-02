@@ -114,7 +114,7 @@ class AsyncClient(AbstractClient, ABC):
         _search_params: Union[dict, None] = None,
         # _as_dict is a private api used internally
         _as_dict: bool = False,
-    ) -> Union[TResource, Any]:
+    ) -> Union[TResource, dict]:
         data = serialize(self.dump_resource(resource), drop_nulls_from_dicts=fields is None)
         if fields:
             if not resource.id:

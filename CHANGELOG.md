@@ -1,3 +1,7 @@
+## 2.0.14
+
+* Minor type fixes
+
 ## 2.0.13
 
 *  Add support for resource type and reference for client methods get/patch/delete (#133)

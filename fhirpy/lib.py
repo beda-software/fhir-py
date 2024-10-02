@@ -28,7 +28,7 @@ class AsyncFHIRSearchSet(Generic[TResource], AsyncSearchSet["AsyncFHIRClient", T
 class BaseFHIRResource(
     Generic[TClient, TResource, TReference], BaseResource[TClient, TResource, TReference], ABC
 ):
-    def is_reference(self, value):
+    def is_reference(self, value) -> bool:
         if not isinstance(value, dict):
             return False
 
@@ -55,11 +55,11 @@ class BaseFHIRReference(
     Generic[TClient, TResource, TReference], BaseReference[TClient, TResource, TReference], ABC
 ):
     @property
-    def reference(self):
+    def reference(self) -> str:
         return self["reference"]
 
     @property
-    def id(self):
+    def id(self) -> Union[str, None]:
         """
         Returns id if reference specifies to the local resource
         """
@@ -69,7 +69,7 @@ class BaseFHIRReference(
         return None
 
     @property
-    def resource_type(self):
+    def resource_type(self) -> Union[str, None]:
         """
         Returns resource type if reference specifies to the local resource
         """
@@ -79,7 +79,7 @@ class BaseFHIRReference(
         return None
 
     @property
-    def is_local(self):
+    def is_local(self) -> bool:
         return self.reference.count("/") == 1
 
 
@@ -98,7 +98,13 @@ class AsyncFHIRReference(
 
 
 class SyncFHIRClient(SyncClient):
-    def reference(self, resource_type=None, id=None, reference=None, **kwargs):  # noqa: A002
+    def reference(
+        self,
+        resource_type=None,
+        id=None,  # noqa: A002
+        reference=None,
+        **kwargs,
+    ) -> SyncFHIRReference:
         if resource_type and id:
             reference = f"{resource_type}/{id}"
 
@@ -143,7 +149,7 @@ class AsyncFHIRClient(AsyncClient):
         id: Union[str, None] = None,  # noqa: A002
         reference: Union[str, None] = None,
         **kwargs,
-    ):
+    ) -> AsyncFHIRReference:
         if resource_type and id:
             reference = f"{resource_type}/{id}"
 
