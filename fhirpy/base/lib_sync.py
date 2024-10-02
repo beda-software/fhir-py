@@ -46,26 +46,28 @@ class SyncClient(AbstractClient, ABC):
         return self._do_request(method, path, data=data, params=params)
 
     @overload
-    def get(self, resource_type_or_resource: TResource, id: None = None) -> TResource:
+    def get(self, resource_type_or_resource_or_ref: TResource, id_or_ref: None = None) -> TResource:
         ...
 
     @overload
     def get(
-        self, resource_type_or_resource: type[TResource], id: Union[str, None] = None
+        self, resource_type_or_resource_or_ref: type[TResource], id_or_ref: Union[str, None] = None
     ) -> TResource:
         ...
 
     @overload
-    def get(self, resource_type_or_resource: str, id: Union[str, None] = None) -> Any:
+    def get(
+        self, resource_type_or_resource_or_ref: str, id_or_ref: Union[str, None] = None
+    ) -> dict:
         ...
 
     def get(
         self,
-        resource_type_or_resource: Union[str, type[TResource], TResource],
-        id: Union[str, None] = None,  # noqa: A002
-    ) -> Union[TResource, Any]:
+        resource_type_or_resource_or_ref: Union[str, type[TResource], TResource],
+        id_or_ref: Union[str, None] = None,
+    ) -> Union[TResource, dict]:
         resource_type, resource_id, custom_resource_class = get_resource_type_id_and_class(
-            resource_type_or_resource, id
+            resource_type_or_resource_or_ref, id_or_ref
         )
 
         if resource_id is None:
@@ -97,7 +99,7 @@ class SyncClient(AbstractClient, ABC):
         *,
         _search_params: Union[dict, None] = None,
         _as_dict: Literal[True] = True,
-    ) -> Any:
+    ) -> dict:
         ...
 
     def save(
@@ -110,7 +112,7 @@ class SyncClient(AbstractClient, ABC):
         _search_params: Union[dict, None] = None,
         # _as_dict is a private api used internally
         _as_dict: bool = False,
-    ) -> Union[TResource, Any]:
+    ) -> Union[TResource, dict]:
         data = serialize(self.dump_resource(resource), drop_nulls_from_dicts=fields is None)
         if fields:
             if not resource.id:
@@ -138,27 +140,34 @@ class SyncClient(AbstractClient, ABC):
         return self.save(resource)
 
     @overload
-    def patch(self, resource_type_or_resource: TResource, id: None = None, **kwargs) -> TResource:
-        ...
-
-    @overload
     def patch(
-        self, resource_type_or_resource: type[TResource], id: Union[str, None] = None, **kwargs
+        self, resource_type_or_resource_or_ref: TResource, id_or_ref: None = None, **kwargs
     ) -> TResource:
         ...
 
     @overload
-    def patch(self, resource_type_or_resource: str, id: Union[str, None] = None, **kwargs) -> Any:
+    def patch(
+        self,
+        resource_type_or_resource_or_ref: type[TResource],
+        id_or_ref: Union[str, None] = None,
+        **kwargs,
+    ) -> TResource:
+        ...
+
+    @overload
+    def patch(
+        self, resource_type_or_resource_or_ref: str, id_or_ref: Union[str, None] = None, **kwargs
+    ) -> dict:
         ...
 
     def patch(
         self,
-        resource_type_or_resource: Union[str, type[TResource], TResource],
-        id: Union[str, None] = None,  # noqa: A002
+        resource_type_or_resource_or_ref: Union[str, type[TResource], TResource],
+        id_or_ref: Union[str, None] = None,
         **kwargs,
-    ) -> Union[TResource, Any]:
+    ) -> Union[TResource, dict]:
         resource_type, resource_id, custom_resource_class = get_resource_type_id_and_class(
-            resource_type_or_resource, id
+            resource_type_or_resource_or_ref, id_or_ref
         )
 
         if resource_id is None:
@@ -177,11 +186,11 @@ class SyncClient(AbstractClient, ABC):
 
     def delete(
         self,
-        resource_type_or_resource: Union[str, type[TResource], TResource],
-        id: Union[str, None] = None,  # noqa: A002
-    ):
+        resource_type_or_resource_or_ref: Union[str, type[TResource], TResource],
+        id_or_ref: Union[str, None] = None,
+    ) -> Any:
         resource_type, resource_id, _ = get_resource_type_id_and_class(
-            resource_type_or_resource, id
+            resource_type_or_resource_or_ref, id_or_ref
         )
 
         if resource_id is None:
@@ -218,7 +227,7 @@ class SyncClient(AbstractClient, ABC):
         data: Union[dict, None] = None,
         params: Union[dict, None] = None,
         returning_status=False,
-    ):
+    ) -> Union[tuple[Any, int], Any]:
         headers = self._build_request_headers()
         url = self._build_request_url(path, params)
         r = requests.request(method, url, json=data, headers=headers, **self.requests_config)

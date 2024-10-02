@@ -655,6 +655,7 @@ Returns an instance of the connection to the server which provides:
 
 data model methods:
 * `async` .get(resource_type: type[T], id) - returns T instance by resourceType/id
+* `async` .get(resource_type: type[T], reference) - returns T instance by reference
 * `async` .get(resource_type: str, id) - gets instance by resourceType/id
 * `async` .get(reference: str) - gets instance by reference
 * `async` .save(resource: T, fields=[]) - creates or updates or patches (with fields=[...]) T instance
@@ -662,10 +663,12 @@ data model methods:
 * `async` .update(resource: T) - updates T instance
 * `async` .patch(resource: T, **kwargs) - patches T instance
 * `async` .patch(resource_type: type[T], id, **kwargs) - patches instance by resourceType/id and returns T instance
+* `async` .patch(resource_type: type[T], reference, **kwargs) - patches instance by reference and returns T instance
 * `async` .patch(resource_type: str, id, **kwargs) - patches instance by resourceType/id 
 * `async` .patch(reference: str, **kwargs) - patches instance by reference
 * `async` .delete(resource: T) - deletes T instance
 * `async` .delete(resource_type: type[T], id) - deletes resource by resourceType/id 
+* `async` .delete(resource_type: type[T], reference) - deletes resource by reference
 * `async` .delete(resource_type: str, id) - deletes instance by resourceType/id 
 * `async` .delete(reference: str) - deletes instance by reference
 

@@ -87,7 +87,7 @@ class AbstractClient(ABC):
         pass
 
     @abstractmethod
-    def get(self, resource_type_or_resource, id=None):  # noqa: A002
+    def get(self, resource_type_or_resource_or_ref, id_or_ref=None):
         pass
 
     @abstractmethod
@@ -103,11 +103,11 @@ class AbstractClient(ABC):
         pass
 
     @abstractmethod
-    def patch(self, resource_type_or_resource, id=None, **kwargs):  # noqa: A002
+    def patch(self, resource_type_or_resource_or_ref, id_or_ref=None, **kwargs):
         pass
 
     @abstractmethod
-    def delete(self, resource_type_or_resource, id=None):  # noqa: A002
+    def delete(self, resource_type_or_resource_or_ref, id_or_ref=None):
         pass
 
     @abstractmethod
@@ -118,7 +118,7 @@ class AbstractClient(ABC):
         data: Union[dict, None] = None,
         params: Union[dict, None] = None,
         returning_status=False,
-    ) -> Union[Any, tuple[Any, int]]:
+    ) -> Union[Any, tuple[dict, int]]:
         pass
 
     @abstractmethod

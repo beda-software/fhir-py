@@ -180,6 +180,13 @@ class TestLibSyncCase:
 
         assert isinstance(fetched_patient, Patient)
 
+    def test_client_get_specifying_resource_type_type_and_ref(self):
+        patient = self.create_patient_model()
+
+        fetched_patient = self.client.get(Patient, f"Patient/{patient.id}")
+
+        assert isinstance(fetched_patient, Patient)
+
     def test_client_get_specifying_resource_type_fails_without_id(self):
         patient = self.create_patient_model()
 
@@ -230,6 +237,19 @@ class TestLibSyncCase:
         assert isinstance(patched_patient, Patient)
         assert len(patched_patient.identifier) == 2  # noqa: PLR2004
 
+    def test_client_patch_specifying_resource_type_type_and_ref(self):
+        patient = self.create_patient_model()
+        new_identifier = [*patient.identifier, Identifier(system="url", value="value")]
+
+        patched_patient = self.client.patch(
+            Patient,
+            f"Patient/{patient.id}",
+            identifier=[x.model_dump(exclude_none=True) for x in new_identifier],
+        )
+
+        assert isinstance(patched_patient, Patient)
+        assert len(patched_patient.identifier) == 2  # noqa: PLR2004
+
     def test_client_patch_specifying_resource(self):
         patient = self.create_patient_model()
         new_identifier = [*patient.identifier, Identifier(system="url", value="value")]
@@ -274,6 +294,14 @@ class TestLibSyncCase:
         patient = self.create_patient_model()
 
         self.client.delete(Patient, patient.id)
+
+        fetched_patient = self.client.resources(Patient).search(_id=patient.id).first()
+        assert fetched_patient is None
+
+    def test_client_delete_specifying_resource_type_type_and_ref(self):
+        patient = self.create_patient_model()
+
+        self.client.delete(Patient, f"Patient/{patient.id}")
 
         fetched_patient = self.client.resources(Patient).search(_id=patient.id).first()
         assert fetched_patient is None

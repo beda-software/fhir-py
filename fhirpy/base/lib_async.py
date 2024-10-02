@@ -46,26 +46,30 @@ class AsyncClient(AbstractClient, ABC):
         return await self._do_request(method, path, data=data, params=params)
 
     @overload
-    async def get(self, resource_type_or_resource: TResource, id: None = None) -> TResource:
-        ...
-
-    @overload
     async def get(
-        self, resource_type_or_resource: type[TResource], id: Union[str, None] = None
+        self, resource_type_or_resource_or_ref: TResource, id_or_ref: None = None
     ) -> TResource:
         ...
 
     @overload
-    async def get(self, resource_type_or_resource: str, id: Union[str, None] = None) -> Any:
+    async def get(
+        self, resource_type_or_resource_or_ref: type[TResource], id_or_ref: Union[str, None] = None
+    ) -> TResource:
+        ...
+
+    @overload
+    async def get(
+        self, resource_type_or_resource_or_ref: str, id_or_ref: Union[str, None] = None
+    ) -> dict:
         ...
 
     async def get(
         self,
-        resource_type_or_resource: Union[str, type[TResource], TResource],
-        id: Union[str, None] = None,  # noqa: A002
-    ) -> Union[TResource, Any]:
+        resource_type_or_resource_or_ref: Union[str, type[TResource], TResource],
+        id_or_ref: Union[str, None] = None,
+    ) -> Union[TResource, dict]:
         resource_type, resource_id, custom_resource_class = get_resource_type_id_and_class(
-            resource_type_or_resource, id
+            resource_type_or_resource_or_ref, id_or_ref
         )
 
         if resource_id is None:
@@ -97,7 +101,7 @@ class AsyncClient(AbstractClient, ABC):
         *,
         _search_params: Union[dict, None] = None,
         _as_dict: Literal[True] = True,
-    ) -> Any:
+    ) -> dict:
         ...
 
     async def save(
@@ -139,30 +143,33 @@ class AsyncClient(AbstractClient, ABC):
 
     @overload
     async def patch(
-        self, resource_type_or_resource: TResource, id: None = None, **kwargs
+        self, resource_type_or_resource_or_ref: TResource, id_or_ref: None = None, **kwargs
     ) -> TResource:
         ...
 
     @overload
     async def patch(
-        self, resource_type_or_resource: type[TResource], id: Union[str, None] = None, **kwargs
+        self,
+        resource_type_or_resource_or_ref: type[TResource],
+        id_or_ref: Union[str, None] = None,
+        **kwargs,
     ) -> TResource:
         ...
 
     @overload
     async def patch(
-        self, resource_type_or_resource: str, id: Union[str, None] = None, **kwargs
-    ) -> Any:
+        self, resource_type_or_resource_or_ref: str, id_or_ref: Union[str, None] = None, **kwargs
+    ) -> dict:
         ...
 
     async def patch(
         self,
-        resource_type_or_resource: Union[str, type[TResource], TResource],
-        id: Union[str, None] = None,  # noqa: A002
+        resource_type_or_resource_or_ref: Union[str, type[TResource], TResource],
+        id_or_ref: Union[str, None] = None,
         **kwargs,
-    ) -> Union[TResource, Any]:
+    ) -> Union[TResource, dict]:
         resource_type, resource_id, custom_resource_class = get_resource_type_id_and_class(
-            resource_type_or_resource, id
+            resource_type_or_resource_or_ref, id_or_ref
         )
 
         if resource_id is None:
@@ -181,11 +188,11 @@ class AsyncClient(AbstractClient, ABC):
 
     async def delete(
         self,
-        resource_type_or_resource: Union[str, type[TResource], TResource],
-        id: Union[str, None] = None,  # noqa: A002
-    ):
+        resource_type_or_resource_or_ref: Union[str, type[TResource], TResource],
+        id_or_ref: Union[str, None] = None,
+    ) -> Any:
         resource_type, resource_id, _ = get_resource_type_id_and_class(
-            resource_type_or_resource, id
+            resource_type_or_resource_or_ref, id_or_ref
         )
 
         if resource_id is None:
@@ -480,7 +487,7 @@ class AsyncSearchSet(
         )
         return self._dict_to_resource(response_data)
 
-    async def delete(self) -> Any:
+    async def delete(self) -> tuple[Any, int]:
         return await self.client._do_request(
             "delete", self.resource_type, params=self.params, returning_status=True
         )

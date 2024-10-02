@@ -38,7 +38,7 @@ def get_resource_path(resource: TResource) -> str:
 
 def get_resource_type_id_and_class(
     resource_type_or_resource_or_ref: Union[str, type[TResource], TResource],
-    id: Union[str, None],  # noqa: A002
+    id_or_ref: Union[str, None],
 ) -> tuple[str, Union[str, None], Union[type[TResource], None]]:
     resource_id: Union[str, None]
 
@@ -47,15 +47,37 @@ def get_resource_type_id_and_class(
             resource_type, resource_id = resource_type_or_resource_or_ref.split("/", 2)
         else:
             resource_type = resource_type_or_resource_or_ref
-            resource_id = id
+            resource_id = _get_id_from_ref(id_or_ref) if id_or_ref else None
         custom_resource_class = None
     elif isinstance(resource_type_or_resource_or_ref, type):
         resource_type = get_resource_type_from_class(resource_type_or_resource_or_ref)
-        resource_id = id
+        resource_id = _get_id_from_ref(id_or_ref) if id_or_ref else None
         custom_resource_class = resource_type_or_resource_or_ref
     else:
         resource_type = resource_type_or_resource_or_ref.resourceType
         resource_id = resource_type_or_resource_or_ref.id
         custom_resource_class = resource_type_or_resource_or_ref.__class__
 
+    if id_or_ref and "/" in id_or_ref:
+        if _get_resource_type_from_ref(id_or_ref) != resource_type:
+            raise TypeError(
+                "Resource type mismatch, expected {resource_type} for reference {id_or_ref}"
+            )
+
     return (resource_type, resource_id, custom_resource_class)
+
+
+def _get_id_from_ref(ref: str) -> str:
+    """
+    >>> _get_id_from_ref("Patient/id")
+    'id'
+    """
+    return ref.split("/")[-1]
+
+
+def _get_resource_type_from_ref(ref: str) -> str:
+    """
+    >>> _get_resource_type_from_ref("Patient/id")
+    'Patient'
+    """
+    return ref.split("/")[-2]
