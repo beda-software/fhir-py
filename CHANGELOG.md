@@ -1,3 +1,7 @@
+## 2.0.13
+
+*  Add support for resource type and reference for client methods get/patch/delete (#133)
+
 ## 2.0.12
 
 * Fix fetch_raw for custom resource class
