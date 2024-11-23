@@ -145,7 +145,7 @@ class AbstractClient(ABC):
                 " (possible security issue)"
             )
         path = path.lstrip("/")
-        base_url_path = URL(self.url).path.lstrip("/") + "/"
+        base_url_path = URL(self.url.rstrip("/")).path.lstrip("/") + "/"
         path = remove_prefix(path, base_url_path)
         params = params or {}
 
