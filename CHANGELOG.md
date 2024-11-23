@@ -1,3 +1,7 @@
+## 2.0.15
+
+* Remove trailing '/' from base url when building resource location path
+
 ## 2.0.14
 
 * Minor type fixes
