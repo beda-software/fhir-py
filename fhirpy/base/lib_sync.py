@@ -236,6 +236,12 @@ class SyncClient(AbstractClient, ABC):
             r_data = json.loads(r.content.decode(), object_hook=AttrDict) if r.content else None
             return (r_data, r.status_code) if returning_status else r_data
 
+        if r.status_code == 401:  # noqa: PLR2004
+            raise AuthorizationError(r.content.decode())
+
+        if r.status_code == 403:  # noqa: PLR2004
+            raise ForbiddenError(r.content.decode())
+
         if r.status_code in (404, 410):
             raise ResourceNotFound(r.content.decode())
 
