@@ -3,6 +3,7 @@ import json
 import warnings
 from abc import ABC
 from collections.abc import AsyncGenerator, Callable
+from http import HTTPStatus
 from typing import Any, Generic, Literal, TypeVar, Union, cast, overload
 
 import aiohttp
@@ -226,7 +227,7 @@ class AsyncClient(AbstractClient, ABC):
     ) -> tuple[Any, int]:
         ...
 
-    async def _do_request(
+    async def _do_request(  # noqa: PLR0913
         self,
         method: str,
         path: str,
@@ -248,7 +249,7 @@ class AsyncClient(AbstractClient, ABC):
                     r_data = json.loads(raw_data, object_hook=AttrDict) if raw_data else None
                     return (r_data, r.status) if returning_status else r_data
 
-                if r.status == 304:
+                if r.status == 304:  # noqa: PLR2004
                     return (None, r.status) if returning_status else None
 
                 if r.status in (404, 410):
@@ -320,9 +321,14 @@ class AsyncResource(
         return await self.__client__.delete(self.reference)
 
     async def refresh(self) -> TResource:
-        data, status = await self.__client__._do_request("get", self._get_path(), extra_headers={"If-None-Match": self["meta"]["versionId"]}, returning_status=True)
+        data, status = await self.__client__._do_request(
+            "get",
+            self._get_path(),
+            extra_headers={"If-None-Match": self["meta"]["versionId"]},
+            returning_status=True,
+        )
 
-        if status != 304:
+        if status != HTTPStatus.NOT_MODIFIED:
             super(BaseResource, self).clear()
             super(BaseResource, self).update(**data)
 

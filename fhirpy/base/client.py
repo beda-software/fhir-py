@@ -111,12 +111,14 @@ class AbstractClient(ABC):
         pass
 
     @abstractmethod
-    def _do_request(
+    def _do_request(  # noqa: PLR0913
         self,
         method: str,
         path: str,
         data: Union[dict, None] = None,
         params: Union[dict, None] = None,
+        extra_headers: Union[dict, None] = None,
+        *,
         returning_status=False,
     ) -> Union[Any, tuple[dict, int]]:
         pass
