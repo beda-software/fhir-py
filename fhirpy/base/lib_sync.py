@@ -205,6 +205,8 @@ class SyncClient(AbstractClient, ABC):
         path: str,
         data: Union[dict, None] = None,
         params: Union[dict, None] = None,
+        extra_headers: Union[dict, None] = None,
+        *,
         returning_status: Literal[False] = False,
     ) -> Any:
         ...
@@ -216,6 +218,8 @@ class SyncClient(AbstractClient, ABC):
         path: str,
         data: Union[dict, None] = None,
         params: Union[dict, None] = None,
+        extra_headers: Union[dict, None] = None,
+        *,
         returning_status: Literal[True] = True,
     ) -> tuple[Any, int]:
         ...
@@ -226,15 +230,23 @@ class SyncClient(AbstractClient, ABC):
         path: str,
         data: Union[dict, None] = None,
         params: Union[dict, None] = None,
+        extra_headers: Union[dict, None] = None,
+        *,
         returning_status=False,
     ) -> Union[tuple[Any, int], Any]:
         headers = self._build_request_headers()
+        if extra_headers:
+            headers = {**headers, **extra_headers}
+
         url = self._build_request_url(path, params)
         r = requests.request(method, url, json=data, headers=headers, **self.requests_config)
 
         if 200 <= r.status_code < 300:  # noqa: PLR2004
             r_data = json.loads(r.content.decode(), object_hook=AttrDict) if r.content else None
             return (r_data, r.status_code) if returning_status else r_data
+
+        if r.status_code == 304:
+            return (None, r.status_code) if returning_status else None
 
         if r.status_code in (404, 410):
             raise ResourceNotFound(r.content.decode())
@@ -304,9 +316,11 @@ class SyncResource(
         return self.__client__.delete(self.reference)
 
     def refresh(self) -> TResource:
-        data = self.__client__._do_request("get", self._get_path())
-        super(BaseResource, self).clear()
-        super(BaseResource, self).update(**data)
+        data, status = self.__client__._do_request("get", self._get_path(), extra_headers={"If-None-Match": self["meta"]["versionId"]}, returning_status=True)
+
+        if status != 304:
+            super(BaseResource, self).clear()
+            super(BaseResource, self).update(**data)
 
         return cast(TResource, self)
 

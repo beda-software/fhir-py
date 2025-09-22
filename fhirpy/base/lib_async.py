@@ -207,6 +207,8 @@ class AsyncClient(AbstractClient, ABC):
         path: str,
         data: Union[dict, None] = None,
         params: Union[dict, None] = None,
+        extra_headers: Union[dict, None] = None,
+        *,
         returning_status: Literal[False] = False,
     ) -> Any:
         ...
@@ -218,6 +220,8 @@ class AsyncClient(AbstractClient, ABC):
         path: str,
         data: Union[dict, None] = None,
         params: Union[dict, None] = None,
+        extra_headers: Union[dict, None] = None,
+        *,
         returning_status: Literal[True] = True,
     ) -> tuple[Any, int]:
         ...
@@ -228,9 +232,14 @@ class AsyncClient(AbstractClient, ABC):
         path: str,
         data: Union[dict, None] = None,
         params: Union[dict, None] = None,
+        extra_headers: Union[dict, None] = None,
+        *,
         returning_status=False,
     ) -> Union[Any, tuple[Any, int]]:
         headers = self._build_request_headers()
+        if extra_headers:
+            headers = {**headers, **extra_headers}
+
         url = self._build_request_url(path, params)
         async with aiohttp.ClientSession(headers=headers) as session:
             async with session.request(method, url, json=data, **self.aiohttp_config) as r:
@@ -238,6 +247,9 @@ class AsyncClient(AbstractClient, ABC):
                     raw_data = await r.text()
                     r_data = json.loads(raw_data, object_hook=AttrDict) if raw_data else None
                     return (r_data, r.status) if returning_status else r_data
+
+                if r.status == 304:
+                    return (None, r.status) if returning_status else None
 
                 if r.status in (404, 410):
                     raise ResourceNotFound(await r.text())
@@ -308,9 +320,11 @@ class AsyncResource(
         return await self.__client__.delete(self.reference)
 
     async def refresh(self) -> TResource:
-        data = await self.__client__._do_request("get", self._get_path())
-        super(BaseResource, self).clear()
-        super(BaseResource, self).update(**data)
+        data, status = await self.__client__._do_request("get", self._get_path(), extra_headers={"If-None-Match": self["meta"]["versionId"]}, returning_status=True)
+
+        if status != 304:
+            super(BaseResource, self).clear()
+            super(BaseResource, self).update(**data)
 
         return cast(TResource, self)
 

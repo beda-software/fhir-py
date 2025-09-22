@@ -1,5 +1,5 @@
 ARG PYTHON_VERSION
-FROM python:$PYTHON_VERSION
+FROM python:${PYTHON_VERSION}-bookworm
 RUN pip install pipenv
 
 RUN mkdir /app
