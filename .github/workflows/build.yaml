@@ -22,16 +22,13 @@ jobs:
       - name: Run tests
         run: ./run_test.sh
         shell: bash
-      - name: List files in workspace
-        run: ls -la
-        shell: bash
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           env_vars: PYTHON
           fail_ci_if_error: true
-          files: ./coverage.xml
+          files: ./tests/coverage.xml
           flags: unittests
           name: codecov-umbrella
           verbose: true
