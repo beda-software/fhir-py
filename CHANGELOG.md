@@ -1,3 +1,7 @@
+## 2.1.0
+
+* Use If-None-Match with ETag (meta.versionId) for refresh() @vladimchefner
+
 ## 2.0.15
 
 * Remove trailing '/' from base url when building resource location path
