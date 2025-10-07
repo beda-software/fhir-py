@@ -7,6 +7,8 @@ import responses
 
 from fhirpy import SyncFHIRClient
 from fhirpy.base.exceptions import (
+    AuthorizationError,
+    ForbiddenError,
     InvalidResponse,
     MultipleResourcesFound,
     OperationOutcome,
@@ -1198,6 +1200,21 @@ class TestLibSyncCase:
         assert patient.identifier[0].value == "value"
         assert patient.identifier[1].system == self.identifier[0]["system"]
         assert patient.identifier[1].value == self.identifier[0]["value"]
+
+    def test_authorization_error(self):
+        client = SyncFHIRClient(
+            FHIR_SERVER_URL,
+            authorization="Bearer invalid",
+        )
+        with pytest.raises(AuthorizationError):
+            client.resources("Patient").first()
+
+    def test_forbidden_error(self):
+        with patch(
+            "requests.request", return_value=MockRequestsResponse(bytes("Forbidden", "utf-8"), 403)
+        ):
+            with pytest.raises(ForbiddenError):
+                self.client.resources("Patient").first()
 
 
 def test_requests_config():

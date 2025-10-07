@@ -1,3 +1,7 @@
+## 2.2.0
+
+* Handle 401 and 403 gracefully #141 @bothzoli
+
 ## 2.1.0
 
 * Use If-None-Match with ETag (meta.versionId) for refresh() @vladimchefner

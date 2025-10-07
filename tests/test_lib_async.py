@@ -6,7 +6,13 @@ from unittest.mock import ANY, Mock, patch
 import pytest
 
 from fhirpy import AsyncFHIRClient
-from fhirpy.base.exceptions import MultipleResourcesFound, OperationOutcome, ResourceNotFound
+from fhirpy.base.exceptions import (
+    AuthorizationError,
+    ForbiddenError,
+    MultipleResourcesFound,
+    OperationOutcome,
+    ResourceNotFound,
+)
 from fhirpy.base.utils import AttrDict
 from fhirpy.lib import AsyncFHIRReference, AsyncFHIRResource
 from tests.utils import MockAiohttpResponse
@@ -1294,6 +1300,24 @@ class TestLibAsyncCase:
         assert patient.identifier[0].value == "value"
         assert patient.identifier[1].system == self.identifier[0]["system"]
         assert patient.identifier[1].value == self.identifier[0]["value"]
+
+    @pytest.mark.asyncio()
+    async def test_authorization_error(self):
+        client = AsyncFHIRClient(
+            FHIR_SERVER_URL,
+            authorization="Bearer invalid",
+        )
+        with pytest.raises(AuthorizationError):
+            await client.resources("Patient").first()
+
+    @pytest.mark.asyncio()
+    async def test_forbidden_error(self):
+        with patch(
+            "aiohttp.ClientSession.request",
+            return_value=MockAiohttpResponse(bytes("Forbidden", "utf-8"), 403),
+        ):
+            with pytest.raises(ForbiddenError):
+                await self.client.resources("Patient").first()
 
 
 @pytest.mark.asyncio()

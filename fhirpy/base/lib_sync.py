@@ -9,7 +9,13 @@ from typing import Any, Generic, Literal, TypeVar, Union, cast, overload
 import requests
 
 from fhirpy.base.client import AbstractClient
-from fhirpy.base.exceptions import MultipleResourcesFound, OperationOutcome, ResourceNotFound
+from fhirpy.base.exceptions import (
+    AuthorizationError,
+    ForbiddenError,
+    MultipleResourcesFound,
+    OperationOutcome,
+    ResourceNotFound,
+)
 from fhirpy.base.resource import BaseReference, BaseResource, serialize
 from fhirpy.base.resource_protocol import (
     TReference,
