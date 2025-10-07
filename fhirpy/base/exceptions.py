@@ -14,6 +14,10 @@ class InvalidResponse(BaseFHIRError):
     pass
 
 
+class ForbiddenError(BaseFHIRError):
+    pass
+
+
 class AuthorizationError(BaseFHIRError):
     pass
 

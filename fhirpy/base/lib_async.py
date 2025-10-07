@@ -249,6 +249,12 @@ class AsyncClient(AbstractClient, ABC):
                     r_data = json.loads(raw_data, object_hook=AttrDict) if raw_data else None
                     return (r_data, r.status) if returning_status else r_data
 
+                if r.status == 401:  # noqa: PLR2004
+                    raise AuthorizationError(await r.text())
+
+                if r.status == 403:  # noqa: PLR2004
+                    raise ForbiddenError(await r.text())
+
                 if r.status == 304:  # noqa: PLR2004
                     return (None, r.status) if returning_status else None
 
