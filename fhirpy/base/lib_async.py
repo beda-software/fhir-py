@@ -3,6 +3,7 @@ import json
 import warnings
 from abc import ABC
 from collections.abc import AsyncGenerator, Callable
+from http import HTTPStatus
 from typing import Any, Generic, Literal, TypeVar, Union, cast, overload
 
 import aiohttp
@@ -207,6 +208,8 @@ class AsyncClient(AbstractClient, ABC):
         path: str,
         data: Union[dict, None] = None,
         params: Union[dict, None] = None,
+        extra_headers: Union[dict, None] = None,
+        *,
         returning_status: Literal[False] = False,
     ) -> Any:
         ...
@@ -218,19 +221,26 @@ class AsyncClient(AbstractClient, ABC):
         path: str,
         data: Union[dict, None] = None,
         params: Union[dict, None] = None,
+        extra_headers: Union[dict, None] = None,
+        *,
         returning_status: Literal[True] = True,
     ) -> tuple[Any, int]:
         ...
 
-    async def _do_request(
+    async def _do_request(  # noqa: PLR0913
         self,
         method: str,
         path: str,
         data: Union[dict, None] = None,
         params: Union[dict, None] = None,
+        extra_headers: Union[dict, None] = None,
+        *,
         returning_status=False,
     ) -> Union[Any, tuple[Any, int]]:
         headers = self._build_request_headers()
+        if extra_headers:
+            headers = {**headers, **extra_headers}
+
         url = self._build_request_url(path, params)
         async with aiohttp.ClientSession(headers=headers) as session:
             async with session.request(method, url, json=data, **self.aiohttp_config) as r:
@@ -244,6 +254,9 @@ class AsyncClient(AbstractClient, ABC):
 
                 if r.status == 403:  # noqa: PLR2004
                     raise ForbiddenError(await r.text())
+
+                if r.status == 304:  # noqa: PLR2004
+                    return (None, r.status) if returning_status else None
 
                 if r.status in (404, 410):
                     raise ResourceNotFound(await r.text())
@@ -314,9 +327,16 @@ class AsyncResource(
         return await self.__client__.delete(self.reference)
 
     async def refresh(self) -> TResource:
-        data = await self.__client__._do_request("get", self._get_path())
-        super(BaseResource, self).clear()
-        super(BaseResource, self).update(**data)
+        data, status = await self.__client__._do_request(
+            "get",
+            self._get_path(),
+            extra_headers={"If-None-Match": self["meta"]["versionId"]},
+            returning_status=True,
+        )
+
+        if status != HTTPStatus.NOT_MODIFIED:
+            super(BaseResource, self).clear()
+            super(BaseResource, self).update(**data)
 
         return cast(TResource, self)
 
