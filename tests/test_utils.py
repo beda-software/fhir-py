@@ -84,3 +84,57 @@ def test_clean_empty_values():
     assert clean_empty_values({"item": [None, {"item": None}, {}]}) == {
         "item": [None, {"item": None}, None]
     }
+
+
+def test_serialize_preserves_empty_list_for_specified_fields():
+    """serialize() must preserve empty lists/dicts when the key is in `fields`.
+
+    Regression test for https://github.com/beda-software/fhir-py/issues/146:
+    save(update_fields=["generalPractitioner"]) fails with KeyError when the
+    field value is [] because clean_empty_values strips it.
+    """
+    from fhirpy.base.resource import serialize
+
+    # Simulate a resource dict with an empty list field
+    resource_data = {
+        "resourceType": "Patient",
+        "id": "test-123",
+        "generalPractitioner": [],
+        "name": [{"family": "Smith"}],
+    }
+
+    # Without fields: empty list is stripped (existing behavior)
+    result_no_fields = serialize(resource_data)
+    assert "generalPractitioner" not in result_no_fields
+    assert result_no_fields["name"] == [{"family": "Smith"}]
+
+    # With fields including the empty list: it must be preserved
+    result_with_fields = serialize(resource_data, fields=["generalPractitioner"])
+    assert "generalPractitioner" in result_with_fields
+    assert result_with_fields["generalPractitioner"] == []
+
+    # With fields NOT including the empty list: it should still be stripped
+    result_other_field = serialize(resource_data, fields=["name"])
+    assert "generalPractitioner" not in result_other_field
+    assert result_other_field["name"] == [{"family": "Smith"}]
+
+
+def test_serialize_preserves_empty_dict_for_specified_fields():
+    """serialize() must also preserve empty dicts when in `fields`."""
+    from fhirpy.base.resource import serialize
+
+    resource_data = {
+        "resourceType": "Patient",
+        "id": "test-456",
+        "contact": {},
+        "active": True,
+    }
+
+    # Empty dict stripped without fields
+    result_no_fields = serialize(resource_data)
+    assert "contact" not in result_no_fields
+
+    # Empty dict preserved when in fields
+    result_with_fields = serialize(resource_data, fields=["contact"])
+    assert "contact" in result_with_fields
+    assert result_with_fields["contact"] == {}
