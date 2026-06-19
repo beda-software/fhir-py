@@ -245,6 +245,9 @@ class SyncClient(AbstractClient, ABC):
         if extra_headers:
             headers = {**headers, **extra_headers}
 
+        if method.lower() == "patch":
+            headers["Content-Type"] = "application/fhir+json"
+
         url = self._build_request_url(path, params)
         r = requests.request(method, url, json=data, headers=headers, **self.requests_config)
 
