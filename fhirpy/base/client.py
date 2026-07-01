@@ -140,7 +140,12 @@ class AbstractClient(ABC):
 
     def _build_request_url(self, path, params) -> str:
         if URL(path).is_absolute():
-            if self.url in path:
+            parsed_path = URL(path)
+            parsed_base = URL(self.url)
+            if (parsed_path.scheme == parsed_base.scheme
+                    and parsed_path.host == parsed_base.host
+                    and self._normalize_port(parsed_path) == self._normalize_port(parsed_base)
+                    and parsed_path.path.startswith(parsed_base.path)):
                 return path
             raise ValueError(
                 f'Request url "{path}" does not contain base url "{self.url}"'
@@ -152,6 +157,10 @@ class AbstractClient(ABC):
         params = params or {}
 
         return f'{self.url.rstrip("/")}/{path.lstrip("/")}?{encode_params(params)}'
+
+    @staticmethod
+    def _normalize_port(url: URL) -> int:
+        return url.port or (443 if url.scheme == 'https' else 80)
 
 
 TClient = TypeVar("TClient", bound=AbstractClient)

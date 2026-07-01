@@ -16,6 +16,7 @@ from fhirpy.base.exceptions import (
 from fhirpy.base.utils import AttrDict
 from fhirpy.lib import AsyncFHIRReference, AsyncFHIRResource
 from tests.utils import MockAiohttpResponse
+from yarl import URL
 
 from .config import FHIR_SERVER_AUTHORIZATION, FHIR_SERVER_URL
 from .types import HumanName, Identifier, Patient, Reference
@@ -911,6 +912,22 @@ class TestLibAsyncCase:
 
     def test_build_request_url_wrong_path(self):
         url = "https://example.com/Patient?_count=100&name=ivan&name=petrov"
+        with pytest.raises(ValueError):  # noqa: PT011
+            self.client._build_request_url(url, None)
+
+    def test_build_request_url_with_explicit_port(self):
+        """URL with explicit default port matching base should be accepted (Fixes #76)."""
+        parsed = URL(self.URL)
+        default_port = 443 if parsed.scheme == 'https' else 80
+        url = f"{parsed.scheme}://{parsed.host}:{default_port}{parsed.path}/Patient?_count=100"
+        request_url = self.client._build_request_url(url, None)
+        assert request_url == url
+
+    def test_build_request_url_with_different_port(self):
+        """URL with a different port should still be rejected."""
+        parsed = URL(self.URL)
+        wrong_port = 8443 if parsed.scheme == 'https' else 8080
+        url = f"{parsed.scheme}://{parsed.host}:{wrong_port}{parsed.path}/Patient"
         with pytest.raises(ValueError):  # noqa: PT011
             self.client._build_request_url(url, None)
 
