@@ -72,7 +72,7 @@ def _get_id_from_ref(ref: str) -> str:
     >>> _get_id_from_ref("Patient/id")
     'id'
     """
-    return ref.split("/")[-1]
+    return ref.rsplit("/", maxsplit=1)[-1]
 
 
 def _get_resource_type_from_ref(ref: str) -> str:

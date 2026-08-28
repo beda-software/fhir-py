@@ -292,3 +292,61 @@ class TestLibBase:
 
     def test_reference_str(self, client: Union[SyncFHIRClient, AsyncFHIRClient]):
         assert "FHIRReference Patient/p1" in str(client.reference("Patient", "p1"))
+
+
+@pytest.mark.parametrize("client_class", [SyncFHIRClient, AsyncFHIRClient])
+class TestBaseUrlAliases:
+    def build_client(
+        self, client_class, aliases: Union[list[str], None] = None
+    ) -> Union[SyncFHIRClient, AsyncFHIRClient]:
+        return client_class("http://devbox:80/fhir", url_aliases=aliases)
+
+    def test_alias_is_rewritten_onto_base_url(self, client_class):
+        client = self.build_client(client_class, ["https://myprod.com/fhir"])
+        url = client._build_request_url("https://myprod.com/fhir/Patient?_count=100", None)
+        assert url == "http://devbox:80/fhir/Patient?_count=100"
+
+    def test_alias_without_path_is_rewritten_onto_base_url_path(self, client_class):
+        client = self.build_client(client_class, ["https://myprod.com"])
+        url = client._build_request_url("https://myprod.com/Patient", None)
+        assert url == "http://devbox:80/fhir/Patient"
+
+    def test_base_url_trailing_slash_is_insignificant(self, client_class):
+        client = client_class("http://devbox:80/fhir/", url_aliases=["https://myprod.com/fhir"])
+        url = client._build_request_url("https://myprod.com/fhir/Patient", None)
+        assert url == "http://devbox:80/fhir/Patient"
+
+    def test_alias_trailing_slash_is_insignificant(self, client_class):
+        client = self.build_client(client_class, ["https://myprod.com/fhir/"])
+        url = client._build_request_url("https://myprod.com/fhir/Patient", None)
+        assert url == "http://devbox:80/fhir/Patient"
+
+    def test_non_matching_alias_is_skipped(self, client_class):
+        client = self.build_client(client_class, ["https://other.com", "https://myprod.com/fhir"])
+        url = client._build_request_url("https://myprod.com/fhir/Patient", None)
+        assert url == "http://devbox:80/fhir/Patient"
+
+    def test_host_extending_alias_is_not_matched(self, client_class):
+        client = self.build_client(client_class, ["https://myprod.com"])
+        with pytest.raises(ValueError):  # noqa: PT011
+            client._build_request_url("https://myprod.com.evil.com/Patient", None)
+
+    def test_unknown_absolute_url_still_raises(self, client_class):
+        client = self.build_client(client_class, ["https://myprod.com/fhir"])
+        with pytest.raises(ValueError):  # noqa: PT011
+            client._build_request_url("https://example.com/Patient", None)
+
+    def test_scheme_must_match_alias(self, client_class):
+        client = self.build_client(client_class, ["https://myprod.com/fhir"])
+        with pytest.raises(ValueError):  # noqa: PT011
+            client._build_request_url("http://myprod.com/fhir/Patient", None)
+
+    def test_without_aliases_absolute_url_raises(self, client_class):
+        client = self.build_client(client_class)
+        with pytest.raises(ValueError):  # noqa: PT011
+            client._build_request_url("https://myprod.com/fhir/Patient", None)
+
+    def test_relative_path_is_unaffected_by_aliases(self, client_class):
+        client = self.build_client(client_class, ["https://myprod.com/fhir"])
+        url = client._build_request_url("/Patient", {"_count": 100})
+        assert url == "http://devbox:80/fhir/Patient?_count=100"

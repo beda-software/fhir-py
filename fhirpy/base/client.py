@@ -13,6 +13,7 @@ from fhirpy.base.utils import (
 
 class AbstractClient(ABC):
     url: str
+    url_aliases: list[str]
     authorization: Union[str, None]
     extra_headers: Union[dict, None]
     dump_resource: Callable[[Any], Any]
@@ -33,13 +34,19 @@ class AbstractClient(ABC):
         authorization: Union[str, None] = None,
         extra_headers: Union[dict, None] = None,
         *,
+        url_aliases: Union[list[str], None] = None,
         dump_resource: Callable[[Any], dict] = lambda x: dict(x),
     ):
         """
+        url_aliases are public addresses of the same server, e.g. an ingress hostname
+        that appears in Bundle.link. An absolute request url starting with one of them
+        is rewritten onto `url` before the request is made.
+
         dump kwarg is a function that is called for all CRUD operations.
         It's needed for custom typing model like pydantic
         """
         self.url = url
+        self.url_aliases = url_aliases or []
         self.authorization = authorization
         self.extra_headers = extra_headers
         self.dump_resource = dump_resource
@@ -140,8 +147,10 @@ class AbstractClient(ABC):
 
     def _build_request_url(self, path, params) -> str:
         if URL(path).is_absolute():
+            path = self._replace_url_alias(path)
             if self.url in path:
                 return path
+
             raise ValueError(
                 f'Request url "{path}" does not contain base url "{self.url}"'
                 " (possible security issue)"
@@ -152,6 +161,15 @@ class AbstractClient(ABC):
         params = params or {}
 
         return f'{self.url.rstrip("/")}/{path.lstrip("/")}?{encode_params(params)}'
+
+    def _replace_url_alias(self, url: str) -> str:
+        """Rewrites a public address of the same server onto the configured base url"""
+        for alias in self.url_aliases:
+            alias_prefix = f'{alias.rstrip("/")}/'
+            if url.startswith(alias_prefix):
+                return f'{self.url.rstrip("/")}/{remove_prefix(url, alias_prefix)}'
+
+        return url
 
 
 TClient = TypeVar("TClient", bound=AbstractClient)

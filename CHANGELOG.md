@@ -1,3 +1,7 @@
+## 2.3.0
+
+* Add `url_aliases` client parameter to rewrite absolute urls from public addresses onto the base url
+
 ## 2.2.0
 
 * Handle 401 and 403 gracefully #141 @bothzoli

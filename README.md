@@ -644,7 +644,7 @@ Import library:
 
 To create AsyncFHIRClient instance use:
 
-`AsyncFHIRClient(url, authorization='', extra_headers={})`
+`AsyncFHIRClient(url, authorization='', extra_headers={}, url_aliases=[])`
 
 Returns an instance of the connection to the server which provides:
 * .reference(resource_type, id, reference, **kwargs) - returns `AsyncFHIRReference` to the resource
@@ -685,6 +685,19 @@ client = AsyncFHIRClient(
 ```
 
 Be careful and don't override other request values like `params`, `json`, `data`, `auth`, because it'll interfere with the way `fhir-py` works and lead to an incorrect behavior. 
+
+### Url aliases
+If the server is reachable at an internal address but returns absolute urls pointing at a public
+one (for example `Bundle.link` built from an ingress hostname), pass `url_aliases` so those urls
+are rewritten back onto the client's base url instead of being rejected:
+```Python
+client = AsyncFHIRClient(
+    "http://devbox:80/fhir/",
+    url_aliases=["https://myprod.com/fhir"],
+)
+# a next link of https://myprod.com/fhir/Patient?_count=100
+# is requested as http://devbox:80/fhir/Patient?_count=100
+```
 
 ### AsyncFHIRResource
 
@@ -736,7 +749,7 @@ Import library:
 
 To create SyncFHIRClient instance use:
 
-`SyncFHIRClient(url, authorization='', extra_headers={})`
+`SyncFHIRClient(url, authorization='', extra_headers={}, url_aliases=[])`
 
 
 Returns an instance of the connection to the server which provides:
@@ -758,6 +771,19 @@ client = SyncFHIRClient(
 ```
 
 Be careful and don't override other request values like `params`, `json`, `data`, `headers`, which may interfere with the way `fhir-py` works and lead to an incorrect behavior. 
+
+### Url aliases
+If the server is reachable at an internal address but returns absolute urls pointing at a public
+one (for example `Bundle.link` built from an ingress hostname), pass `url_aliases` so those urls
+are rewritten back onto the client's base url instead of being rejected:
+```Python
+client = SyncFHIRClient(
+    "http://devbox:80/fhir/",
+    url_aliases=["https://myprod.com/fhir"],
+)
+# a next link of https://myprod.com/fhir/Patient?_count=100
+# is requested as http://devbox:80/fhir/Patient?_count=100
+```
 
 ### SyncFHIRResource
 

@@ -30,18 +30,25 @@ from fhirpy.base.utils import AttrDict, get_by_path, parse_pagination_url
 class SyncClient(AbstractClient, ABC):
     requests_config: dict
 
-    def __init__(
+    def __init__(  # noqa: PLR0913
         self,
         url: str,
         authorization: Union[str, None] = None,
         extra_headers: Union[dict, None] = None,
         requests_config: Union[dict, None] = None,
         *,
+        url_aliases: Union[list[str], None] = None,
         dump_resource: Callable[[Any], dict] = lambda x: dict(x),
     ):
         self.requests_config = requests_config or {}
 
-        super().__init__(url, authorization, extra_headers, dump_resource=dump_resource)
+        super().__init__(
+            url,
+            authorization,
+            extra_headers,
+            url_aliases=url_aliases,
+            dump_resource=dump_resource,
+        )
 
     def execute(
         self,
