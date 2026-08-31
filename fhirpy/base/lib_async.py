@@ -456,7 +456,6 @@ class AsyncSearchSet(
         return [x async for x in self]
 
     async def get(self, id=None) -> TResource:  # noqa: A002
-        searchset = self.limit(2)
         if id:
             warnings.warn(
                 "parameter `id` of method get() is deprecated "
@@ -465,7 +464,9 @@ class AsyncSearchSet(
                 DeprecationWarning,
                 stacklevel=2,
             )
-            searchset = searchset.search(_id=id)
+            searchset = self.search(_id=id)
+        else:
+            searchset = self.limit(2)
         res_data = await searchset.fetch()
         if len(res_data) == 0:
             raise ResourceNotFound("No resources found")
