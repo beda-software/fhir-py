@@ -812,8 +812,15 @@ pip install -r requirements.txt
 
 If you've already installed fhir-py library and want to test the last changes, reinstall it by running `python setup.py install` (or uninstall `pip uninstall fhirpy`)
 
-3. Provide ENV variables `FHIR_SERVER_URL` and `FHIR_SERVER_AUTHORIZATION`, or edit tests/config.py
+3. Set up pre-commit hooks with autohooks:
+```
+pip install autohooks
+autohooks activate
+```
+This runs mypy type checking and ruff linting/formatting automatically before each commit.
 
-4. Run `pytest`
+4. Provide ENV variables `FHIR_SERVER_URL` and `FHIR_SERVER_AUTHORIZATION`, or edit tests/config.py
+
+5. Run `pytest`
 
 If you've found any bugs or think that some part of fhir-py is not compatible with FHIR spec, feel free to create an issue/pull request.
