@@ -254,6 +254,9 @@ class AsyncClient(AbstractClient, ABC):
         if extra_headers:
             headers = {**headers, **extra_headers}
 
+        if method.lower() == "patch":
+            headers["Content-Type"] = "application/fhir+json"
+
         url = self._build_request_url(path, params)
         async with aiohttp.ClientSession(headers=headers) as session:
             async with session.request(method, url, json=data, **self.aiohttp_config) as r:
