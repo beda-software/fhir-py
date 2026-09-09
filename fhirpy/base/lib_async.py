@@ -26,6 +26,8 @@ from fhirpy.base.resource_protocol import (
 from fhirpy.base.searchset import AbstractSearchSet
 from fhirpy.base.utils import AttrDict, get_by_path, parse_pagination_url
 
+JSON_PATCH_CONTENT_TYPE = "application/json-patch+json"
+
 
 class AsyncClient(AbstractClient, ABC):
     aiohttp_config: dict
@@ -180,6 +182,7 @@ class AsyncClient(AbstractClient, ABC):
         self,
         resource_type_or_resource_or_ref: Union[str, type[TResource], TResource],
         id_or_ref: Union[str, None] = None,
+        operations: Union[list[dict], None] = None,
         **kwargs,
     ) -> Union[TResource, dict]:
         resource_type, resource_id, custom_resource_class = get_resource_type_id_and_class(
@@ -189,10 +192,18 @@ class AsyncClient(AbstractClient, ABC):
         if resource_id is None:
             raise TypeError("Resource `id` is required for patch operation")
 
+        if operations is not None and kwargs:
+            raise TypeError("Pass either `operations` (JSON Patch) or field values, not both")
+
+        # A JSON Patch list goes out as application/json-patch+json, which is what
+        # servers like HAPI require; the field-values form is unchanged.
+        if operations is not None:
+            data, extra_headers = operations, {"Content-Type": JSON_PATCH_CONTENT_TYPE}
+        else:
+            data, extra_headers = serialize(kwargs, drop_nulls_from_dicts=False), None
+
         response_data = await self._do_request(
-            "patch",
-            f"{resource_type}/{resource_id}",
-            data=serialize(kwargs, drop_nulls_from_dicts=False),
+            "patch", f"{resource_type}/{resource_id}", data=data, extra_headers=extra_headers
         )
 
         if custom_resource_class:
