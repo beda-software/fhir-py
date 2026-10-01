@@ -56,8 +56,10 @@ class SyncClient(AbstractClient, ABC):
         method: str = "post",
         data: Union[dict, None] = None,
         params: Union[dict, None] = None,
+        *,
+        extra_headers: Union[dict, None] = None,
     ) -> Any:
-        return self._do_request(method, path, data=data, params=params)
+        return self._do_request(method, path, data=data, params=params, extra_headers=extra_headers)
 
     @overload
     def get(self, resource_type_or_resource_or_ref: TResource, id_or_ref: None = None) -> TResource:
