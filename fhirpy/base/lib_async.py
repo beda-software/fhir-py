@@ -56,8 +56,12 @@ class AsyncClient(AbstractClient, ABC):
         method="post",
         data: Union[dict, None] = None,
         params: Union[dict, None] = None,
+        *,
+        extra_headers: Union[dict, None] = None,
     ):
-        return await self._do_request(method, path, data=data, params=params)
+        return await self._do_request(
+            method, path, data=data, params=params, extra_headers=extra_headers
+        )
 
     @overload
     async def get(

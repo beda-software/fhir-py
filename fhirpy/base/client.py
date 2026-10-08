@@ -90,6 +90,8 @@ class AbstractClient(ABC):
         method: str = "post",
         data: Union[dict, None] = None,
         params: Union[dict, None] = None,
+        *,
+        extra_headers: Union[dict, None] = None,
     ):
         pass
 
