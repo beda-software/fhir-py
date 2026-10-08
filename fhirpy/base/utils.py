@@ -5,10 +5,24 @@ from urllib.parse import parse_qs, quote, urlencode, urlparse
 from yarl import URL
 
 
+_dict_attribute_names = frozenset(
+    name for name in dir(dict) if not (name.startswith("__") and name.endswith("__"))
+)
+
+
 class AttrDict(dict):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__dict__ = self
+
+    def __getattribute__(self, name):
+        # `self.__dict__` is the dict itself, so a key named e.g. "items"
+        # would otherwise shadow the dict method of the same name and break
+        # it (see https://github.com/beda-software/fhir-py/issues/110).
+        # Real dict behavior must always win over same-named keys.
+        if name in _dict_attribute_names:
+            return getattr(dict, name).__get__(self, type(self))
+        return super().__getattribute__(name)
 
     def get_by_path(self, path, default=None):
         keys = parse_path(path)
