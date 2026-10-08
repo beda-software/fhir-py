@@ -1,3 +1,7 @@
+## 2.3.1
+
+* Update dependencies
+
 ## 2.3.0
 
 * Add `url_aliases` client parameter to rewrite absolute urls from public addresses onto the base url
