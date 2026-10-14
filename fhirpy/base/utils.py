@@ -6,9 +6,14 @@ from yarl import URL
 
 
 class AttrDict(dict):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.__dict__ = self
+    def __getattr__(self, name):
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError(name) from None
+
+    def __setattr__(self, name, value):
+        self[name] = value
 
     def get_by_path(self, path, default=None):
         keys = parse_path(path)
