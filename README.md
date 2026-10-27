@@ -651,7 +651,7 @@ Returns an instance of the connection to the server which provides:
 * .resource(resource_type, **kwargs) - returns `AsyncFHIRResource` which described below
 * .resources(resource_type) - returns `AsyncFHIRSearchSet`
 * .resources(resource_class: T) - returns `AsyncFHIRSearchSet[T]`
-* `async` .execute(path, method='post', data=None, params=None) - returns a result of FHIR operation
+* `async` .execute(path, method='post', data=None, params=None, *, extra_headers=None) - returns a result of FHIR operation
 
 data model methods:
 * `async` .get(resource_type: type[T], id) - returns T instance by resourceType/id
@@ -671,6 +671,30 @@ data model methods:
 * `async` .delete(resource_type: type[T], reference) - deletes resource by reference
 * `async` .delete(resource_type: str, id) - deletes instance by resourceType/id 
 * `async` .delete(reference: str) - deletes instance by reference
+
+### Per-request headers
+
+Both `AsyncFHIRClient.execute` and `SyncFHIRClient.execute` accept the keyword-only
+`extra_headers` argument. These headers override matching keys in the client headers
+for that request only, without changing either input dictionary or subsequent requests.
+Omitting the argument, passing `None`, or passing an empty dictionary keeps the client headers.
+
+For example, explicitly supply `If-Match` for a version-aware update:
+
+```Python
+patient = await client.get("Patient", "example")
+patient["active"] = True
+await client.execute(
+    "Patient/example",
+    "put",
+    data=patient,
+    extra_headers={"If-Match": f'W/"{patient["meta"]["versionId"]}"'},
+)
+```
+
+Use the same calls without `await` for `SyncFHIRClient`. The caller supplies the header;
+the client does not infer it automatically from resource metadata. This option applies
+to the client-level `execute` method and does not change the existing error handling.
 
 ### Aiohttp request parameters
 Sometimes you need more control over the way http request is made and provide additional aiohttp [session's request](https://docs.aiohttp.org/en/stable/client_reference.html#aiohttp.ClientSession.request) parameters like `ssl`, `proxy`, `cookies`, `timeout` etc. It's possible by providing `aiohttp_config` dict for `AsyncFHIRClient`:
@@ -756,6 +780,7 @@ Returns an instance of the connection to the server which provides:
 * .reference(resource_type, id, reference, **kwargs) - returns `SyncFHIRReference` to the resource
 * .resource(resource_type, **kwargs) - returns `SyncFHIRResource` which described below
 * .resources(resource_type) - returns `SyncFHIRSearchSet`
+* .execute(path, method='post', data=None, params=None, *, extra_headers=None) - returns a result of FHIR operation; see [per-request headers](#per-request-headers)
 
 ### Requests request parameters
 Pass `requests_config` parameter to `SyncFHIRClient` if you want to provide additional parameters for a [request](https://docs.python-requests.org/en/latest/api/#requests.request) like `verify`, `cert`, `timeout` etc.
