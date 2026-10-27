@@ -69,3 +69,9 @@ unfixable = ["F401"]
 [tool.autohooks]
 mode = "pipenv"
 pre-commit = ["autohooks.plugins.mypy", "autohooks.plugins.ruff.check", "autohooks.plugins.ruff.format"]
+
+[tool.mypy]
+python_version = "3.9"
+ignore_missing_imports = true
+warn_return_any = true
+warn_unused_configs = true
