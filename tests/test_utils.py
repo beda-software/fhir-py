@@ -7,7 +7,7 @@ from fhirpy.base.resource_protocol import (
     get_resource_type_from_class,
     get_resource_type_id_and_class,
 )
-from fhirpy.base.utils import clean_empty_values, remove_nulls_from_dicts
+from fhirpy.base.utils import AttrDict, clean_empty_values, remove_nulls_from_dicts
 
 
 def test_get_resource_type_from_class_for_pydantic_model_value():
@@ -84,3 +84,39 @@ def test_clean_empty_values():
     assert clean_empty_values({"item": [None, {"item": None}, {}]}) == {
         "item": [None, {"item": None}, None]
     }
+
+
+def test_attrdict_dict_methods_win_over_same_named_keys():
+    # https://github.com/beda-software/fhir-py/issues/110
+    # AttrDict aliases self.__dict__ to itself for dot access, so a key
+    # named e.g. "items" must not shadow the real dict method.
+    data = AttrDict({"items": {"a": 1}, "keys": [1, 2], "nested": {"b": 2}})
+
+    assert list(data.items()) == [("items", {"a": 1}), ("keys", [1, 2]), ("nested", {"b": 2})]
+    assert list(data.keys()) == ["items", "keys", "nested"]
+    assert list(data.values()) == [{"a": 1}, [1, 2], {"b": 2}]
+    assert data.get("missing") is None
+
+    # Key access and dot access for non-colliding names are unchanged
+    assert data["items"] == {"a": 1}
+    assert data["keys"] == [1, 2]
+    assert data.nested == {"b": 2}
+
+
+def test_serialize_resource_with_dict_method_named_keys():
+    # https://github.com/beda-software/fhir-py/issues/110
+    # serialize() crashed with `TypeError: 'AttrDict' object is not callable`
+    # for resources containing keys named like dict methods.
+    import json
+
+    from fhirpy import SyncFHIRClient
+
+    client = SyncFHIRClient("http://example.com/fhir")
+    resource = client.resource("CustomResource", nested={"items": {"a": 1}})
+
+    assert list(resource["nested"].items()) == [("items", {"a": 1})]
+    assert list(resource.serialize().items()) == [
+        ("nested", {"items": {"a": 1}}),
+        ("resourceType", "CustomResource"),
+    ]
+    json.dumps(resource.serialize())
