@@ -1,3 +1,8 @@
+## 2.3.2
+
+* Update dependencies
+* Support per-request headers in client.execute #175 @larai-w
+
 ## 2.3.1
 
 * Update dependencies
