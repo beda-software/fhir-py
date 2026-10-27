@@ -112,6 +112,8 @@ async def main():
         organization.active = True
     await organization.save(fields=['active'])
     # `await organization.patch(active=True)` would do the same PATCH operation
+    # For servers that require RFC 6902 JSON Patch (e.g. HAPI), pass operations instead:
+    # `await client.patch('Organization', organization.id, operations=[{'op': 'replace', 'path': '/active', 'value': True}])`
 
     # Get patient resource by reference and delete
     patient_ref = client.reference('Patient', 'new_patient')
