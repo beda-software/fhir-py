@@ -6,10 +6,6 @@ class BaseFHIRError(Exception):
     pass
 
 
-class ResourceNotFound(BaseFHIRError):
-    pass
-
-
 class InvalidResponse(BaseFHIRError):
     pass
 
@@ -68,3 +64,7 @@ class OperationOutcome(BaseFHIRError):
             },
         }
         super().__init__(json.dumps(self.resource, indent=2))
+
+
+class ResourceNotFound(OperationOutcome):
+    pass
