@@ -256,7 +256,7 @@ class BaseReference(Generic[TClient, TResource, TReference], AbstractResource[TC
         pass
 
 
-def serialize(resource: Any, drop_nulls_from_dicts=True) -> dict:
+def serialize(resource: Any, drop_nulls_from_dicts=True, fields=None) -> dict:
     def convert_fn(item):
         if isinstance(item, BaseResource):
             return serialize(item.to_reference()), True
@@ -271,4 +271,15 @@ def serialize(resource: Any, drop_nulls_from_dicts=True) -> dict:
     if drop_nulls_from_dicts:
         converted_values = remove_nulls_from_dicts(converted_values)
 
-    return clean_empty_values(converted_values)
+    cleaned = clean_empty_values(converted_values)
+
+    # When fields are specified (patch/update_fields), preserve empty values
+    # for the explicitly requested fields. clean_empty_values strips empty
+    # lists and dicts, but users may intentionally set fields to [] or {}
+    # to clear them via a partial update.
+    if fields:
+        for key in fields:
+            if key in converted_values and key not in cleaned:
+                cleaned[key] = converted_values[key]
+
+    return cleaned
