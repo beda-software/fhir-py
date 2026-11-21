@@ -1,4 +1,5 @@
-from typing import Literal
+from typing import Literal, get_type_hints
+from unittest.mock import patch
 
 import pytest
 from pydantic import BaseModel
@@ -17,11 +18,16 @@ def test_get_resource_type_from_class_for_pydantic_model_value():
     assert get_resource_type_from_class(PatientResource) == "PatientResource"
 
 
-def test_get_resource_type_from_class_for_pydantic_model_annotation():
+def test_get_resource_type_from_class_for_pydantic_model_annotation_evaluates_type_hints_once():
     class PatientResource(BaseModel):
         resourceType: Literal["PatientResource"]  # noqa: N815
 
-    assert get_resource_type_from_class(PatientResource) == "PatientResource"
+    with patch(
+        "fhirpy.base.resource_protocol.get_type_hints", wraps=get_type_hints
+    ) as get_type_hints_spy:
+        assert get_resource_type_from_class(PatientResource) == "PatientResource"
+        assert get_resource_type_from_class(PatientResource) == "PatientResource"
+    assert get_type_hints_spy.call_count == 1
 
 
 class Patient(BaseModel):
