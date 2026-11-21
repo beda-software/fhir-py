@@ -1,3 +1,7 @@
+## 2.3.3
+
+* Cache the resource type lookup for model classes
+
 ## 2.3.2
 
 * Update dependencies
