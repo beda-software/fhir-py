@@ -1,3 +1,4 @@
+from functools import cache
 from typing import Any, Protocol, TypeVar, Union, get_args, get_type_hints
 
 
@@ -16,6 +17,11 @@ def get_resource_type_from_class(cls: type[TResource]):
     except AttributeError:
         pass
 
+    return _get_resource_type_from_annotations(cls)
+
+
+@cache
+def _get_resource_type_from_annotations(cls: type) -> Any:
     try:
         return get_args(get_type_hints(cls)["resourceType"])[0]
     except KeyError:  # pragma: no cover
