@@ -78,7 +78,9 @@ def parse_pagination_url(url):
     if URL(url).is_absolute():
         return url, None
     parsed = urlparse(url)
-    params = parse_qs(parsed.query)
+    # Preserve explicit empty values while continuing to ignore bare names.
+    query = "&".join(field for field in parsed.query.split("&") if "=" in field)
+    params = parse_qs(query, keep_blank_values=True)
     path = parsed.path
 
     return path, params
