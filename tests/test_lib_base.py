@@ -238,6 +238,15 @@ class TestLibBase:
         assert path == "/Patient"
         assert params == {"_count": ["100"], "name": ["ivan", "petrov"]}
 
+    def test_parse_pagination_url_preserves_empty_query_values(
+        self, client: Union[SyncFHIRClient, AsyncFHIRClient]
+    ):
+        url = "/Patient?cursor=AA%2BB&trace&cursor=&filter=&trace=1"
+        path, params = parse_pagination_url(url)
+
+        assert path == "/Patient"
+        assert params == {"cursor": ["AA+B", ""], "filter": [""], "trace": ["1"]}
+
     def test_accessing_property_as_attribute(self, client: Union[SyncFHIRClient, AsyncFHIRClient]):
         patient = client.resource(
             "Patient",
