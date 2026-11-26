@@ -514,13 +514,15 @@ class AsyncSearchSet(
         return self._dict_to_resource(response_data), (status_code == 201)  # noqa: PLR2004
 
     async def patch(self, _resource: Any = None, **kwargs) -> TResource:
-        warnings.warn(
-            "The first arg of method patch() is deprecated "
-            "and will be removed in future versions. "
-            "Please use `patch(key=value)`",
-            DeprecationWarning,
-            stacklevel=2,
-        )
+        if _resource is not None:
+            warnings.warn(
+                "The first arg of method patch() is deprecated "
+                "and will be removed in future versions. "
+                "Please use `patch(key=value)`",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
         data = serialize(
             self.client.dump_resource(_resource) if _resource is not None else kwargs,
             drop_nulls_from_dicts=False,
